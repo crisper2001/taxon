@@ -1,0 +1,5 @@
+{
+  "name": "Taxon",
+  "description": "An interactive web application to open and use Lucid identification keys, enhanced with a Gemini-powered AI assistant to help identify specimens from natural language descriptions.",
+  "requestFramePermissions": []
+}
