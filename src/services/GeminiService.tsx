@@ -1,16 +1,18 @@
 import type { GeminiResponse } from '../types';
-// FIX: Import `Type` for response schema and align with @google/genai guidelines.
 import { GoogleGenAI, Type } from "@google/genai";
 
 // --- Gemini API Service ---
 
 export async function callGeminiAPI(
   prompt: string,
-  model: string
+  model: string,
+  apiKey: string,
 ): Promise<GeminiResponse> {
 
-  // FIX: Per @google/genai guidelines, API key must be obtained exclusively from `process.env.API_KEY`.
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  if (!apiKey) {
+    throw new Error("API key is not configured. Please add it in the preferences menu.");
+  }
+  const ai = new GoogleGenAI({ apiKey });
 
   try {
     const response = await ai.models.generateContent({
@@ -18,7 +20,6 @@ export async function callGeminiAPI(
       contents: [{ parts: [{ text: prompt }] }],
       config: {
         responseMimeType: 'application/json',
-        // FIX: Use responseSchema to ensure structured JSON output as per @google/genai guidelines.
         responseSchema: {
           type: Type.OBJECT,
           properties: {
@@ -42,8 +43,6 @@ export async function callGeminiAPI(
     });
 
     const responseText = response.text;
-    // FIX: With a response schema, the response text is guaranteed to be a clean JSON string,
-    // so extracting from a markdown block is no longer necessary.
     return JSON.parse(responseText) as GeminiResponse;
   } catch (error: any) {
     const message = error.response?.data?.error?.message || error.message || "An unknown error occurred.";

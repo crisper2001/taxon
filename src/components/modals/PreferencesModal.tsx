@@ -24,8 +24,8 @@ const languageNames: Record<Language, string> = {
 interface PreferencesModalProps {
     isOpen: boolean;
     onClose: () => void;
-    currentPrefs: { lang: Language; theme: Theme; };
-    onPreferenceChange: (key: 'lang' | 'theme', value: Language | Theme) => void;
+    currentPrefs: { lang: Language; theme: Theme; geminiApiKey: string; };
+    onPreferenceChange: (key: 'lang' | 'theme' | 'geminiApiKey', value: string) => void;
     t: (key: keyof typeof translations['en']) => string;
     availableLanguages: Language[];
 }
@@ -39,7 +39,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
         }`;
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={t('preferences')}>
-            <div className="p-6 space-y-8">
+            <div className="p-6 space-y-6">
                 <div>
                     <label htmlFor="language-select" className="font-semibold mb-3 text-lg text-center block">{t('language')}</label>
                     <select
@@ -65,6 +65,20 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                             <Icon name="Moon" /> {t('themeDark')}
                         </button>
                     </div>
+                </div>
+                <div>
+                    <label htmlFor="gemini-api-key" className="font-semibold mb-3 text-lg text-center block">
+                        Gemini API Key
+                    </label>
+                    <input
+                        id="gemini-api-key"
+                        type="password"
+                        value={currentPrefs.geminiApiKey}
+                        onChange={(e) => onPreferenceChange('geminiApiKey', e.target.value)}
+                        className="w-full p-2 border-2 border-border rounded-lg bg-bg focus:ring-accent focus:border-accent"
+                        placeholder={t('enterApiKey')}
+                    />
+                    <p className="text-xs text-gray-500 mt-2 text-center">{t('apiKeyNote')}</p>
                 </div>
             </div>
         </Modal>

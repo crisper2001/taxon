@@ -68,6 +68,7 @@ const App: React.FC = () => {
 
   const [lang, setLang] = useState<Language>('en');
   const [theme, setTheme] = useState<Theme>('light');
+  const [geminiApiKey, setGeminiApiKey] = useState<string>('');
 
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isAiPanelVisible, setAiPanelVisible] = useState(false);
@@ -176,6 +177,11 @@ const App: React.FC = () => {
 
     const savedTheme = localStorage.getItem('userTheme') as Theme;
     setTheme(savedTheme || 'light');
+
+    const savedApiKey = localStorage.getItem('geminiApiKey');
+    if (savedApiKey) {
+      setGeminiApiKey(savedApiKey);
+    }
   }, []);
 
   useEffect(() => {
@@ -259,7 +265,7 @@ const App: React.FC = () => {
     });
   };
 
-  const handlePreferenceChange = (key: 'lang' | 'theme', value: string) => {
+  const handlePreferenceChange = (key: 'lang' | 'theme' | 'geminiApiKey', value: string) => {
     if (key === 'lang') {
       const newLang = value as Language;
       setLang(newLang);
@@ -268,6 +274,9 @@ const App: React.FC = () => {
       const newTheme = value as Theme;
       setTheme(newTheme);
       localStorage.setItem('userTheme', newTheme);
+    } else if (key === 'geminiApiKey') {
+      setGeminiApiKey(value);
+      localStorage.setItem('geminiApiKey', value);
     }
   };
 
@@ -325,7 +334,7 @@ const App: React.FC = () => {
         sections={modalSections}
         setSections={setModalSections}
       />
-      <PreferencesModal isOpen={modalState.type === 'preferences'} onClose={() => setModalState({ type: 'none' })} currentPrefs={{ lang, theme }} onPreferenceChange={handlePreferenceChange} t={t} availableLanguages={Object.keys(translations) as Language[]} />
+      <PreferencesModal isOpen={modalState.type === 'preferences'} onClose={() => setModalState({ type: 'none' })} currentPrefs={{ lang, theme, geminiApiKey }} onPreferenceChange={handlePreferenceChange} t={t} availableLanguages={Object.keys(translations) as Language[]} />
       <KeyInfoModal isOpen={modalState.type === 'keyInfo'} onClose={() => setModalState({ type: 'none' })} keyData={keyData} t={t} />
       <FeatureImageModal isOpen={modalState.type === 'featureImage'} onClose={handleModalClose} featureId={(modalState as any).featureId} keyData={keyData} t={t} onImageClick={handleOpenLightbox} />
       <ImageLightboxModal isOpen={modalState.type === 'lightbox'} onClose={handleModalClose} media={(modalState as any).media} startIndex={(modalState as any).startIndex ?? 0} />
@@ -461,6 +470,7 @@ const App: React.FC = () => {
               onEntityClick={(id) => setModalState({ type: 'entity', entityId: id })}
               t={t}
               chatHistory={aiChatHistory}
+              geminiApiKey={geminiApiKey}
               setChatHistory={setAiChatHistory}
             />
           </div>

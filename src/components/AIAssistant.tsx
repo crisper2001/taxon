@@ -11,6 +11,7 @@ interface AIAssistantProps {
   keyData: KeyData | null;
   onEntityClick: (id: string) => void;
   t: (key: string) => string;
+  geminiApiKey: string;
   chatHistory: RawChatMessage[];
   setChatHistory: React.Dispatch<React.SetStateAction<RawChatMessage[]>>;
 }
@@ -60,7 +61,7 @@ const findMatchingEntities = (features: GeminiFeatureMatch[], keyData: KeyData):
 };
 
 
-export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, keyData, onEntityClick, t, chatHistory: rawChatHistory, setChatHistory: setRawChatHistory }) => {
+export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, keyData, onEntityClick, t, geminiApiKey, chatHistory: rawChatHistory, setChatHistory: setRawChatHistory }) => {
   const [userInput, setUserInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -165,7 +166,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
 ${JSON.stringify(keyData.featureListForAI)}`;
 
     try {
-      const response = await callGeminiAPI(prompt, 'gemini-flash-latest');
+      const response = await callGeminiAPI(prompt, 'gemini-flash-latest', geminiApiKey);
 
       // Stop "thinking" indicator
       setIsThinking(false);
@@ -202,7 +203,8 @@ ${JSON.stringify(keyData.featureListForAI)}`;
 
   const isEnabled = !!keyData;
   let placeholder = t('aiWaiting');
-  if (!keyData) placeholder = t('aiNeedKey');
+  if (!geminiApiKey) placeholder = t('aiNeedsKey');
+  else if (!keyData) placeholder = t('aiNeedKey');
   else placeholder = t('aiDescribe');
 
 
@@ -273,11 +275,11 @@ ${JSON.stringify(keyData.featureListForAI)}`;
             target.style.height = `${target.scrollHeight}px`;
           }}
           placeholder={placeholder}
-          disabled={!isEnabled || isThinking}
+          disabled={!isEnabled || isThinking || !geminiApiKey}
           className="w-full p-3 pr-12 border border-border rounded-xl bg-border disabled:opacity-50 resize-none overflow-y-auto focus:outline-none focus:ring-2 focus:ring-accent/50 transition-shadow"
           style={{ maxHeight: '120px' }}
         />
-        <button type="submit" disabled={!isEnabled || isThinking || !userInput.trim()} className="absolute right-3 bottom-5 w-9 h-9 bg-accent text-white rounded-full flex items-center justify-center disabled:bg-gray-400 disabled:scale-95 transition-all duration-200 hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-panel-bg focus:ring-accent cursor-pointer disabled:cursor-not-allowed">
+        <button type="submit" disabled={!isEnabled || isThinking || !userInput.trim() || !geminiApiKey} className="absolute right-3 bottom-5 w-9 h-9 bg-accent text-white rounded-full flex items-center justify-center disabled:bg-gray-400 disabled:scale-95 transition-all duration-200 hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-panel-bg focus:ring-accent cursor-pointer disabled:cursor-not-allowed">
           <Icon name="ArrowUp" />
         </button>
       </form>
