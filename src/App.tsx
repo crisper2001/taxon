@@ -1,62 +1,21 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import type { KeyData, ChosenFeature, ModalState, Entity, Feature, FeatureNode, Media, Score, StateScore, NumericScore, GeminiResponse, RawChatMessage, EntityNode } from './types';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import type { KeyData, ChosenFeature, ModalState, Media, RawChatMessage } from './types';
 import { LucidKeyParser } from './services/LucidKeyParserService';
 import { FeaturesPanel, EntitiesPanel, ChosenFeaturesPanel } from './components/panels';
 import { AIAssistant } from './components/AIAssistant';
 import { ResizablePanels } from './components/panels/ResizablePanels';
 import { EntityModal, PreferencesModal, KeyInfoModal, FeatureImageModal, ImageLightboxModal } from './components/modals';
-import { Icon } from './components/Icon';
 import { translations } from './constants';
-import Spot from './components/Spot';
+import { useKeyFiltering } from './hooks/useKeyFiltering';
+import { useResizablePanel } from './hooks/useResizablePanel';
+import { filterEntityTree } from './utils/treeUtils';
+import { Sidebar } from './components/Sidebar';
+import { Header } from './components/Header';
+import { EmptyState } from './components/EmptyState';
+import { AppProvider } from './context/AppContext';
+
 type Language = 'en' | 'pt-br' | 'es' | 'ru' | 'zh' | 'ja' | 'fr' | 'de' | 'la' | 'it';
 type Theme = 'light' | 'dark';
-
-// --- Custom Hook for Resizable Panel ---
-const useResizablePanel = (initialWidth: number, minWidth: number, maxWidth: number, isVisible: boolean) => {
-  const [width, setWidth] = useState(initialWidth);
-  const isResizing = useRef(false);
-  const dragOffset = useRef(0);
-  const [isActivelyResizing, setIsActivelyResizing] = useState(false);
-
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    isResizing.current = true;
-    setIsActivelyResizing(true);
-    dragOffset.current = e.clientX - (window.innerWidth - width);
-  }, [width]); // Added width dependency
-
-  const handleMouseUp = useCallback(() => {
-    isResizing.current = false;
-    setIsActivelyResizing(false);
-  }, []);
-
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isResizing.current) return;
-    requestAnimationFrame(() => {
-      if (!isResizing.current) return;
-      const newWidth = window.innerWidth - (e.clientX - dragOffset.current);
-      if (newWidth >= minWidth && newWidth <= maxWidth) {
-        setWidth(newWidth);
-      }
-    });
-  }, [minWidth, maxWidth, dragOffset]); // Added dragOffset dependency
-
-  useEffect(() => {
-    if (!isVisible) return;
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    window.addEventListener('mouseleave', handleMouseUp);
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-      window.removeEventListener('mouseleave', handleMouseUp);
-    };
-  }, [isVisible, handleMouseMove, handleMouseUp]);
-
-  return { width, isActivelyResizing, handleMouseDown };
-};
 
 const App: React.FC = () => {
   // --- STATE MANAGEMENT ---
@@ -87,77 +46,7 @@ const App: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // --- DERIVED STATE & MEMOS ---
-  const { directMatches, indirectMatches, discardedEntityIds, directlyDiscarded } = useMemo(() => {
-    if (!keyData) {
-      return { directMatches: new Set<string>(), indirectMatches: new Set<string>(), discardedEntityIds: new Set<string>(), directlyDiscarded: new Set<string>() };
-    }
-    
-    const allEntityIds = new Set(keyData.allEntities.keys());
-
-    if (chosenFeatures.size === 0) {
-      // Nothing is discarded when no features are chosen
-      return { directMatches: allEntityIds, indirectMatches: new Set<string>(), discardedEntityIds: new Set<string>(), directlyDiscarded: new Set<string>() };
-    }
-
-    const directlyDiscarded = new Set<string>();
-
-    // 1. Determine which entities are directly discarded by a feature mismatch.
-    for (const entityId of allEntityIds) {
-      for (const [featureId, choice] of chosenFeatures.entries()) {
-        const feature = keyData.allFeatures.get(featureId);
-        if (!feature) continue;
-
-        const scores = keyData.entityScores.get(entityId);
-        const score = scores?.get(featureId);
-
-        // An entity is mismatched if it has no score for the chosen feature,
-        // or if the score doesn't align with the choice.
-        const isMismatch = !score ||
-          (feature.type === 'state' && (score as StateScore).value === '0') ||
-          (feature.type === 'numeric' && (
-            isNaN(parseFloat(String(choice.value))) || parseFloat(String(choice.value)) < (score as NumericScore).min || parseFloat(String(choice.value)) > (score as NumericScore).max
-          ));
-
-        if (isMismatch) {
-          // This entity has a direct mismatch. Mark it and move to the next entity.
-          directlyDiscarded.add(entityId as string);
-          break; // No need to check other features for this entity
-        }
-      }
-    }
-
-    // 2. Direct matches are all entities that are NOT directly discarded.
-    const directMatches = new Set([...allEntityIds].filter(id => !directlyDiscarded.has(id as string)));
-
-    // 3. Calculate indirect matches (parents of remaining entities).
-    const indirectMatches = new Set<string>();
-    const remainingIds = new Set(directMatches);
-
-    const buildIndirectHierarchy = (nodes: EntityNode[]) => {
-      let changedInLoop = false;
-      nodes.forEach(node => {
-        if (node.isGroup && !remainingIds.has(node.id)) {
-          const hasMatchingChild = node.children.some(child => remainingIds.has(child.id));
-          if (hasMatchingChild) {
-            indirectMatches.add(node.id);
-            remainingIds.add(node.id);
-            changedInLoop = true;
-          }
-        }
-      });
-      return changedInLoop;
-    };
-    
-    // Iteratively build up the hierarchy from children to parents
-    while(buildIndirectHierarchy(keyData.entityTree));
-
-
-    // 4. Total discarded entities are everyone not in the final remaining set.
-    const discardedEntityIds = new Set([...allEntityIds].filter(id => !remainingIds.has(id)));
-
-    return { directMatches, indirectMatches, discardedEntityIds, directlyDiscarded };
-  }, [keyData, chosenFeatures]);
-
+  const { directMatches, indirectMatches, discardedEntityIds, directlyDiscarded } = useKeyFiltering(keyData, chosenFeatures);
 
   // --- EFFECTS ---
   useEffect(() => {
@@ -209,6 +98,12 @@ const App: React.FC = () => {
     setExpandedDiscardedNodes(new Set());
   };
 
+  const handleReset = () => {
+    if (keyData && confirm(t('confirmReset'))) {
+      resetKey();
+    }
+  };
+
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -246,7 +141,7 @@ const App: React.FC = () => {
       // Handle state features (booleans from checkboxes)
       if (!isNumeric) {
         if (value) {
-            newMap.set(id, { value: true }); // Store boolean for state features
+            newMap.set(id, { }); // State features are marked as chosen without a specific value
         } else {
             newMap.delete(id);
         }
@@ -299,29 +194,25 @@ const App: React.FC = () => {
     error ? `${t('error')}: ${error}` :
       keyData ? keyData.keyTitle : t('loadKeyPrompt');
 
-  const filterEntityTree = (nodes: EntityNode[], allowedIds: Set<string>, directIds: Set<string>, directlyDiscarded?: Set<string>): EntityNode[] => {
-    const result: EntityNode[] = [];
-    for (const node of nodes) {
-        if (allowedIds.has(node.id)) {
-            const children = node.isGroup ? filterEntityTree(node.children, allowedIds, directIds, directlyDiscarded) : [];
-            // A group node is only kept if it's a direct match or has children in the filtered set.
-            if (node.isGroup && children.length === 0 && !directIds.has(node.id)) {
-                continue;
-            }
-            result.push({ ...node, children });
-        } else if (node.isGroup) {
-            // A discarded group node is kept if it has children that need to be shown.
-            const children = filterEntityTree(node.children, allowedIds, directIds, directlyDiscarded);
-            if (children.length > 0) {
-                const isSelfDiscarded = directlyDiscarded?.has(node.id) ?? false;
-                result.push({ ...node, children, isDimmed: !isSelfDiscarded });
-            }
-        }
-    }
-    return result;
-  };  
+  // --- CONTEXT VALUE ---
+  const contextValue = {
+    keyData,
+    t,
+    isLoading,
+    error,
+    statusText,
+    lang, setLang,
+    theme, setTheme,
+    geminiApiKey, setGeminiApiKey,
+    isAiPanelVisible, setAiPanelVisible,
+    triggerImport: () => fileInputRef.current?.click(),
+    resetKey: handleReset,
+    openPreferences: () => setModalState({ type: 'preferences' }),
+    openKeyInfo: () => keyData && setModalState({ type: 'keyInfo' }),
+  };
 
   return (
+    <AppProvider value={contextValue}>
     <div className={`main-container font-sans bg-bg text-text transition-colors duration-300 overflow-hidden ${isActivelyResizing ? 'select-none cursor-col-resize' : ''}`}>
       {/* --- Modals --- */}
       <EntityModal
@@ -348,58 +239,17 @@ const App: React.FC = () => {
       />
 
       {/* --- Sidebar --- */}
-      <div id="sidebar" className={`fixed top-0 left-0 h-full z-30 w-60 bg-panel-bg border-r border-border p-4 flex flex-col gap-4 shadow-lg transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-
-        {/* Header/Branding */}
-        <div className="pb-3 flex items-center justify-center">
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Icon name="Leaf" /> Taxon
-          </h2>
-        </div>
-
-        {/* Key Management Actions */}
-        <div className="flex flex-col gap-1 text-sm font-medium">
-          <button disabled className="flex items-center gap-3 w-full p-3 text-left rounded-md hover:bg-hover-bg disabled:text-gray-500 disabled:cursor-not-allowed transition-colors cursor-pointer">
-            <Icon name="FolderOpen" /> {t('openNativeKey')}
-          </button>
-          <button onClick={() => { fileInputRef.current?.click(); }} className="flex items-center gap-3 w-full p-3 text-left rounded-md hover:bg-hover-bg transition-colors cursor-pointer">
-            <Icon name="FileJson" /> {t('importKey')}
-          </button>
-
-          <button onClick={() => {
-            if (keyData && confirm(t('confirmReset'))) {
-              resetKey();
-            }
-          }}
-            disabled={!keyData}
-            className="flex items-center gap-3 w-full p-3 text-left rounded-md hover:bg-hover-bg disabled:text-gray-500 disabled:cursor-not-allowed transition-colors cursor-pointer">
-            <Icon name="RotateCcw" /> {t('resetKey')}
-          </button>
-        </div>
-
-        {/* Settings & Info (Pushed to bottom) */}
-        <div className="mt-auto flex flex-col gap-1 pt-4 text-sm font-medium">
-          <button onClick={() => { setModalState({ type: 'preferences' }); }} className="flex items-center gap-3 w-full p-3 text-left rounded-md hover:bg-hover-bg transition-colors cursor-pointer">
-            <Icon name="Settings2" /> {t('preferences')}
-          </button>
-        </div>
-      </div>
+      <Sidebar
+        isOpen={isSidebarOpen}
+      />
 
       <div className={`content-wrapper flex grow h-screen transition-all duration-300 ease-in-out ${isSidebarOpen ? 'ml-60' : 'ml-0'}`}>
         <div className="page-content grow flex flex-col h-full min-w-0 overflow-hidden">
           {/* --- Header --- */}
-          {keyData && (
-            <div className="header-controls flex items-center p-2 bg-panel-bg border-b border-border gap-4 shrink-0 justify-between">
-              <button onClick={() => setSidebarOpen(!isSidebarOpen)} title={t('toggleMenu')} className="p-2 rounded-md hover:bg-hover-bg cursor-pointer"><Icon name={isSidebarOpen ? "PanelLeftClose" : "PanelLeftOpen"} /></button>
-              <button id="status-display" onClick={() => keyData && setModalState({ type: 'keyInfo' })} disabled={!keyData || isLoading || !!error} className="text-center italic text-gray-500 disabled:cursor-default enabled:cursor-pointer enabled:not-italic enabled:font-medium enabled:text-text p-1 rounded-md hover:enabled:bg-hover-bg">
-                {statusText}
-              </button>
-              <button onClick={() => setAiPanelVisible(true)} disabled={isAiPanelVisible} title={isAiPanelVisible ? undefined : t('assistant')} aria-hidden={isAiPanelVisible} className={`p-2 rounded-md transition-opacity duration-300 ${isAiPanelVisible ? 'opacity-0 pointer-events-none' : 'hover:bg-hover-bg cursor-pointer'}`}>
-                {/* <Icon name="Sparkles" /> */}
-                <Spot primaryColor="currentColor" secondaryColor="#f8fafb" mode="head" className="w-7 text-accent" />
-              </button>
-            </div>
-          )}
+          <Header
+            isSidebarOpen={isSidebarOpen}
+            setSidebarOpen={setSidebarOpen}
+          />
 
           {/* --- Main Panels --- */}
           {keyData ? (
@@ -429,24 +279,7 @@ const App: React.FC = () => {
                 setExpandedNodes={setExpandedDiscardedNodes} />
             </ResizablePanels>
           ) : (
-            <div className="grow flex flex-col items-center justify-center p-4 text-center">
-              {isLoading ? (
-                <span className="animate-pulse">{statusText}</span>
-              ) : error ? (
-                <span className="text-red-500">{statusText}</span>
-              ) : (
-                <>
-                  <h2 className="text-6xl font-bold flex items-center justify-center gap-3 mb-8 animate-fade-in-up">
-                    <Icon name="Leaf" size={60} /> Taxon
-                  </h2>
-                  <button onClick={() => fileInputRef.current?.click()} className="flex flex-col items-center gap-4 p-8 rounded-lg hover:bg-hover-bg transition-colors cursor-pointer border-2 border-dashed border-border">
-                    <Icon name="FolderOpen" size={48} className="text-accent" />
-                    <span className="text-lg font-medium text-text">{t('importKey')}</span>
-                    <span className="text-sm text-gray-500">{t('loadKeyPrompt')}</span>
-                  </button>
-                </>
-              )}
-            </div>
+            <EmptyState />
           )}
         </div>
 
@@ -477,6 +310,7 @@ const App: React.FC = () => {
         </div>
       </div>
     </div>
+    </AppProvider>
   );
 };
 
