@@ -12,6 +12,7 @@ import { filterEntityTree } from './utils/treeUtils';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { EmptyState } from './components/EmptyState';
+import { Toast } from './components/Toast';
 import { AppProvider } from './context/AppContext';
 
 type Language = 'en' | 'pt-br' | 'es' | 'ru' | 'zh' | 'ja' | 'fr' | 'de' | 'la' | 'it';
@@ -28,6 +29,7 @@ const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('en');
   const [theme, setTheme] = useState<Theme>('light');
   const [geminiApiKey, setGeminiApiKey] = useState<string>('');
+  const [showToasts, setShowToasts] = useState<boolean>(true);
 
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isAiPanelVisible, setAiPanelVisible] = useState(false);
@@ -37,6 +39,10 @@ const App: React.FC = () => {
   const [expandedDiscardedNodes, setExpandedDiscardedNodes] = useState(new Set<string>());
   const [aiChatHistory, setAiChatHistory] = useState<RawChatMessage[]>([]);
   const [modalSections, setModalSections] = useState({ hierarchy: true, features: true });
+  const [toasts, setToasts] = useState<{ id: string, message: string }[]>([]);
+  const toastIdCounter = useRef(0);
+  const prevDiscardedCountRef = useRef(0);
+  const isFeatureUpdateRef = useRef(false);
 
   // AI Panel Resizing State
   const MIN_AI_PANEL_WIDTH = 320;
@@ -81,6 +87,11 @@ const App: React.FC = () => {
     if (savedApiKey) {
       setGeminiApiKey(savedApiKey);
     }
+
+    const savedToasts = localStorage.getItem('showToasts');
+    if (savedToasts !== null) {
+      setShowToasts(savedToasts === 'true');
+    }
   }, []);
 
   useEffect(() => {
@@ -108,9 +119,44 @@ const App: React.FC = () => {
     setExpandedDiscardedNodes(new Set());
   };
 
+  const addToast = useCallback((message: string) => {
+    if (!showToasts) return;
+    toastIdCounter.current += 1;
+    const id = toastIdCounter.current.toString();
+    setToasts(prev => [...prev, { id, message }]);
+  }, [showToasts]);
+
+  useEffect(() => {
+    if (!keyData) {
+      prevDiscardedCountRef.current = 0;
+      isFeatureUpdateRef.current = false;
+      return;
+    }
+
+    if (isFeatureUpdateRef.current) {
+      const diff = discardedEntityIds.size - prevDiscardedCountRef.current;
+      const remain = directMatches.size;
+      if (diff > 0) {
+        addToast(t('entitiesDiscardedCount').replace('{count}', diff.toString()).replace('{remain}', remain.toString()));
+      } else if (diff < 0) {
+        addToast(t('entitiesRestoredCount').replace('{count}', Math.abs(diff).toString()).replace('{remain}', remain.toString()));
+      } else {
+        addToast(t('featureUpdated'));
+      }
+      isFeatureUpdateRef.current = false;
+    }
+    
+    prevDiscardedCountRef.current = discardedEntityIds.size;
+  }, [discardedEntityIds, keyData, addToast, t, directMatches.size]);
+
+  const handleCloseToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
   const handleReset = () => {
-    if (keyData && confirm(t('confirmReset'))) {
+    if (keyData && confirm(t('confirmClear'))) {
       resetKey();
+      addToast(t('featuresCleared'));
     }
   };
 
@@ -145,6 +191,7 @@ const App: React.FC = () => {
   };
 
   const updateFeature = (id: string, value: string | boolean | number, isNumeric = false) => {
+    isFeatureUpdateRef.current = true;
     setChosenFeatures(prevMap => {
       const newMap = new Map(prevMap);
 
@@ -170,7 +217,7 @@ const App: React.FC = () => {
     });
   };
 
-  const handlePreferenceChange = (key: 'lang' | 'theme' | 'geminiApiKey', value: string) => {
+  const handlePreferenceChange = (key: 'lang' | 'theme' | 'geminiApiKey' | 'showToasts', value: string | boolean) => {
     if (key === 'lang') {
       const newLang = value as Language;
       setLang(newLang);
@@ -180,8 +227,11 @@ const App: React.FC = () => {
       setTheme(newTheme);
       localStorage.setItem('userTheme', newTheme);
     } else if (key === 'geminiApiKey') {
-      setGeminiApiKey(value);
-      localStorage.setItem('geminiApiKey', value);
+      setGeminiApiKey(value as string);
+      localStorage.setItem('geminiApiKey', value as string);
+    } else if (key === 'showToasts') {
+      setShowToasts(value as boolean);
+      localStorage.setItem('showToasts', String(value));
     }
   };
 
@@ -235,7 +285,7 @@ const App: React.FC = () => {
         sections={modalSections}
         setSections={setModalSections}
       />
-      <PreferencesModal isOpen={modalState.type === 'preferences'} onClose={() => setModalState({ type: 'none' })} currentPrefs={{ lang, theme, geminiApiKey }} onPreferenceChange={handlePreferenceChange} t={t} availableLanguages={Object.keys(translations) as Language[]} />
+      <PreferencesModal isOpen={modalState.type === 'preferences'} onClose={() => setModalState({ type: 'none' })} currentPrefs={{ lang, theme, geminiApiKey, showToasts }} onPreferenceChange={handlePreferenceChange} t={t} availableLanguages={Object.keys(translations) as Language[]} />
       <KeyInfoModal isOpen={modalState.type === 'keyInfo'} onClose={() => setModalState({ type: 'none' })} keyData={keyData} t={t} />
       <FeatureImageModal isOpen={modalState.type === 'featureImage'} onClose={handleModalClose} featureId={(modalState as any).featureId} keyData={keyData} t={t} onImageClick={handleOpenLightbox} />
       <ImageLightboxModal isOpen={modalState.type === 'lightbox'} onClose={handleModalClose} media={(modalState as any).media} startIndex={(modalState as any).startIndex ?? 0} />
@@ -318,6 +368,11 @@ const App: React.FC = () => {
             />
           </div>
         </div>
+      </div>
+      <div className="fixed bottom-6 left-6 z-50 flex flex-col gap-2 pointer-events-none">
+        {toasts.map(toast => (
+          <Toast key={toast.id} message={toast.message} onClose={() => handleCloseToast(toast.id)} />
+        ))}
       </div>
     </div>
     </AppProvider>

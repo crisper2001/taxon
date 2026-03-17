@@ -2,6 +2,8 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Panel } from './Panel';
 import type { KeyData, ChosenFeature, FeatureNode } from '../../types';
 import { RenderFeatureNode } from './FeatureNodeRenderer';
+import { useAppContext } from '../../context/AppContext';
+import { Icon } from '../Icon';
 
 // --- ChosenFeaturesPanel ---
 interface ChosenFeaturesPanelProps {
@@ -19,6 +21,7 @@ export const ChosenFeaturesPanel: React.FC<ChosenFeaturesPanelProps> = ({ chosen
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [matchCount, setMatchCount] = useState(0);
+  const { resetKey } = useAppContext();
 
   const handleToggleNode = (id: string) => {
     setExpandedNodes(prev => {
@@ -49,7 +52,9 @@ export const ChosenFeaturesPanel: React.FC<ChosenFeaturesPanelProps> = ({ chosen
   useEffect(() => {
     if (!searchTerm) {
       setMatchingIds(null);
-      setExpandedNodes(new Set());
+      if (matchingIds !== null) {
+        setExpandedNodes(prev => prev.size > 0 ? new Set() : prev);
+      }
       return;
     }
 
@@ -143,6 +148,13 @@ export const ChosenFeaturesPanel: React.FC<ChosenFeaturesPanelProps> = ({ chosen
       matchCount={matchCount}
       onPrevMatch={() => setCurrentMatchIndex(prev => prev - 1)}
       onNextMatch={() => setCurrentMatchIndex(prev => prev + 1)}
+      actionButton={
+        chosenFeatures.size > 0 ? (
+          <button type="button" onClick={resetKey} title={t('clearFeatures')} className="p-1.5 hover:bg-accent/20 text-gray-500 hover:text-accent rounded cursor-pointer transition-colors flex items-center justify-center shrink-0">
+            <Icon name="Trash2" size={16} />
+          </button>
+        ) : undefined
+      }
     >
       <div ref={containerRef}>
         {chosenTree.map(node => (

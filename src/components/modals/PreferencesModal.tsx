@@ -24,8 +24,8 @@ const languageNames: Record<Language, string> = {
 interface PreferencesModalProps {
     isOpen: boolean;
     onClose: () => void;
-    currentPrefs: { lang: Language; theme: Theme; geminiApiKey: string; };
-    onPreferenceChange: (key: 'lang' | 'theme' | 'geminiApiKey', value: string) => void;
+    currentPrefs: { lang: Language; theme: Theme; geminiApiKey: string; showToasts: boolean; };
+    onPreferenceChange: (key: 'lang' | 'theme' | 'geminiApiKey' | 'showToasts', value: string | boolean) => void;
     t: (key: keyof typeof translations['en']) => string;
     availableLanguages: Language[];
 }
@@ -65,6 +65,17 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                             <Icon name="Moon" /> {t('themeDark')}
                         </button>
                     </div>
+                </div>
+                <div>
+                    <label className="flex items-center justify-between cursor-pointer p-3 border-2 border-border rounded-lg hover:border-gray-400 dark:hover:border-gray-500 transition-colors">
+                        <span className="font-semibold text-lg">{t('uiShowToasts')}</span>
+                        <input
+                            type="checkbox"
+                            checked={currentPrefs.showToasts}
+                            onChange={(e) => onPreferenceChange('showToasts', e.target.checked)}
+                            className="w-5 h-5 rounded border-2 border-border text-accent focus:ring-accent focus:ring-offset-bg bg-bg cursor-pointer"
+                        />
+                    </label>
                 </div>
                 <div>
                     <label htmlFor="gemini-api-key" className="font-semibold mb-3 text-lg text-center block">

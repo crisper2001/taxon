@@ -32,7 +32,9 @@ export const FeaturesPanel: React.FC<FeaturesPanelProps> = ({ keyData, chosenFea
   useEffect(() => {
     if (!searchTerm) {
       setMatchingIds(null);
-      setExpandedNodes(new Set());
+      if (matchingIds !== null) {
+        setExpandedNodes(prev => prev.size > 0 ? new Set() : prev);
+      }
       return;
     }
 

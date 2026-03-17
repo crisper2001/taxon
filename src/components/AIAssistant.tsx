@@ -71,8 +71,10 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
 
   // Effect to reset chat when the key file changes.
   const handleClearHistory = () => {
-    setRawChatHistory([]);
-    consolidatedDescription.current = "";
+    if (confirm(t('confirmClearHistory'))) {
+      setRawChatHistory([]);
+      consolidatedDescription.current = "";
+    }
   };
 
   // Derive translated chat history from raw data.

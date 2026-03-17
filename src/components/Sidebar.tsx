@@ -7,7 +7,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
-  const { keyData, t, triggerImport, resetKey, openPreferences } = useAppContext();
+  const { t, triggerImport, openPreferences } = useAppContext();
 
   return (
     <div id="sidebar" className={`fixed top-0 left-0 h-full z-30 w-60 bg-panel-bg border-r border-border p-4 flex flex-col gap-4 shadow-lg transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
@@ -26,12 +26,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
         </button>
         <button onClick={triggerImport} className="flex items-center gap-3 w-full p-3 text-left rounded-md hover:bg-hover-bg transition-colors cursor-pointer">
           <Icon name="FileJson" /> {t('importKey')}
-        </button>
-
-        <button onClick={resetKey}
-          disabled={!keyData}
-          className="flex items-center gap-3 w-full p-3 text-left rounded-md hover:bg-hover-bg disabled:text-gray-500 disabled:cursor-not-allowed transition-colors cursor-pointer">
-          <Icon name="RotateCcw" /> {t('resetKey')}
         </button>
       </div>
 
