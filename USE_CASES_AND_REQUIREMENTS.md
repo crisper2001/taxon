@@ -24,11 +24,15 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **Actor:** User
 * **Description:** Instead of manually picking features, the user opens the "Spot" AI Assistant and types a natural language description of the specimen. The AI interprets the description, updates the running characteristics, maps them to the Lucid key's exact features, and highlights the matching entities.
 
-### UC6: Search and Navigation
+### UC6: Ask Questions About the Key
+* **Actor:** User
+* **Description:** The user asks the AI assistant general or specific questions about the key's features, entities, or metadata (e.g., "What is feature X?", "Who authored this key?"). The AI leverages the parsed key data to provide informative answers.
+
+### UC7: Search and Navigation
 * **Actor:** User
 * **Description:** The user searches for specific entities or chosen features via text input fields, highlighting and auto-expanding relevant tree nodes.
 
-### UC7: Configure Application Preferences
+### UC8: Configure Application Preferences
 * **Actor:** User
 * **Description:** The user accesses the preferences to set the UI theme (Light/Dark), application language, and Gemini API key required for the AI assistant.
 
@@ -52,6 +56,8 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **FR3.2:** The AI must maintain a consolidated, running context of the user's description across chat messages.
 * **FR3.3:** The AI must map the natural language description exclusively to the available feature IDs derived from the loaded Lucid key and output a strictly formatted JSON response.
 * **FR3.4:** The chat interface must parse the AI's returned features and explicitly highlight the count and names of entities that still match the described criteria.
+* **FR3.5:** The AI must support conversational Q&A about the key's metadata, available features, and entity characteristics, returning standard text responses when the user asks informational questions instead of making an identification.
+* **FR3.6:** The system must gracefully handle AI API errors, specifically alerting the user when an API key is invalid or when the API quota has been exceeded.
 
 ### 2.4. User Interface & Display
 * **FR4.1:** The layout must consist of dynamically resizable panels supporting Features, Chosen Features, Remaining Entities, Discarded Entities, and the AI Assistant sidebar.

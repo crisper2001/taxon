@@ -106,6 +106,7 @@ export interface GeminiEntityMatch {
 export interface GeminiResponse {
   updated_description: string;
   features_used: GeminiFeatureMatch[];
+  answer?: string;
 }
 
 // Raw message structure for storing in state

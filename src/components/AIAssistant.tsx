@@ -96,23 +96,27 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
           content = t('aiNoFeatures');
           break;
         case 'response': {
-          const features = msg.data?.features_used || [];
-          if (features.length > 0) {
-            const matchingEntities = findMatchingEntities(features, keyData);
-            const count = matchingEntities.length;
-            const matchesText = matchingEntities
-              .map(e => `<span class="clickable-entity text-accent font-semibold cursor-pointer hover:underline" data-id="${e.id}">${e.name}</span>`)
-              .join(', ');
-
-            if (count === 1) {
-              content = `${t('aiSingleMatch')} ${matchesText}.`;
-            } else if (count > 1) {
-              content = `${t('aiMultipleMatches').replace('{count}', String(count))} ${matchesText}.`;
-            } else {
-              content = t('aiNoMatch');
-            }
+          if (msg.data?.answer && msg.data.answer.trim().length > 0) {
+            content = msg.data.answer;
           } else {
-            content = t('aiNoFeatures');
+            const features = msg.data?.features_used || [];
+            if (features.length > 0) {
+              const matchingEntities = findMatchingEntities(features, keyData);
+              const count = matchingEntities.length;
+              const matchesText = matchingEntities
+                .map(e => `<span class="clickable-entity text-accent font-semibold cursor-pointer hover:underline" data-id="${e.id}">${e.name}</span>`)
+                .join(', ');
+
+              if (count === 1) {
+                content = `${t('aiSingleMatch')} ${matchesText}.`;
+              } else if (count > 1) {
+                content = `${t('aiMultipleMatches').replace('{count}', String(count))} ${matchesText}.`;
+              } else {
+                content = t('aiNoMatch');
+              }
+            } else {
+              content = t('aiNoFeatures');
+            }
           }
           break;
         }
@@ -145,14 +149,27 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
     setIsThinking(true);
     setError(null);
 
-    const prompt = `You are an expert taxonomist assisting a user in identifying an entity using a Lucid identification key. Your task is to maintain a running description of the entity and map it to the key's features.
+    const prompt = `You are an expert taxonomist assisting a user with a Lucid identification key.
+
+**Key Metadata:**
+- Title: ${keyData.keyTitle}
+- Authors: ${keyData.keyAuthors}
+- Description: ${keyData.keyDescription}
 
 **Instructions:**
-1.  **Update Description:** Read the "Current Description" and the "New User Message". Synthesize them into an "updated_description". Treat the new message as an addition to the current description unless it's a direct correction. For example, if the current description is "Color is red" and the new message is "and it has spots", the updated description should be "Color is red and it has spots". If the new message is "no, the color is blue", the updated description should be "Color is blue".
-2.  **Map Features:** Based ONLY on the "updated_description", identify all matching features from the provided "Feature List".
-3.  **JSON Output:** Respond ONLY with a single JSON object with the following structure:
-    - \`updated_description\`: (string) The new, consolidated description of the entity.
-    - \`features_used\`: (array of objects) Each object represents a feature you used, with keys \`id\`, \`description\` (a human-readable summary, e.g., "Color: Red"), and optionally \`value\` for numeric features.
+1. Determine if the user is describing a specimen for identification OR asking an informational question about the key or its features.
+2. **If Identifying a Specimen:**
+   - Read the "Current Description" and the "New User Message". Synthesize them into an "updated_description" (e.g. adding new traits, or replacing corrected ones).
+   - Map the traits based ONLY on the "updated_description" to the provided "Feature List". Populate "features_used".
+   - Leave "answer" empty.
+3. **If Asking a Question:**
+   - Provide a helpful, conversational response based on the Key Metadata or Feature List in the "answer" field.
+   - Set "updated_description" to exactly match the "Current Description".
+   - Leave "features_used" as an empty array.
+4. **JSON Output:** Respond ONLY with a single JSON object with this structure:
+    - \`updated_description\`: (string) The running description of the entity.
+    - \`features_used\`: (array of objects) With \`id\`, \`description\`, and optionally \`value\`.
+    - \`answer\`: (string) Your conversational answer to a question (leave empty if identifying).
 
 **Data:**
 

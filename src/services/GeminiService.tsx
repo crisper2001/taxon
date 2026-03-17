@@ -24,6 +24,7 @@ export async function callGeminiAPI(
           type: Type.OBJECT,
           properties: {
             updated_description: { type: Type.STRING },
+            answer: { type: Type.STRING },
             features_used: {
               type: Type.ARRAY,
               items: {
@@ -45,7 +46,14 @@ export async function callGeminiAPI(
     const responseText = response.text;
     return JSON.parse(responseText) as GeminiResponse;
   } catch (error: any) {
-    const message = error.response?.data?.error?.message || error.message || "An unknown error occurred.";
+    let message = error.response?.data?.error?.message || error.message || "An unknown error occurred.";
+
+    if (error.status === 403 || message.toLowerCase().includes('api key not valid') || message.toLowerCase().includes('forbidden')) {
+      message = "Invalid API key. Please check your API key in the preferences.";
+    } else if (error.status === 429 || message.toLowerCase().includes('quota') || message.toLowerCase().includes('too many requests') || message.toLowerCase().includes('exhausted')) {
+      message = "API quota exceeded. Please try again later or check your billing account.";
+    }
+
     throw new Error(`Gemini API Error: ${message}`);
   }
 }
