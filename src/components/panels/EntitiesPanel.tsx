@@ -15,14 +15,17 @@ interface EntitiesPanelProps {
   onEntityClick: (id: string) => void;
   t: (key: string) => string;
   expandedNodes: Set<string>;
-  setExpandedNodes: (nodes: Set<string>) => void;
+  setExpandedNodes: React.Dispatch<React.SetStateAction<Set<string>>>;
 }
 export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({ title, icon, count, entityTree, directMatches, indirectMatches, mediaMap, onEntityClick, t, expandedNodes, setExpandedNodes }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [view, setView] = useState<'list' | 'grid'>('list');
   const [isFooterVisible, setIsFooterVisible] = useState(false);
   const [matchingIds, setMatchingIds] = useState<Set<string> | null>(null);
-  const hideTimeoutRef = useRef<NodeJS.Timeout>();
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  const [matchCount, setMatchCount] = useState(0);
 
   const showFooter = () => {
     if (hideTimeoutRef.current) {
@@ -52,7 +55,9 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({ title, icon, count
       setMatchingIds(null);
       // Only clear expansion if there was a search term before.
       // This prevents clearing on initial render or when entities change.
-      if (matchingIds !== null) setExpandedNodes(new Set());
+      if (matchingIds !== null) {
+        setExpandedNodes(prev => prev.size > 0 ? new Set() : prev);
+      }
       return;
     }
 
@@ -64,7 +69,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({ title, icon, count
       let subtreeHasMatch = false;
       for (const node of nodes) {
         const selfMatches = node.name.toLowerCase().includes(lowerCaseSearchTerm);
-        const childrenMatch = node.isGroup ? findMatches(node.children, selfMatches ? [...parents, node.id] : parents) : false;
+        const childrenMatch = node.isGroup ? findMatches(node.children, [...parents, node.id]) : false;
 
         if (selfMatches) newMatching.add(node.id);
         if (selfMatches || childrenMatch) {
@@ -76,9 +81,51 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({ title, icon, count
     };
 
     findMatches(entityTree, []);
-    setMatchingIds(newMatching);
-    setExpandedNodes(newExpanded);
+    setMatchingIds(prev => {
+      if (prev && prev.size === newMatching.size && [...prev].every(id => newMatching.has(id))) return prev;
+      return newMatching;
+    });
+    setExpandedNodes(prev => {
+      if (prev.size === newExpanded.size && [...prev].every(id => newExpanded.has(id))) return prev;
+      return newExpanded;
+    });
   }, [searchTerm, entityTree, setExpandedNodes]);
+
+  // Reset match index when search changes
+  useEffect(() => {
+    setCurrentMatchIndex(0);
+  }, [searchTerm, matchingIds]);
+
+  // Auto-scroll to current match
+  useEffect(() => {
+    if (searchTerm && matchingIds && matchingIds.size > 0) {
+      const timeoutId = setTimeout(() => {
+        if (containerRef.current) {
+          containerRef.current.querySelectorAll('[data-search-active="true"]').forEach(el => el.removeAttribute('data-search-active'));
+          const matches = containerRef.current.querySelectorAll('[data-search-match="true"]');
+          setMatchCount(matches.length);
+          if (matches.length > 0) {
+            let safeIndex = currentMatchIndex;
+            if (safeIndex >= matches.length) safeIndex = 0;
+            if (safeIndex < 0) safeIndex = matches.length - 1;
+            
+            if (safeIndex !== currentMatchIndex) {
+              setCurrentMatchIndex(safeIndex);
+            } else {
+              matches[safeIndex].setAttribute('data-search-active', 'true');
+              matches[safeIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }
+        }
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    } else {
+      setMatchCount(0);
+      if (containerRef.current) {
+        containerRef.current.querySelectorAll('[data-search-active="true"]').forEach(el => el.removeAttribute('data-search-active'));
+      }
+    }
+  }, [matchingIds, searchTerm, currentMatchIndex]);
 
   const handleToggleNode = (id: string) => {
     setExpandedNodes(prev => {
@@ -114,8 +161,13 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({ title, icon, count
       count={count ?? countEntities(entityTree)}
       onSearch={setSearchTerm}
       footer={viewControls}
+      currentMatchIndex={currentMatchIndex}
+      matchCount={matchCount}
+      onPrevMatch={() => setCurrentMatchIndex(prev => prev - 1)}
+      onNextMatch={() => setCurrentMatchIndex(prev => prev + 1)}
     >
       <div
+        ref={containerRef}
         onMouseEnter={showFooter}
         onMouseLeave={hideFooter}
         className={`panel-content-inner ${view === 'grid' ? 'grid gap-2' : 'flex flex-col'}`}
@@ -169,8 +221,8 @@ const RenderEntityNode: React.FC<{
     const hasMedia = media && media.length > 0;
     const thumbUrl = hasMedia ? media[0].url : '';
     return (
-      <div className={`entity-group transition-opacity duration-200 ${isList ? '' : 'col-span-full'} ${isSearchDimmed ? 'opacity-30' : ''}`}>
-        <div className={`flex items-center gap-2 p-1.5 rounded transition-colors duration-200 ${isSearchMatch ? 'bg-accent/20' : ''} ${isFilterDimmed ? 'opacity-50' : ''} hover:bg-hover-bg`}>          
+      <div className={`entity-group transition-opacity duration-200 ${isList ? '' : 'col-span-full'}`}>
+        <div data-search-match={isSearchMatch ? "true" : undefined} className={`flex items-center gap-2 p-1.5 rounded transition-colors duration-200 ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20' : ''} ${isFilterDimmed ? 'opacity-50' : ''} hover:bg-hover-bg data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}>          
           <div className="w-6 h-6 shrink-0 flex items-center justify-center">
             {node.children.length > 0 && (
               <div onClick={() => onToggleNode(node.id)} className="p-1 cursor-pointer rounded hover:bg-black/10 dark:hover:bg-white/10">
@@ -224,7 +276,8 @@ const RenderEntityNode: React.FC<{
     <div
       key={node.id}
       onClick={() => onEntityClick(node.id)}
-      className={`entity-item flex gap-2 p-1.5 rounded cursor-pointer hover:bg-hover-bg transition-all duration-200 ${isList ? 'items-center ml-8' : 'flex-col items-center text-center'} ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20' : ''} ${isFilterDimmed ? 'opacity-50' : ''}`}
+      data-search-match={isSearchMatch ? "true" : undefined}
+      className={`entity-item flex gap-2 p-1.5 rounded cursor-pointer hover:bg-hover-bg transition-all duration-200 ${isList ? 'items-center ml-8' : 'flex-col items-center text-center'} ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20' : ''} ${isFilterDimmed ? 'opacity-50' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}
     >
       {hasMedia ? (
         <img src={thumbUrl} alt={node.name} className={imageClasses} />

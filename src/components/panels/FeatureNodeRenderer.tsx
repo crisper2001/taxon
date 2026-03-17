@@ -36,7 +36,7 @@ export const RenderFeatureNode: React.FC<RenderFeatureNodeProps> = ({
     const hasMedia = media && media.length > 0;
 
     return (
-      <div className={`feature-item relative pl-4 py-1 flex items-center gap-3 hover:bg-hover-bg rounded transition-all duration-200 ${isDimmed ? 'opacity-30' : ''} ${isMatch ? 'bg-accent/20' : ''}`}>
+      <div data-search-match={isMatch ? "true" : undefined} className={`feature-item relative pl-4 py-1 flex items-center gap-3 hover:bg-hover-bg rounded transition-all duration-200 ${isDimmed ? 'opacity-30' : ''} ${isMatch ? 'bg-accent/20' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}>
         {hasMedia && <img src={media![0].url} alt={node.name} onClick={() => onImageClick(node.id)} className="w-24 h-24 object-cover rounded cursor-pointer shrink-0" />}
         {node.type === 'state' ? (
           <label className="flex items-center gap-2 cursor-pointer grow">
@@ -64,8 +64,8 @@ export const RenderFeatureNode: React.FC<RenderFeatureNodeProps> = ({
 
   const isExpanded = expandedNodes.has(node.id);
   return (
-    <div className={`feature-node relative transition-opacity duration-200 ${isDimmed ? 'opacity-30' : ''}`}>
-      <div onClick={() => onToggleNode(node.id)} className={`feature-node-header flex items-center gap-1 cursor-pointer py-1 select-none hover:bg-hover-bg rounded transition-colors duration-200 ${isMatch ? 'bg-accent/20' : ''}`}>
+    <div className={`feature-node relative transition-opacity duration-200`}>
+      <div data-search-match={isMatch ? "true" : undefined} onClick={() => onToggleNode(node.id)} className={`feature-node-header flex items-center gap-1 cursor-pointer py-1 select-none hover:bg-hover-bg rounded transition-colors duration-200 ${isDimmed ? 'opacity-30' : ''} ${isMatch ? 'bg-accent/20' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}>
         <Icon name="ChevronRight" className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
         <span>{node.name}</span>
       </div>

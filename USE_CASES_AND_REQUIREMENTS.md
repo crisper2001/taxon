@@ -58,6 +58,9 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **FR3.4:** The chat interface must parse the AI's returned features and explicitly highlight the count and names of entities that still match the described criteria.
 * **FR3.5:** The AI must support conversational Q&A about the key's metadata, available features, and entity characteristics, returning standard text responses when the user asks informational questions instead of making an identification.
 * **FR3.6:** The system must gracefully handle AI API errors, specifically alerting the user when an API key is invalid or when the API quota has been exceeded.
+* **FR3.7:** The system must display a disclaimer indicating that AI-generated answers may contain incorrect information.
+* **FR3.8:** The system must pre-filter the entity profiles and feature list based on user input before sending them to the AI context to optimize token usage and minimize hallucinations.
+* **FR3.9:** The AI must automatically detect the language of the user's input and formulate any conversational answers or descriptions in that same language.
 
 ### 2.4. User Interface & Display
 * **FR4.1:** The layout must consist of dynamically resizable panels supporting Features, Chosen Features, Remaining Entities, Discarded Entities, and the AI Assistant sidebar.
@@ -66,8 +69,10 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **FR4.4:** Entity feature scores must be visually represented with badges indicating probability/interpretations (e.g., Common, Rare, Uncertain, Interval, Misinterpreted).
 
 ### 2.5. Search and Filtering
-* **FR5.1:** Tree components must support text-based search filtering. 
+* **FR5.1:** Tree components must support text-based search filtering, automatically expanding parent groups to reveal matching child nodes.
 * **FR5.2:** Nodes matching search criteria must be highlighted, while non-matching siblings in an expanded view must be visually dimmed (reduced opacity).
+* **FR5.3:** The system must automatically scroll the view to the current matching search result, visually highlight it, and provide Previous/Next buttons to manually scroll through all search matches within the respective panel.
+* **FR5.4:** The system must provide a clear search button (X) within the search input fields to allow users to quickly reset their active filters.
 
 ### 2.6. State Management & Persistence
 * **FR6.1:** The system must preserve user preferences (API key, language selection, light/dark theme) across sessions using the browser's `localStorage`.

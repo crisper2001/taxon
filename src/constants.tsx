@@ -26,6 +26,7 @@ export const translations = {
         hierarchy: 'Hierarchy',
         back: 'Back',
         aiFeaturesConsidered: 'Features Considered:',
+        aiDisclaimer: 'AI answers might contain incorrect information. Please verify important details.',
     },
     'pt-br': {
         openNativeKey: 'Abrir Chave', importKey: 'Importar Chave', resetKey: 'Reiniciar Chave', preferences: 'Preferências', assistant: 'Spot',
@@ -54,6 +55,7 @@ export const translations = {
         hierarchy: 'Hierarquia',
         back: 'Voltar',
         aiFeaturesConsidered: 'Características Consideradas:',
+        aiDisclaimer: 'As respostas da IA podem conter informações incorretas. Por favor, verifique os detalhes importantes.',
     },
     'es': {
         openNativeKey: 'Abrir Clave', importKey: 'Importar Clave', resetKey: 'Reiniciar Clave', preferences: 'Preferencias', assistant: 'Spot',
@@ -82,6 +84,7 @@ export const translations = {
         hierarchy: 'Jerarquía',
         back: 'Atrás',
         aiFeaturesConsidered: 'Características Consideradas:',
+        aiDisclaimer: 'Las respuestas de la IA pueden contener información incorrecta. Por favor, verifica los detalles importantes.',
     },
     'ru': {
         openNativeKey: 'Открыть ключ', importKey: 'Импортировать ключ', resetKey: 'Сбросить ключ', preferences: 'Настройки', assistant: 'Барбос',
@@ -110,6 +113,7 @@ export const translations = {
         hierarchy: 'Иерархия',
         back: 'Назад',
         aiFeaturesConsidered: 'Учтенные признаки:',
+        aiDisclaimer: 'Ответы ИИ могут содержать неверную информацию. Пожалуйста, проверяйте важные детали.',
     },
     'zh': {
         openNativeKey: '打开密钥', importKey: '导入密钥', resetKey: '重置密钥', preferences: '偏好设置', assistant: 'Spot',
@@ -138,6 +142,7 @@ export const translations = {
         hierarchy: '层级结构',
         back: '返回',
         aiFeaturesConsidered: '考虑的特征：',
+        aiDisclaimer: 'AI的回答可能包含不准确的信息。请核实重要细节。',
     },
     'ja': {
         openNativeKey: 'キーを開く', importKey: 'キーをインポート', resetKey: 'キーをリセット', preferences: '設定', assistant: 'スポット',
@@ -166,6 +171,7 @@ export const translations = {
         hierarchy: '階層',
         back: '戻る',
         aiFeaturesConsidered: '考慮された特徴：',
+        aiDisclaimer: 'AIの回答には誤った情報が含まれる可能性があります。重要な詳細は確認してください。',
     },
     'fr': {
         openNativeKey: 'Ouvrir la Clé', importKey: 'Importer la Clé', resetKey: 'Réinitialiser la Clé', preferences: 'Préférences', assistant: 'Spot',
@@ -194,6 +200,7 @@ export const translations = {
         hierarchy: 'Hiérarchie',
         back: 'Retour',
         aiFeaturesConsidered: 'Caractéristiques Considérées :',
+        aiDisclaimer: 'Les réponses de l\'IA peuvent contenir des informations incorrectes. Veuillez vérifier les détails importants.',
     },
     'de': {
         openNativeKey: 'Schlüssel öffnen', importKey: 'Schlüssel importieren', resetKey: 'Schlüssel zurücksetzen', preferences: 'Einstellungen', assistant: 'Spot',
@@ -222,6 +229,7 @@ export const translations = {
         hierarchy: 'Hierarchie',
         back: 'Zurück',
         aiFeaturesConsidered: 'Berücksichtigte Merkmale:',
+        aiDisclaimer: 'KI-Antworten können falsche Informationen enthalten. Bitte überprüfen Sie wichtige Details.',
     },
     'la': {
         openNativeKey: 'Aperi Clavem Nativam', importKey: 'Importare Clavem', resetKey: 'Reset Clavem', preferences: 'Praeferentiae', assistant: 'Spotus',
@@ -249,6 +257,7 @@ export const translations = {
         charParentOther: 'Alii',
         back: 'Redire',
         aiFeaturesConsidered: 'Proprietates Consideratae:',
+        aiDisclaimer: 'Responsa AI possunt continere informationes falsas. Quaeso verifica singula magna.',
     },
     'it': {
         openNativeKey: 'Apri Chiave', importKey: 'Importa Chiave', resetKey: 'Resetta Chiave', preferences: 'Preferenze', assistant: 'Spot',
@@ -277,5 +286,6 @@ export const translations = {
         scoreRareMisinterpret: 'Raro (mal interpretato)',
         charParentOther: 'Altri',
         aiFeaturesConsidered: 'Caratteristiche Considerate:',
+        aiDisclaimer: 'Le risposte dell\'IA potrebbero contenere informazioni errate. Si prega di verificare i dettagli importanti.',
     }
 };

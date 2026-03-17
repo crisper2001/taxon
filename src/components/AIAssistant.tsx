@@ -149,6 +149,23 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
     setIsThinking(true);
     setError(null);
 
+    // Pre-search the user input for any mentioned entity names to provide only relevant profiles
+    const lowerInput = userInput.toLowerCase();
+    const relevantEntityProfiles = Array.from(keyData.entityProfiles.values())
+      .filter(ep => lowerInput.includes(ep.name.toLowerCase()))
+      .map(ep => ({
+        name: ep.name,
+        characteristics: ep.characteristics.map(c => `${c.parent ? c.parent + ': ' : ''}${c.text}`)
+      }));
+
+    // Pre-search the feature list using keyword matching to reduce payload size
+    const fullSearchContext = (consolidatedDescription.current + " " + userInput).toLowerCase();
+    const relevantFeatures = keyData.featureListForAI.filter(f => {
+      const words = f.description.toLowerCase().split(/[\s:\-,()]+/);
+      return words.some(word => word.length > 3 && fullSearchContext.includes(word));
+    });
+    const featuresToSend = relevantFeatures.length > 0 ? relevantFeatures : keyData.featureListForAI;
+
     const prompt = `You are an expert taxonomist assisting a user with a Lucid identification key.
 
 **Key Metadata:**
@@ -157,16 +174,17 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
 - Description: ${keyData.keyDescription}
 
 **Instructions:**
-1. Determine if the user is describing a specimen for identification OR asking an informational question about the key or its features.
+1. Determine if the user is describing a specimen for identification OR asking an informational question about the key, its features, or its entities.
 2. **If Identifying a Specimen:**
    - Read the "Current Description" and the "New User Message". Synthesize them into an "updated_description" (e.g. adding new traits, or replacing corrected ones).
    - Map the traits based ONLY on the "updated_description" to the provided "Feature List". Populate "features_used".
    - Leave "answer" empty.
 3. **If Asking a Question:**
-   - Provide a helpful, conversational response based on the Key Metadata or Feature List in the "answer" field.
+   - Provide a helpful, conversational response based STRICTLY on the Key Metadata, Feature List, or Entity Profiles in the "answer" field. Do not invent or hallucinate information outside of the provided data. If the answer is not in the data, state that you don't know. Use Markdown to format your response (e.g., **bold**, *italics*, bullet points) for readability.
    - Set "updated_description" to exactly match the "Current Description".
    - Leave "features_used" as an empty array.
-4. **JSON Output:** Respond ONLY with a single JSON object with this structure:
+4. **Language:** Always formulate your conversational "answer" and the "updated_description" in the same language the user used in the "New User Message".
+5. **JSON Output:** Respond ONLY with a single JSON object with this structure:
     - \`updated_description\`: (string) The running description of the entity.
     - \`features_used\`: (array of objects) With \`id\`, \`description\`, and optionally \`value\`.
     - \`answer\`: (string) Your conversational answer to a question (leave empty if identifying).
@@ -180,7 +198,10 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
 "${userInput}"
 
 **Feature List (id, type, description):**
-${JSON.stringify(keyData.featureListForAI)}`;
+${JSON.stringify(featuresToSend)}
+
+**Entity Profiles (name, characteristics):**
+${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `No specific entities cited. Available entities in this key: ${Array.from(keyData.allEntities.values()).map(e => e.name).join(', ')}`}`;
 
     try {
       const response = await callGeminiAPI(prompt, 'gemini-flash-latest', geminiApiKey);
@@ -254,7 +275,7 @@ ${JSON.stringify(keyData.featureListForAI)}`;
             {chatHistory.map((msg, index) => (
               <div key={index} className={`chat-message flex animate-fade-in-up duration-300 ease-out ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`msg-content max-w-[90%] p-3 rounded-2xl shadow-sm ${msg.sender === 'user' ? 'bg-accent text-white rounded-br-lg' : 'bg-header-bg rounded-bl-lg'}`}>
-                  <div dangerouslySetInnerHTML={{ __html: marked.parse(msg.content) }} />
+                  <div className="markdown-body text-base [&>p]:mb-2 [&>p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:mb-2 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:mb-2 [&_strong]:font-semibold [&_em]:italic [&_a]:underline [&_h1]:font-bold [&_h1]:text-lg [&_h2]:font-bold [&_h3]:font-semibold break-words" dangerouslySetInnerHTML={{ __html: marked.parse(msg.content) as string }} />
                   {msg.data && msg.data.features_used.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-border/70">
                       <h4 className="text-sm font-semibold mb-1 opacity-80">{t('aiFeaturesConsidered')}</h4>
@@ -271,9 +292,18 @@ ${JSON.stringify(keyData.featureListForAI)}`;
               </div>
             ))}
             {isThinking && (
-              <div className="flex justify-center items-center gap-2 text-gray-500 animate-fade-in duration-300 ease-out">
-                <Icon name="LoaderCircle" className="animate-spin text-accent" />
-                <span>{t('aiAnalyzing')}</span>
+              <div className="chat-message flex animate-fade-in-up duration-300 ease-out justify-start">
+                <div className="msg-content w-3/4 p-4 rounded-2xl shadow-sm bg-header-bg rounded-bl-lg">
+                  <div className="flex items-center gap-2 mb-3 text-accent opacity-70">
+                    <Icon name="LoaderCircle" className="animate-spin w-4 h-4" />
+                    <span className="text-xs font-medium uppercase tracking-wider">{t('aiAnalyzing')}</span>
+                  </div>
+                  <div className="space-y-2 animate-pulse">
+                    <div className="h-3 bg-border rounded w-full"></div>
+                    <div className="h-3 bg-border rounded w-5/6"></div>
+                    <div className="h-3 bg-border rounded w-4/6"></div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -300,6 +330,9 @@ ${JSON.stringify(keyData.featureListForAI)}`;
           <Icon name="ArrowUp" />
         </button>
       </form>
+      <div className="text-xs text-center text-gray-500 pb-2 px-4 opacity-80">
+        {t('aiDisclaimer') !== 'aiDisclaimer' ? t('aiDisclaimer') : 'AI answers might contain incorrect information. Please verify important details.'}
+      </div>
     </div>
   );
 };

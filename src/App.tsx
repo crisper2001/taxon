@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { KeyData, ChosenFeature, ModalState, Media, RawChatMessage } from './types';
 import { LucidKeyParser } from './services/LucidKeyParserService';
 import { FeaturesPanel, EntitiesPanel, ChosenFeaturesPanel } from './components/panels';
@@ -47,6 +47,16 @@ const App: React.FC = () => {
 
   // --- DERIVED STATE & MEMOS ---
   const { directMatches, indirectMatches, discardedEntityIds, directlyDiscarded } = useKeyFiltering(keyData, chosenFeatures);
+
+  const remainingTree = useMemo(() => {
+    if (!keyData) return [];
+    return filterEntityTree(keyData.entityTree, new Set([...directMatches, ...indirectMatches]), directMatches);
+  }, [keyData, directMatches, indirectMatches]);
+
+  const discardedTree = useMemo(() => {
+    if (!keyData) return [];
+    return filterEntityTree(keyData.entityTree, discardedEntityIds, new Set(), directlyDiscarded);
+  }, [keyData, discardedEntityIds, directlyDiscarded]);
 
   // --- EFFECTS ---
   useEffect(() => {
@@ -259,7 +269,7 @@ const App: React.FC = () => {
                 title={t('entitiesRemaining')}
                 icon="List"
                 count={directMatches.size}                
-                entityTree={filterEntityTree(keyData.entityTree, new Set([...directMatches, ...indirectMatches]), directMatches)}
+                entityTree={remainingTree}
                 directMatches={directMatches}
                 indirectMatches={indirectMatches}
                 mediaMap={keyData.entityMedia} onEntityClick={(id) => setModalState({ type: 'entity', entityId: id })}
@@ -272,7 +282,7 @@ const App: React.FC = () => {
                 directMatches={new Set()}
                 indirectMatches={new Set()}
                 count={discardedEntityIds.size}
-                icon="ListX" entityTree={filterEntityTree(keyData.entityTree, discardedEntityIds, new Set(), directlyDiscarded)}
+                icon="ListX" entityTree={discardedTree}
                 mediaMap={keyData.entityMedia} onEntityClick={(id) => setModalState({ type: 'entity', entityId: id })}
                 t={t}
                 expandedNodes={expandedDiscardedNodes}

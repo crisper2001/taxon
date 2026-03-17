@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Panel } from './Panel';
 import type { KeyData, ChosenFeature, FeatureNode } from '../../types';
 import { RenderFeatureNode } from './FeatureNodeRenderer';
@@ -15,6 +15,10 @@ export const FeaturesPanel: React.FC<FeaturesPanelProps> = ({ keyData, chosenFea
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedNodes, setExpandedNodes] = useState(new Set<string>());
   const [matchingIds, setMatchingIds] = useState<Set<string> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  const [matchCount, setMatchCount] = useState(0);
+  // Note: we require `FeatureNodeRenderer.tsx` to bind data-search-match="true" for full support.
 
   const handleToggleNode = (id: string) => {
     setExpandedNodes(prev => {
@@ -61,22 +65,69 @@ export const FeaturesPanel: React.FC<FeaturesPanelProps> = ({ keyData, chosenFea
     setExpandedNodes(newExpanded);
   }, [searchTerm, keyData.featureTree]);
 
+  // Reset match index when search changes
+  useEffect(() => {
+    setCurrentMatchIndex(0);
+  }, [searchTerm, matchingIds]);
+
+  // Auto-scroll to current match
+  useEffect(() => {
+    if (searchTerm && matchingIds && matchingIds.size > 0) {
+      const timeoutId = setTimeout(() => {
+        if (containerRef.current) {
+          containerRef.current.querySelectorAll('[data-search-active="true"]').forEach(el => el.removeAttribute('data-search-active'));
+          const matches = containerRef.current.querySelectorAll('[data-search-match="true"]');
+          setMatchCount(matches.length);
+          if (matches.length > 0) {
+            let safeIndex = currentMatchIndex;
+            if (safeIndex >= matches.length) safeIndex = 0;
+            if (safeIndex < 0) safeIndex = matches.length - 1;
+            
+            if (safeIndex !== currentMatchIndex) {
+              setCurrentMatchIndex(safeIndex);
+            } else {
+              matches[safeIndex].setAttribute('data-search-active', 'true');
+              matches[safeIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }
+        }
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    } else {
+      setMatchCount(0);
+      if (containerRef.current) {
+        containerRef.current.querySelectorAll('[data-search-active="true"]').forEach(el => el.removeAttribute('data-search-active'));
+      }
+    }
+  }, [matchingIds, searchTerm, currentMatchIndex]);
+
   return (
-    <Panel title={t('features')} icon="ListFilter" count={keyData.totalFeaturesCount} onSearch={setSearchTerm}>
-      {keyData.featureTree.map(node => (
-        <RenderFeatureNode
-          key={node.id}
-          node={node}
-          keyData={keyData}
-          chosenFeatures={chosenFeatures}
-          onFeatureChange={onFeatureChange}
-          onImageClick={onImageClick}
-          t={t}
-          expandedNodes={expandedNodes}
-          onToggleNode={handleToggleNode}
-          matchingIds={matchingIds}
-        />
-      ))}
+    <Panel 
+      title={t('features')} 
+      icon="ListFilter" 
+      count={keyData.totalFeaturesCount} 
+      onSearch={setSearchTerm}
+      currentMatchIndex={currentMatchIndex}
+      matchCount={matchCount}
+      onPrevMatch={() => setCurrentMatchIndex(prev => prev - 1)}
+      onNextMatch={() => setCurrentMatchIndex(prev => prev + 1)}
+    >
+      <div ref={containerRef}>
+        {keyData.featureTree.map(node => (
+          <RenderFeatureNode
+            key={node.id}
+            node={node}
+            keyData={keyData}
+            chosenFeatures={chosenFeatures}
+            onFeatureChange={onFeatureChange}
+            onImageClick={onImageClick}
+            t={t}
+            expandedNodes={expandedNodes}
+            onToggleNode={handleToggleNode}
+            matchingIds={matchingIds}
+          />
+        ))}
+      </div>
     </Panel>
   );
 };
