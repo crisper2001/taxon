@@ -5,6 +5,65 @@ import { ImageViewer } from '../common/ImageViewer';
 import type { KeyData, Media, ScoreType, Characteristic, IconName, EntityNode } from '../../types';
 import { translations } from '../../constants';
 
+interface GroupNode {
+  name: string;
+  path: string;
+  subgroups: Record<string, GroupNode>;
+  chars: Characteristic[];
+}
+
+const RenderFeatureGroup: React.FC<{
+  node: GroupNode;
+  collapsedGroups: Set<string>;
+  toggleGroup: (path: string) => void;
+  getIconForChar: (char: Characteristic) => React.ReactElement;
+  getBadge: (char: { type: string, score?: ScoreType }) => React.ReactElement;
+}> = ({ node, collapsedGroups, toggleGroup, getIconForChar, getBadge }) => {
+  const sortedSubgroups = Object.values(node.subgroups).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  const sortedChars = [...node.chars].sort((a, b) => a.text.localeCompare(b.text, undefined, { numeric: true }));
+
+  return (
+    <>
+      {sortedSubgroups.map(subgroup => {
+        const isCollapsed = collapsedGroups.has(subgroup.path);
+        return (
+          <div key={subgroup.path} className="mb-2 pl-2">
+            <button 
+              onClick={() => toggleGroup(subgroup.path)} 
+              className="w-full text-left font-semibold text-gray-500 flex items-center mb-1 text-sm bg-panel-bg hover:bg-hover-bg transition-colors py-1 px-2 rounded-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent/50 gap-1"
+            >
+              <span className="shrink-0 flex items-center justify-center">
+                <Icon name="ChevronRight" size={16} className={`transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`} />
+              </span>
+              <span className="text-text break-words min-w-0">{subgroup.name}</span>
+            </button>
+            {!isCollapsed && (
+              <div className="border-l border-border/50 ml-3">
+                <RenderFeatureGroup 
+                  node={subgroup} 
+                  collapsedGroups={collapsedGroups} 
+                  toggleGroup={toggleGroup} 
+                  getIconForChar={getIconForChar} 
+                  getBadge={getBadge} 
+                />
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {sortedChars.map((char, i) => (
+        <div key={i} className="flex justify-between items-center py-2 border-b border-border text-sm ml-2 gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="shrink-0 flex items-center justify-center">{getIconForChar(char)}</span>
+            <span className="break-words min-w-0">{char.text}</span>
+          </div>
+          {getBadge(char)}
+        </div>
+      ))}
+    </>
+  );
+};
+
 // --- EntityModal ---
 interface EntityModalProps {
   isOpen: boolean;
@@ -13,20 +72,20 @@ interface EntityModalProps {
   keyData: KeyData | null;
   t: (key: keyof typeof translations['en']) => string;
   onImageClick: (media: Media[], startIndex: number) => void;
-  sections: { hierarchy: boolean; features: boolean; };
-  setSections: React.Dispatch<React.SetStateAction<{ hierarchy: boolean; features: boolean; }>>;
 }
 
-export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entityId, keyData, t, onImageClick, sections, setSections }) => {
+export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entityId, keyData, t, onImageClick }) => {
   const [activeEntityId, setActiveEntityId] = useState(entityId);
   const [isCopied, setIsCopied] = useState(false);
   const [navigationHistory, setNavigationHistory] = useState<string[]>([]);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   // Cache the entityId when the modal opens to prevent content disappearing during close animation
   useEffect(() => {
     if (isOpen) {
       setActiveEntityId(entityId);
       setNavigationHistory([]); // Reset history when modal is opened from outside
+      setCollapsedGroups(new Set());
     }
     setIsCopied(false); // Reset copied state when modal opens/closes
   }, [isOpen, entityId]);
@@ -51,12 +110,27 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
 
   const entityHierarchy = useMemo(() => (keyData && activeEntityId ? findEntityPath(keyData.entityTree, activeEntityId) : []) || [], [keyData, activeEntityId]);
 
-  if (!entity) return <Modal isOpen={isOpen} onClose={onClose} title="Loading..."><div /></Modal>;
+  const featureTree = useMemo(() => {
+    const root: GroupNode = { name: '', path: '', subgroups: {}, chars: [] };
+    (profile?.characteristics || []).forEach(char => {
+      const parts = char.parent.split(' > ');
+      let current = root;
+      let currentPath = '';
+      
+      parts.forEach(part => {
+        currentPath = currentPath ? `${currentPath} > ${part}` : part;
+        if (!current.subgroups[part]) {
+          current.subgroups[part] = { name: part, path: currentPath, subgroups: {}, chars: [] };
+        }
+        current = current.subgroups[part];
+      });
+      
+      current.chars.push(char);
+    });
+    return root;
+  }, [profile?.characteristics]);
 
-  const groupedChars = (profile?.characteristics || []).reduce((acc, char) => {
-    (acc[char.parent] = acc[char.parent] || []).push(char);
-    return acc;
-  }, {} as Record<string, Characteristic[]>);
+  if (!entity) return <Modal isOpen={isOpen} onClose={onClose} title="Loading..."><div /></Modal>;
 
   const SCORE_VALUE_MAP: Record<ScoreType, keyof typeof translations['en']> = { '0': 'scoreUncertain', '1': 'scoreCommon', '2': 'scoreRare', '3': 'scoreUncertain', '4': 'scoreCommonMisinterpret', '5': 'scoreRareMisinterpret' };
 
@@ -78,7 +152,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
       }
     }
     const badgeText = t(badgeTextKey);
-    return <span className={`char-badge text-xs px-2 py-0.5 rounded-full font-bold ${badgeClass}`}>{badgeText}</span>;
+    return <span className={`char-badge text-xs px-2 py-0.5 rounded-full font-bold shrink-0 whitespace-nowrap ${badgeClass}`}>{badgeText}</span>;
   }
 
   const getIconForChar = (char: Characteristic): React.ReactElement => {
@@ -123,8 +197,29 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
     }
   };
 
-  const toggleSection = (section: keyof typeof sections) => {
-    setSections(prev => ({ ...prev, [section]: !prev[section] }));
+  const toggleGroup = (groupName: string) => {
+    setCollapsedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupName)) next.delete(groupName);
+      else next.add(groupName);
+      return next;
+    });
+  };
+
+  const handleExpandAll = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCollapsedGroups(new Set());
+  };
+
+  const handleCollapseAll = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const allPaths = new Set<string>();
+    const traverse = (node: GroupNode) => {
+      if (node.path) allPaths.add(node.path);
+      Object.values(node.subgroups).forEach(traverse);
+    };
+    traverse(featureTree);
+    setCollapsedGroups(allPaths);
   };
 
   const modalTitle = (
@@ -133,8 +228,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
         <button onClick={handleBack} className="p-1 rounded-md hover:bg-hover-bg" title={t('back')}><Icon name="ArrowLeft" size={18} /></button>
       )}
       <span>{entity.name}</span>
-      <button onClick={handleCopy} className="text-gray-400 hover:text-accent p-1 rounded-md" title={t('copyToClipboard')}><Icon name={isCopied ? 'Check' : 'Copy'} size={16} /></button>
-    </div>
+      <button onClick={handleCopy} className="text-gray-400 hover:text-accent p-1 rounded-md" title={t('copy' as any)}><Icon name={isCopied ? 'Check' : 'Copy'} size={16} /></button>    </div>
   );
 
   return (
@@ -150,60 +244,55 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
         <div className="modal-details-viewer w-full md:w-1/2 p-4 flex flex-col min-h-0">
           {entityHierarchy.length > 1 && (
             <div className="mb-4 shrink-0">
-              <button onClick={() => toggleSection('hierarchy')} className="w-full font-bold text-gray-500 dark:text-gray-400 flex items-center gap-2 mb-2 text-left p-1 rounded-md hover:bg-hover-bg transition-colors duration-200">
+              <div className="w-full font-bold text-gray-500 dark:text-gray-400 flex items-center gap-2 mb-2 text-left p-1">
                 <Icon name="Network" size={16} />
                 <span className="grow">{t('hierarchy')}</span>
-                <Icon name="ChevronRight" size={20} className={`transition-transform duration-300 ${sections.hierarchy ? 'rotate-90' : ''}`} />
-              </button>
-              {/* ANIMATION: Added transition classes to animate max-height and opacity */}
-              <div className={`transition-all duration-300 ease-in-out overflow-hidden ${sections.hierarchy ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-                <div className="flex flex-wrap items-center text-sm pl-2 text-gray-600 dark:text-gray-400 pt-2">
-                  {entityHierarchy.map((node, index) => {
-                    const isLast = index === entityHierarchy.length - 1;
-                    return (
-                      <React.Fragment key={node.id}>
-                        {isLast ? (
-                          <span className="font-semibold text-text">{node.name}</span>
-                        ) : (
-                          <button onClick={() => handleNavigate(node.id)} className="hover:underline hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent/50 rounded-sm">
-                            {node.name}
-                          </button>
-                        )}
-                        {!isLast && <Icon name="ChevronRight" size={16} className="mx-1" />}
-                      </React.Fragment>
-                    );
-                  })}
-                </div>
+              </div>
+              <div className="flex flex-wrap items-center text-sm pl-2 text-gray-600 dark:text-gray-400 pt-2">
+                {entityHierarchy.map((node, index) => {
+                  const isLast = index === entityHierarchy.length - 1;
+                  return (
+                    <React.Fragment key={node.id}>
+                      {isLast ? (
+                        <span className="font-semibold text-text">{node.name}</span>
+                      ) : (
+                        <button onClick={() => handleNavigate(node.id)} className="hover:underline hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent/50 rounded-sm">
+                          {node.name}
+                        </button>
+                      )}
+                      {!isLast && <Icon name="ChevronRight" size={16} className="mx-1" />}
+                    </React.Fragment>
+                  );
+                })}
               </div>
             </div>
           )}
-          {Object.keys(groupedChars).length > 0 && (
+          {(profile?.characteristics || []).length > 0 && (
             <div className="flex flex-col grow min-h-0">
-              <button onClick={() => toggleSection('features')} className="w-full font-bold text-gray-500 dark:text-gray-400 flex items-center gap-2 mb-2 text-left p-1 rounded-md hover:bg-hover-bg transition-colors duration-200 shrink-0">
-                <Icon name="List" size={16} />
-                <span className="grow">{t('features')}</span>
-                <Icon name="ChevronRight" size={20} className={`transition-transform duration-300 ${sections.features ? 'rotate-90' : ''}`} />
-              </button>
-              {/* ANIMATION: Replaced conditional rendering with conditional classes for a smooth collapse/expand animation. */}
-              <div className={`overflow-y-auto grow transition-all duration-300 ease-in-out ${sections.features ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}`}>
-                <div className="pt-2">
-                  {Object.entries(groupedChars).map(([groupName, chars]) => (
-                    <div key={groupName} className="mb-4 pl-2">
-                      <h5 className="font-semibold text-gray-500 flex items-center gap-2 mb-1 text-sm bg-panel-bg py-1">
-                        {groupName}
-                      </h5>
-                      {(chars as Characteristic[]).map((char, i) => (
-                        <div key={i} className="flex justify-between items-center py-2 border-b border-border text-sm ml-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            {getIconForChar(char)}
-                            <span>{char.text}</span>
-                          </div>
-                          {getBadge(char)}
-                        </div>
-                      ))}
-                    </div>
-                  ))}
+              <div className="flex items-center w-full mb-2 shrink-0">
+                <div className="grow font-bold text-gray-500 dark:text-gray-400 flex items-center gap-2 text-left p-1">
+                  <Icon name="List" size={16} />
+                  <span className="grow">{t('features')}</span>
                 </div>
+                <div className="flex items-center gap-1 ml-2 text-xs font-semibold">
+                  <button onClick={handleCollapseAll} className="flex items-center text-gray-500 hover:text-accent transition-colors p-1 rounded-sm hover:bg-hover-bg">
+                    <Icon name="ChevronUp" size={14} className="mr-1" />
+                    {t('collapseAll')}
+                  </button>
+                  <button onClick={handleExpandAll} className="flex items-center text-gray-500 hover:text-accent transition-colors p-1 rounded-sm hover:bg-hover-bg">
+                    <Icon name="ChevronDown" size={14} className="mr-1" />
+                    {t('expandAll')}
+                  </button>
+                </div>
+              </div>
+              <div className="overflow-y-auto grow pt-2 pr-2">
+                  <RenderFeatureGroup 
+                    node={featureTree} 
+                    collapsedGroups={collapsedGroups} 
+                    toggleGroup={toggleGroup} 
+                    getIconForChar={getIconForChar} 
+                    getBadge={getBadge} 
+                  />
               </div>
             </div>
           )}

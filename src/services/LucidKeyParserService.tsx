@@ -92,8 +92,16 @@ export class LucidKeyParser {
       if (type === 'text') return;
       const id = el.getAttribute('item_id');
       if (id) {
-        const parentNode = (el.closest('feature_node')?.parentNode as Element)?.closest('feature_node');
-        const parentName = parentNode?.querySelector(':scope > feature_item')?.getAttribute('item_name') ?? undefined;
+        const parentNodes: string[] = [];
+        let currNode = el.closest('feature_node')?.parentNode as Element | null;
+        while (currNode) {
+          const pNode = currNode.closest('feature_node');
+          if (!pNode) break;
+          const pName = pNode.querySelector(':scope > feature_item')?.getAttribute('item_name');
+          if (pName) parentNodes.unshift(pName);
+          currNode = pNode.parentNode as Element | null;
+        }
+        const parentName = parentNodes.length > 0 ? parentNodes.join(' > ') : undefined;
         const name = el.getAttribute('item_name') || 'Unknown Feature';
         const featureInfo: Feature = {
           id, name, type, isState, parentName,
@@ -239,7 +247,8 @@ export class LucidKeyParser {
 
           const profile = keyData.entityProfiles.get(entityId);
           if (profile) {
-            profile.characteristics.push({ text: `${range.min} - ${range.max} ${getUnitSymbol(featureInfo)}`, parent: featureInfo.name, type: 'numeric' });
+            const parentPath = featureInfo.parentName ? `${featureInfo.parentName} > ${featureInfo.name}` : featureInfo.name;
+            profile.characteristics.push({ text: `${range.min} - ${range.max} ${getUnitSymbol(featureInfo)}`, parent: parentPath, type: 'numeric' });
           }
         }
       });

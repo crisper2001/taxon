@@ -42,6 +42,8 @@ export const translations = {
         edit: 'Edit',
         cancel: 'Cancel',
         save: 'Save',
+        expandAll: 'Expand All',
+        collapseAll: 'Collapse All',
     },
     'pt-br': {
         openNativeKey: 'Abrir Chave', importKey: 'Importar Chave', clearFeatures: 'Limpar Características', preferences: 'Preferências', assistant: 'Spot',
@@ -86,6 +88,8 @@ export const translations = {
         edit: 'Editar',
         cancel: 'Cancelar',
         save: 'Salvar',
+        expandAll: 'Expandir Tudo',
+        collapseAll: 'Recolher Tudo',
     },
     'es': {
         openNativeKey: 'Abrir Clave', importKey: 'Importar Clave', clearFeatures: 'Borrar Características', preferences: 'Preferencias', assistant: 'Spot',
@@ -130,6 +134,8 @@ export const translations = {
         edit: 'Editar',
         cancel: 'Cancelar',
         save: 'Guardar',
+        expandAll: 'Expandir Todo',
+        collapseAll: 'Colapsar Todo',
     },
     'ru': {
         openNativeKey: 'Открыть ключ', importKey: 'Импортировать ключ', clearFeatures: 'Очистить признаки', preferences: 'Настройки', assistant: 'Барбос',
@@ -174,6 +180,8 @@ export const translations = {
         edit: 'Изменить',
         cancel: 'Отмена',
         save: 'Сохранить',
+        expandAll: 'Развернуть все',
+        collapseAll: 'Свернуть все',
     },
     'zh': {
         openNativeKey: '打开密钥', importKey: '导入密钥', clearFeatures: '清除特征', preferences: '偏好设置', assistant: 'Spot',
@@ -218,6 +226,8 @@ export const translations = {
         edit: '编辑',
         cancel: '取消',
         save: '保存',
+        expandAll: '全部展开',
+        collapseAll: '全部折叠',
     },
     'ja': {
         openNativeKey: 'キーを開く', importKey: 'キーをインポート', clearFeatures: '特徴をクリア', preferences: '設定', assistant: 'スポット',
@@ -262,6 +272,8 @@ export const translations = {
         edit: '編集',
         cancel: 'キャンセル',
         save: '保存',
+        expandAll: 'すべて展開',
+        collapseAll: 'すべて折りたたむ',
     },
     'fr': {
         openNativeKey: 'Ouvrir la Clé', importKey: 'Importer la Clé', clearFeatures: 'Effacer les caractéristiques', preferences: 'Préférences', assistant: 'Spot',
@@ -306,6 +318,8 @@ export const translations = {
         edit: 'Modifier',
         cancel: 'Annuler',
         save: 'Enregistrer',
+        expandAll: 'Tout développer',
+        collapseAll: 'Tout réduire',
     },
     'de': {
         openNativeKey: 'Schlüssel öffnen', importKey: 'Schlüssel importieren', clearFeatures: 'Merkmale löschen', preferences: 'Einstellungen', assistant: 'Spot',
@@ -350,6 +364,8 @@ export const translations = {
         edit: 'Bearbeiten',
         cancel: 'Abbrechen',
         save: 'Speichern',
+        expandAll: 'Alle erweitern',
+        collapseAll: 'Alle reduzieren',
     },
     'la': {
         openNativeKey: 'Aperi Clavem Nativam', importKey: 'Importare Clavem', clearFeatures: 'Proprietates Purgare', preferences: 'Praeferentiae', assistant: 'Spotus',
@@ -393,6 +409,8 @@ export const translations = {
         edit: 'Emendare',
         cancel: 'Abolere',
         save: 'Servare',
+        expandAll: 'Omnia Dilatare',
+        collapseAll: 'Omnia Contrahere',
     },
     'it': {
         openNativeKey: 'Apri Chiave', importKey: 'Importa Chiave', clearFeatures: 'Cancella Caratteristiche', preferences: 'Preferenze', assistant: 'Spot',
@@ -437,5 +455,7 @@ export const translations = {
         edit: 'Modifica',
         cancel: 'Annulla',
         save: 'Salva',
+        expandAll: 'Espandi tutto',
+        collapseAll: 'Comprimi tutto',
     }
 };

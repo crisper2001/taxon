@@ -38,7 +38,6 @@ const App: React.FC = () => {
   const [expandedRemainingNodes, setExpandedRemainingNodes] = useState(new Set<string>());
   const [expandedDiscardedNodes, setExpandedDiscardedNodes] = useState(new Set<string>());
   const [aiChatHistory, setAiChatHistory] = useState<RawChatMessage[]>([]);
-  const [modalSections, setModalSections] = useState({ hierarchy: true, features: true });
   const [toasts, setToasts] = useState<{ id: string, message: string }[]>([]);
   const toastIdCounter = useRef(0);
   const prevDiscardedCountRef = useRef(0);
@@ -282,8 +281,6 @@ const App: React.FC = () => {
         keyData={keyData}
         t={t}
         onImageClick={handleOpenLightbox}
-        sections={modalSections}
-        setSections={setModalSections}
       />
       <PreferencesModal isOpen={modalState.type === 'preferences'} onClose={() => setModalState({ type: 'none' })} currentPrefs={{ lang, theme, geminiApiKey, showToasts }} onPreferenceChange={handlePreferenceChange} t={t} availableLanguages={Object.keys(translations) as Language[]} />
       <KeyInfoModal isOpen={modalState.type === 'keyInfo'} onClose={() => setModalState({ type: 'none' })} keyData={keyData} t={t} />
@@ -345,14 +342,14 @@ const App: React.FC = () => {
 
         {/* --- AI Panel --- */}
         <div
-          className="shrink-0 flex items-stretch"
+          className="shrink-0 flex items-stretch relative"
           style={{
             width: isAiPanelVisible ? `${aiPanelWidth}px` : '0px', transition: isActivelyResizing ? 'none' : 'width 300ms ease-in-out'
           }}
         >
           <div
             onMouseDown={handleAiPanelMouseDown}
-            className={`w-1 cursor-col-resize transition-colors duration-200 ease-in-out shrink-0 hover:bg-accent ${isActivelyResizing ? 'bg-accent' : ''} ${!isAiPanelVisible ? 'hidden' : ''}`}
+            className={`absolute left-0 top-0 bottom-0 z-10 w-1 cursor-col-resize transition-colors duration-200 ease-in-out hover:bg-accent ${isActivelyResizing ? 'bg-accent' : ''} ${!isAiPanelVisible ? 'hidden' : ''}`}
             title="Resize Panel"
           ></div>
           <div className="ai-panel-wrapper grow overflow-hidden">

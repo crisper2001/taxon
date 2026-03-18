@@ -18,7 +18,7 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 
 ### UC4: Explore Taxon Details
 * **Actor:** User
-* **Description:** The user clicks on an entity to open a detailed modal containing the taxon's hierarchical path, list of characteristic features (with score probabilities like "Common", "Rare", "Uncertain"), and an image gallery.
+* **Description:** The user clicks on an entity to open a detailed modal containing the taxon's hierarchical path, list of characteristic features (with score probabilities like "Common", "Rare", "Uncertain"), and an image gallery. Features are grouped hierarchically, with the ability to expand or collapse individual groups or all groups at once.
 
 ### UC5: AI-Assisted Identification
 * **Actor:** User
@@ -72,7 +72,7 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 ### 2.4. User Interface & Display
 * **FR4.1:** The layout must consist of dynamically resizable panels supporting Features, Chosen Features, Remaining Entities, Discarded Entities, and the AI Assistant sidebar.
 * **FR4.2:** The system must display entities in toggleable "List" and "Grid" views.
-* **FR4.3:** The application must present modal overlays for Entity details, Feature image views, general Key Information, and an Image Lightbox viewer.
+* **FR4.3:** The application must present modal overlays for Entity details, Feature image views, general Key Information, and an Image Lightbox viewer. The Entity details modal must display characteristics in a recursive, collapsible tree structure matching their hierarchy, and provide global "Expand All" and "Collapse All" controls.
 * **FR4.4:** Entity feature scores must be visually represented with badges indicating probability/interpretations (e.g., Common, Rare, Uncertain, Interval, Misinterpreted).
 * **FR4.5:** The system must display stacking visual toast notifications when features are selected or cleared, dynamically showing the count of discarded or restored entities alongside the total number of remaining entities. These toasts must act independently and fade out based on their initial appearance time.
 
