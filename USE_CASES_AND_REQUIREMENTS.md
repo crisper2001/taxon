@@ -52,15 +52,22 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **FR2.4:** The system must discard entities that lack a score for a chosen feature, have a state score of '0', or fall outside the allowed numeric score range (`omin` / `omax`).
 
 ### 2.3. AI Assistant Integration
-* **FR3.1:** The system must communicate with the Google Gemini API (`gemini-flash-latest`) using a user-provided API key.
-* **FR3.2:** The AI must maintain a consolidated, running context of the user's description across chat messages.
+* **FR3.1:** The system must communicate with the Google Gemini API using a user-provided API key.
+* **FR3.2:** The AI must maintain a consolidated, running context of the user's description across chat messages, and the system must provide the multi-turn chat history to the API to allow natural follow-up questions.
 * **FR3.3:** The AI must map the natural language description exclusively to the available feature IDs derived from the loaded Lucid key and output a strictly formatted JSON response.
 * **FR3.4:** The chat interface must parse the AI's returned features and explicitly highlight the count and names of entities that still match the described criteria.
-* **FR3.5:** The AI must support conversational Q&A about the key's metadata, available features, and entity characteristics, returning standard text responses when the user asks informational questions instead of making an identification.
+* **FR3.5:** The AI must support conversational Q&A about the key's metadata, available features, and entity characteristics. The AI must structure its responses predictably (e.g., direct answer followed by bullet points) and explicitly reject off-topic questions.
 * **FR3.6:** The system must gracefully handle AI API errors, specifically alerting the user when an API key is invalid or when the API quota has been exceeded.
 * **FR3.7:** The system must display a disclaimer indicating that AI-generated answers may contain incorrect information.
-* **FR3.8:** The system must pre-filter the entity profiles and feature list based on user input before sending them to the AI context to optimize token usage and minimize hallucinations.
-* **FR3.9:** The AI must automatically detect the language of the user's input and formulate any conversational answers or descriptions in that same language.
+* **FR3.8:** The system must pre-filter the entity profiles and feature list based on user input (including proper tokenization/matching for CJK languages) before sending them to the AI context to optimize token usage and minimize hallucinations.
+* **FR3.9:** The AI must formulate any conversational answers or descriptions in the application's currently selected language, regardless of the language used in the user's input.
+* **FR3.10:** The system must supply core persona rules and constraints via the API's dedicated system instructions payload to ensure strong instruction adherence and reduce the risk of prompt injection.
+* **FR3.11:** The chat interface must allow users to copy the plain text content of AI responses to the system clipboard, stripping out any internal interactive markup.
+* **FR3.12:** The chat interface must automatically truncate excessively long AI responses to maintain readability, providing a user toggle to expand or collapse the full text.
+* **FR3.13:** The chat interface must isolate the data explicitly considered by the AI (e.g., features and entities) into a dedicated, togglable dropdown section below the corresponding message.
+* **FR3.14:** The chat interface must allow the user to regenerate the latest AI response, safely rewinding the chat history and description state.
+* **FR3.15:** The chat interface must allow the user to edit their most recent message inline within the chat bubble, replacing the history and triggering a new AI response upon submission.
+* **FR3.16:** The system must track all generated AI answer versions for a given prompt, providing UI controls to navigate back and forth to restore previous conversational states and correct context.
 
 ### 2.4. User Interface & Display
 * **FR4.1:** The layout must consist of dynamically resizable panels supporting Features, Chosen Features, Remaining Entities, Discarded Entities, and the AI Assistant sidebar.

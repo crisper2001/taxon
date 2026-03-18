@@ -7,6 +7,8 @@ export async function callGeminiAPI(
   prompt: string,
   model: string,
   apiKey: string,
+  systemInstruction?: string,
+  history?: { role: 'user' | 'model', parts: { text: string }[] }[]
 ): Promise<GeminiResponse> {
 
   if (!apiKey) {
@@ -14,11 +16,17 @@ export async function callGeminiAPI(
   }
   const ai = new GoogleGenAI({ apiKey });
 
+  // Combine history (if any) with the current new prompt
+  const contents = history 
+    ? [...history, { role: 'user', parts: [{ text: prompt }] }]
+    : [{ role: 'user', parts: [{ text: prompt }] }];
+
   try {
     const response = await ai.models.generateContent({
       model: model,
-      contents: [{ parts: [{ text: prompt }] }],
+      contents: contents,
       config: {
+        systemInstruction: systemInstruction,
         responseMimeType: 'application/json',
         responseSchema: {
           type: Type.OBJECT,
@@ -37,8 +45,19 @@ export async function callGeminiAPI(
                 required: ['id', 'description'],
               },
             },
+            entities_used: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  id: { type: Type.STRING },
+                  name: { type: Type.STRING },
+                },
+                required: ['id', 'name'],
+              },
+            },
           },
-          required: ['updated_description', 'features_used'],
+          required: ['updated_description', 'features_used', 'entities_used'],
         },
       }
     });

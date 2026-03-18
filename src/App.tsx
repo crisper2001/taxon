@@ -362,6 +362,7 @@ const App: React.FC = () => {
               keyData={keyData}
               onEntityClick={(id) => setModalState({ type: 'entity', entityId: id })}
               t={t}
+              lang={lang}
               chatHistory={aiChatHistory}
               geminiApiKey={geminiApiKey}
               setChatHistory={setAiChatHistory}

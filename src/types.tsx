@@ -106,17 +106,27 @@ export interface GeminiEntityMatch {
 export interface GeminiResponse {
   updated_description: string;
   features_used: GeminiFeatureMatch[];
+  entities_used?: { id: string; name: string }[];
   answer?: string;
 }
 
 // Raw message structure for storing in state
 export type AiMessageType = 'ready' | 'response' | 'error' | 'no_features';
+
+export interface AiMessageVersion {
+  aiType: AiMessageType;
+  data?: GeminiResponse;
+  errorText?: string;
+}
+
 export interface RawChatMessage {
   sender: 'user' | 'ai';
   content?: string; // For user messages
   aiType?: AiMessageType;
   data?: GeminiResponse; // For 'response' type
   errorText?: string; // for 'error' type
+  versions?: AiMessageVersion[];
+  currentVersionIndex?: number;
 }
 
 // Re-export from Icon component to make it available elsewhere
