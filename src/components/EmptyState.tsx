@@ -8,18 +8,23 @@ export const EmptyState: React.FC = () => {
   return (
     <div className="grow flex flex-col items-center justify-center p-4 text-center">
       {isLoading ? (
-        <span className="animate-pulse">{statusText}</span>
+        <span className="animate-pulse text-2xl font-bold text-accent tracking-tight flex items-center gap-3">
+          <Icon name="LoaderCircle" className="animate-spin" size={28} /> {statusText}
+        </span>
       ) : error ? (
-        <span className="text-red-500">{statusText}</span>
+        <div className="flex flex-col items-center gap-4 max-w-md bg-red-500/10 p-6 rounded-3xl border border-red-500/20 text-red-500 shadow-sm">
+          <Icon name="AlertCircle" size={40} />
+          <span className="text-lg font-bold tracking-tight">{statusText}</span>
+        </div>
       ) : (
         <>
-          <h2 className="text-6xl font-bold flex items-center justify-center gap-3 mb-8 animate-fade-in-up">
+          <h2 className="text-6xl font-black flex items-center justify-center gap-4 mb-10 animate-fade-in-up text-accent tracking-tight">
             <Icon name="Leaf" size={60} /> Taxon
           </h2>
-          <button onClick={triggerImport} className="flex flex-col items-center gap-4 p-8 rounded-lg hover:bg-hover-bg transition-colors cursor-pointer border-2 border-dashed border-border">
-            <Icon name="FolderOpen" size={48} className="text-accent" />
-            <span className="text-lg font-medium text-text">{t('importKey')}</span>
-            <span className="text-sm text-gray-500">{t('loadKeyPrompt')}</span>
+          <button onClick={triggerImport} className="flex flex-col items-center gap-5 p-10 rounded-3xl hover:bg-panel-bg transition-all duration-300 cursor-pointer border-2 border-dashed border-border hover:border-accent hover:shadow-lg shadow-sm group bg-bg">
+            <Icon name="FolderOpen" size={56} className="text-accent opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
+            <span className="text-xl font-bold text-text tracking-tight">{t('importKey')}</span>
+            <span className="text-base text-gray-500 font-medium">{t('loadKeyPrompt')}</span>
           </button>
         </>
       )}

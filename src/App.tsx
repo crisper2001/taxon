@@ -4,7 +4,7 @@ import { LucidKeyParser } from './services/LucidKeyParserService';
 import { FeaturesPanel, EntitiesPanel, ChosenFeaturesPanel } from './components/panels';
 import { AIAssistant } from './components/AIAssistant';
 import { ResizablePanels } from './components/panels/ResizablePanels';
-import { EntityModal, PreferencesModal, KeyInfoModal, FeatureImageModal, ImageLightboxModal } from './components/modals';
+import { EntityModal, PreferencesModal, KeyInfoModal, FeatureImageModal, ImageLightboxModal, ConfirmModal } from './components/modals';
 import { translations } from './constants';
 import { useKeyFiltering } from './hooks/useKeyFiltering';
 import { useResizablePanel } from './hooks/useResizablePanel';
@@ -44,8 +44,8 @@ const App: React.FC = () => {
   const isFeatureUpdateRef = useRef(false);
 
   // AI Panel Resizing State
-  const MIN_AI_PANEL_WIDTH = 320;
-  const MAX_AI_PANEL_WIDTH = 900;
+  const MIN_AI_PANEL_WIDTH = 350;
+  const MAX_AI_PANEL_WIDTH = 700;
   const { width: aiPanelWidth, isActivelyResizing, handleMouseDown: handleAiPanelMouseDown } = useResizablePanel(450, MIN_AI_PANEL_WIDTH, MAX_AI_PANEL_WIDTH, isAiPanelVisible);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -153,10 +153,14 @@ const App: React.FC = () => {
   }, []);
 
   const handleReset = () => {
-    if (keyData && confirm(t('confirmClear'))) {
-      resetKey();
-      addToast(t('featuresCleared'));
+    if (keyData) {
+      setModalState({ type: 'confirmClear' });
     }
+  };
+
+  const executeReset = () => {
+    resetKey();
+    addToast(t('featuresCleared'));
   };
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -176,9 +180,9 @@ const App: React.FC = () => {
       setSidebarOpen(false);
     } catch (err: unknown) {
       if (err instanceof Error) {
-        setError(err.message);
+        setError(t(err.message as keyof typeof translations['en']));
       } else {
-        setError('Failed to process key file.');
+        setError(t('errProcessingKey'));
       }
       console.error("Error processing key file:", err);
     } finally {
@@ -287,6 +291,17 @@ const App: React.FC = () => {
       <FeatureImageModal isOpen={modalState.type === 'featureImage'} onClose={handleModalClose} featureId={(modalState as any).featureId} keyData={keyData} t={t} onImageClick={handleOpenLightbox} />
       <ImageLightboxModal isOpen={modalState.type === 'lightbox'} onClose={handleModalClose} media={(modalState as any).media} startIndex={(modalState as any).startIndex ?? 0} />
 
+      <ConfirmModal
+        isOpen={modalState.type === 'confirmClear'}
+        onClose={handleModalClose}
+        onConfirm={executeReset}
+        title={t('clearFeatures')}
+        message={t('confirmClear')}
+        confirmText={t('clearFeatures')}
+        cancelText={t('cancel')}
+        isDestructive={true}
+      />
+
       <input
         type="file"
         ref={fileInputRef}
@@ -349,8 +364,8 @@ const App: React.FC = () => {
         >
           <div
             onMouseDown={handleAiPanelMouseDown}
-            className={`absolute left-0 top-0 bottom-0 z-10 w-1 cursor-col-resize transition-colors duration-200 ease-in-out hover:bg-accent ${isActivelyResizing ? 'bg-accent' : ''} ${!isAiPanelVisible ? 'hidden' : ''}`}
-            title="Resize Panel"
+            className={`absolute left-0 top-0 bottom-0 z-10 w-1.5 cursor-col-resize transition-colors duration-200 ease-in-out hover:bg-accent/80 ${isActivelyResizing ? 'bg-accent' : ''} ${!isAiPanelVisible ? 'hidden' : ''}`}
+            title={t('resizePanel')}
           ></div>
           <div className="ai-panel-wrapper grow overflow-hidden">
             <AIAssistant

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Icon } from '../Icon';
 
 interface ModalProps {
   isOpen: boolean;
@@ -50,11 +51,13 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
   }
 
   return (
-    <div onClick={onClose} className={`modal-backdrop fixed inset-0 bg-[rgba(0,0,0,0.5)] z-40 flex items-center justify-center p-4 transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
-      <div onClick={(e) => e.stopPropagation()} className={`modal flex flex-col bg-panel-bg rounded-lg shadow-2xl w-full h-auto max-h-[90vh] ${sizeClasses[size]} transition-all duration-300 ${isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
-        <div className="modal-header flex justify-between items-center p-4 border-b border-border">
-          <h3 className="text-xl font-bold">{title}</h3>
-          <button onClick={onClose} className="text-2xl hover:text-red-500">&times;</button>
+    <div onClick={onClose} className={`modal-backdrop fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+      <div onClick={(e) => e.stopPropagation()} className={`modal flex flex-col bg-panel-bg rounded-3xl shadow-2xl border border-border/50 w-full h-auto max-h-[90vh] ${sizeClasses[size]} transition-all duration-300 ${isVisible ? 'scale-100 opacity-100 translate-y-0' : 'scale-95 opacity-0 translate-y-4'}`}>
+        <div className="modal-header flex justify-between items-center p-5 border-b border-border/50">
+          <h3 className="text-2xl font-bold tracking-tight">{title}</h3>
+          <button onClick={onClose} className="p-2 -mr-2 rounded-full hover:bg-hover-bg text-gray-500 hover:text-red-500 transition-colors cursor-pointer shrink-0">
+            <Icon name="X" size={24} />
+          </button>
         </div>
         <div className="modal-content grow flex flex-col min-h-0">
           {children}

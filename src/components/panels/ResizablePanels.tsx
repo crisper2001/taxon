@@ -4,7 +4,7 @@ interface ResizablePanelsProps {
     children: React.ReactNode[];
 }
 
-const MIN_PANEL_SIZE = 100;
+const MIN_PANEL_SIZE = 250;
 const RESIZER_SIZE = 5; // The size of the resizer bar in pixels.
 
 export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children }) => {
@@ -36,15 +36,13 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children }) =>
             const rect = containerRef.current.getBoundingClientRect();
 
             if (resizingType.current === 'v') {
-                const newFirstColWidth = e.clientX - rect.left - dragOffset.current;
-                if (newFirstColWidth > MIN_PANEL_SIZE && (rect.width - newFirstColWidth - RESIZER_SIZE) > MIN_PANEL_SIZE) {
-                    setLayout(prev => ({ ...prev, cols: `${newFirstColWidth}px ${RESIZER_SIZE}px 1fr` }));
-                }
+                let newFirstColWidth = e.clientX - rect.left - dragOffset.current;
+                newFirstColWidth = Math.max(MIN_PANEL_SIZE, Math.min(newFirstColWidth, rect.width - MIN_PANEL_SIZE - RESIZER_SIZE));
+                setLayout(prev => ({ ...prev, cols: `${newFirstColWidth}px ${RESIZER_SIZE}px 1fr` }));
             } else { // 'h'
-                const newFirstRowHeight = e.clientY - rect.top - dragOffset.current;
-                if (newFirstRowHeight > MIN_PANEL_SIZE && (rect.height - newFirstRowHeight - RESIZER_SIZE) > MIN_PANEL_SIZE) {
-                    setLayout(prev => ({ ...prev, rows: `${newFirstRowHeight}px ${RESIZER_SIZE}px 1fr` }));
-                }
+                let newFirstRowHeight = e.clientY - rect.top - dragOffset.current;
+                newFirstRowHeight = Math.max(MIN_PANEL_SIZE, Math.min(newFirstRowHeight, rect.height - MIN_PANEL_SIZE - RESIZER_SIZE));
+                setLayout(prev => ({ ...prev, rows: `${newFirstRowHeight}px ${RESIZER_SIZE}px 1fr` }));
             }
         });
     }, []);

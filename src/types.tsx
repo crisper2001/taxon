@@ -89,7 +89,8 @@ export type ModalState =
   | { type: 'featureImage'; featureId: string }
   | { type: 'keyInfo' }
   | { type: 'preferences' }
-  | { type: 'lightbox'; media: Media[]; startIndex: number };
+  | { type: 'lightbox'; media: Media[]; startIndex: number }
+  | { type: 'confirmClear' };
 
 export interface GeminiFeatureMatch {
   id: string;

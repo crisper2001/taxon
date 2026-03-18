@@ -22,6 +22,8 @@ export const ChosenFeaturesPanel: React.FC<ChosenFeaturesPanelProps> = ({ chosen
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [matchCount, setMatchCount] = useState(0);
   const { resetKey } = useAppContext();
+  const [isFooterVisible, setIsFooterVisible] = useState(false);
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleToggleNode = (id: string) => {
     setExpandedNodes(prev => {
@@ -31,6 +33,27 @@ export const ChosenFeaturesPanel: React.FC<ChosenFeaturesPanelProps> = ({ chosen
       return newSet;
     });
   };
+
+  const showFooter = () => {
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+    }
+    setIsFooterVisible(true);
+  };
+
+  const hideFooter = () => {
+    hideTimeoutRef.current = setTimeout(() => {
+      setIsFooterVisible(false);
+    }, 300);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // 1. Create a new tree containing only chosen features and their ancestors
   const chosenTree = useMemo(() => {
@@ -138,6 +161,20 @@ export const ChosenFeaturesPanel: React.FC<ChosenFeaturesPanelProps> = ({ chosen
     return uniqueFeatures.size;
   }, [chosenFeatures, keyData.allFeatures]);
 
+  const clearButton = chosenFeatures.size > 0 ? (
+    <div 
+      onMouseEnter={showFooter} 
+      onMouseLeave={hideFooter}
+      className={`transition-opacity duration-300 ${isFooterVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+    >
+      <div className="view-controls flex items-center bg-header-bg rounded-md p-0.5 shadow-sm border border-border/50">
+        <button onClick={resetKey} title={t('clearFeatures')} className="p-1 rounded transition-colors duration-200 hover:bg-red-500 hover:text-white text-gray-500 cursor-pointer flex items-center justify-center">
+          <Icon name="Trash2" size={16} />
+        </button>
+      </div>
+    </div>
+  ) : undefined;
+
   return (
     <Panel 
       title={t('featuresChosen')} 
@@ -148,15 +185,9 @@ export const ChosenFeaturesPanel: React.FC<ChosenFeaturesPanelProps> = ({ chosen
       matchCount={matchCount}
       onPrevMatch={() => setCurrentMatchIndex(prev => prev - 1)}
       onNextMatch={() => setCurrentMatchIndex(prev => prev + 1)}
-      actionButton={
-        chosenFeatures.size > 0 ? (
-          <button type="button" onClick={resetKey} title={t('clearFeatures')} className="p-1.5 hover:bg-accent/20 text-gray-500 hover:text-accent rounded cursor-pointer transition-colors flex items-center justify-center shrink-0">
-            <Icon name="Trash2" size={16} />
-          </button>
-        ) : undefined
-      }
+      footer={clearButton}
     >
-      <div ref={containerRef}>
+      <div ref={containerRef} onMouseEnter={showFooter} onMouseLeave={hideFooter} className="h-full min-h-[50px]">
         {chosenTree.map(node => (
           <RenderFeatureNode
             key={node.id}

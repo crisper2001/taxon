@@ -23,9 +23,8 @@ export const useResizablePanel = (initialWidth: number, minWidth: number, maxWid
     requestAnimationFrame(() => {
       if (!isResizing.current) return;
       const newWidth = window.innerWidth - (e.clientX - dragOffset.current);
-      if (newWidth >= minWidth && newWidth <= maxWidth) {
-        setWidth(newWidth);
-      }
+      const clampedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+      setWidth(clampedWidth);
     });
   }, [minWidth, maxWidth, dragOffset]); // Added dragOffset dependency
 

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Panel } from './Panel';
 import type { KeyData, ChosenFeature, FeatureNode } from '../../types';
 import { RenderFeatureNode } from './FeatureNodeRenderer';
+import { Icon } from '../Icon';
 
 // --- FeaturesPanel ---
 interface FeaturesPanelProps {

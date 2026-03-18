@@ -81,7 +81,7 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 ### 2.4. User Interface & Display
 * **FR4.1:** The layout must consist of dynamically resizable panels supporting Features, Chosen Features, Remaining Entities, Discarded Entities, and the AI Assistant sidebar.
 * **FR4.2:** The system must display entities in toggleable "List" and "Grid" views.
-* **FR4.3:** The application must present modal overlays for Entity details, Feature image views, general Key Information, and an Image Lightbox viewer (which must also support viewing images uploaded within the AI chat). The Entity details modal must display characteristics in a recursive, collapsible tree structure matching their hierarchy, and provide global "Expand All" and "Collapse All" controls.
+* **FR4.3:** The application must present modal overlays for Entity details, Feature image views, general Key Information, an Image Lightbox viewer (which must also support viewing images uploaded within the AI chat), and confirmation dialogs for destructive actions. The Entity details modal must display characteristics in a recursive, collapsible tree structure matching their hierarchy, and provide global "Expand All" and "Collapse All" controls.
 * **FR4.4:** Entity feature scores must be visually represented with badges indicating probability/interpretations (e.g., Common, Rare, Uncertain, Interval, Misinterpreted).
 * **FR4.5:** The system must display stacking visual toast notifications when features are selected or cleared, dynamically showing the count of discarded or restored entities alongside the total number of remaining entities. These toasts must act independently and fade out based on their initial appearance time.
 
@@ -93,7 +93,7 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 
 ### 2.6. State Management & Persistence
 * **FR6.1:** The system must preserve user preferences (API key, language selection, light/dark theme, toast notifications toggle) across sessions using the browser's `localStorage`.
-* **FR6.2:** All application states (loaded keys, AI chat history, selected features) must be reset gracefully when a user imports a new key. The user can also manually clear their selections via the clear button in the Chosen Features panel, or clear the AI chat history via the Assistant panel (which prompts for confirmation).
+* **FR6.2:** All application states (loaded keys, AI chat history, selected features) must be reset gracefully when a user imports a new key. The user can also manually clear their selections via the clear button in the Chosen Features panel, or clear the AI chat history via the Assistant panel (both of which prompt for confirmation via a custom modal).
 
 ### 2.7. Localization (i18n)
 * **FR7.1:** The system must support multi-language translation using an internal dictionary.

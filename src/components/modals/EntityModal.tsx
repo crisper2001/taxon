@@ -30,7 +30,7 @@ const RenderFeatureGroup: React.FC<{
           <div key={subgroup.path} className="mb-2 pl-2">
             <button 
               onClick={() => toggleGroup(subgroup.path)} 
-              className="w-full text-left font-semibold text-gray-500 flex items-center mb-1 text-sm bg-panel-bg hover:bg-hover-bg transition-colors py-1 px-2 rounded-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent/50 gap-1"
+              className="w-full text-left font-bold text-gray-500 flex items-center mb-1.5 text-sm bg-panel-bg border border-border hover:bg-hover-bg transition-colors py-2 px-3 rounded-xl shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent/50 gap-2"
             >
               <span className="shrink-0 flex items-center justify-center">
                 <Icon name="ChevronRight" size={16} className={`transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`} />
@@ -38,7 +38,7 @@ const RenderFeatureGroup: React.FC<{
               <span className="text-text break-words min-w-0">{subgroup.name}</span>
             </button>
             {!isCollapsed && (
-              <div className="border-l border-border/50 ml-3">
+              <div className="border-l-2 border-border/50 ml-3.5 mb-3">
                 <RenderFeatureGroup 
                   node={subgroup} 
                   collapsedGroups={collapsedGroups} 
@@ -52,7 +52,7 @@ const RenderFeatureGroup: React.FC<{
         );
       })}
       {sortedChars.map((char, i) => (
-        <div key={i} className="flex justify-between items-center py-2 border-b border-border text-sm ml-2 gap-2">
+        <div key={i} className="flex justify-between items-center py-2.5 border-b border-border text-sm ml-3 gap-3 pr-2">
           <div className="flex items-center gap-2 min-w-0">
             <span className="shrink-0 flex items-center justify-center">{getIconForChar(char)}</span>
             <span className="break-words min-w-0">{char.text}</span>
@@ -130,7 +130,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
     return root;
   }, [profile?.characteristics]);
 
-  if (!entity) return <Modal isOpen={isOpen} onClose={onClose} title="Loading..."><div /></Modal>;
+  if (!entity) return <Modal isOpen={isOpen} onClose={onClose} title={t('loading')}><div /></Modal>;
 
   const SCORE_VALUE_MAP: Record<ScoreType, keyof typeof translations['en']> = { '0': 'scoreUncertain', '1': 'scoreCommon', '2': 'scoreRare', '3': 'scoreUncertain', '4': 'scoreCommonMisinterpret', '5': 'scoreRareMisinterpret' };
 
@@ -152,7 +152,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
       }
     }
     const badgeText = t(badgeTextKey);
-    return <span className={`char-badge text-xs px-2 py-0.5 rounded-full font-bold shrink-0 whitespace-nowrap ${badgeClass}`}>{badgeText}</span>;
+    return <span className={`char-badge text-[11px] px-2.5 py-1 rounded-full font-bold shrink-0 whitespace-nowrap shadow-sm uppercase tracking-wider ${badgeClass}`}>{badgeText}</span>;
   }
 
   const getIconForChar = (char: Characteristic): React.ReactElement => {
@@ -225,26 +225,26 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
   const modalTitle = (
     <div className="flex items-center gap-2 min-w-0">
       {navigationHistory.length > 0 && (
-        <button onClick={handleBack} className="p-1 rounded-md hover:bg-hover-bg" title={t('back')}><Icon name="ArrowLeft" size={18} /></button>
+        <button onClick={handleBack} className="p-1.5 rounded-full hover:bg-hover-bg transition-colors border border-transparent hover:border-border hover:shadow-sm cursor-pointer" title={t('back')}><Icon name="ArrowLeft" size={20} /></button>
       )}
       <span>{entity.name}</span>
-      <button onClick={handleCopy} className="text-gray-400 hover:text-accent p-1 rounded-md" title={t('copy' as any)}><Icon name={isCopied ? 'Check' : 'Copy'} size={16} /></button>    </div>
+      <button onClick={handleCopy} className="text-gray-400 hover:text-accent hover:bg-hover-bg p-1.5 rounded-full transition-colors cursor-pointer" title={t('copy' as any)}><Icon name={isCopied ? 'Check' : 'Copy'} size={18} /></button>    </div>
   );
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} size="lg">
-      <div className="flex flex-col md:flex-row h-[75vh]">
+      <div className="flex flex-col md:flex-row h-[75vh] bg-bg rounded-b-3xl">
         <ImageViewer
           media={media}
           altText={entity.name}
           noImageText={t('noImageAvailable')}
           onImageClick={onImageClick}
-          className="w-full md:w-1/2 p-4 border-b md:border-b-0 md:border-r border-border overflow-y-auto min-h-0"
+          className="w-full md:w-1/2 p-6 border-b md:border-b-0 md:border-r border-border overflow-y-auto min-h-0 bg-panel-bg"
         />
-        <div className="modal-details-viewer w-full md:w-1/2 p-4 flex flex-col min-h-0">
+        <div className="modal-details-viewer w-full md:w-1/2 p-6 flex flex-col min-h-0 bg-panel-bg">
           {entityHierarchy.length > 1 && (
             <div className="mb-4 shrink-0">
-              <div className="w-full font-bold text-gray-500 dark:text-gray-400 flex items-center gap-2 mb-2 text-left p-1">
+              <div className="w-full font-bold text-gray-500 dark:text-gray-400 flex items-center gap-2 mb-2 text-left p-1 tracking-tight">
                 <Icon name="Network" size={16} />
                 <span className="grow">{t('hierarchy')}</span>
               </div>
@@ -256,7 +256,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
                       {isLast ? (
                         <span className="font-semibold text-text">{node.name}</span>
                       ) : (
-                        <button onClick={() => handleNavigate(node.id)} className="hover:underline hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent/50 rounded-sm">
+                        <button onClick={() => handleNavigate(node.id)} className="hover:underline hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent/50 rounded-sm cursor-pointer">
                           {node.name}
                         </button>
                       )}
@@ -270,16 +270,16 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
           {(profile?.characteristics || []).length > 0 && (
             <div className="flex flex-col grow min-h-0">
               <div className="flex items-center w-full mb-2 shrink-0">
-                <div className="grow font-bold text-gray-500 dark:text-gray-400 flex items-center gap-2 text-left p-1">
+                <div className="grow font-bold text-gray-500 dark:text-gray-400 flex items-center gap-2 text-left p-1 tracking-tight">
                   <Icon name="List" size={16} />
                   <span className="grow">{t('features')}</span>
                 </div>
                 <div className="flex items-center gap-1 ml-2 text-xs font-semibold">
-                  <button onClick={handleCollapseAll} className="flex items-center text-gray-500 hover:text-accent transition-colors p-1 rounded-sm hover:bg-hover-bg">
+                  <button onClick={handleCollapseAll} className="flex items-center text-gray-500 hover:text-accent transition-colors py-1.5 px-2.5 rounded-lg hover:bg-hover-bg border border-transparent hover:border-border hover:shadow-sm cursor-pointer">
                     <Icon name="ChevronUp" size={14} className="mr-1" />
                     {t('collapseAll')}
                   </button>
-                  <button onClick={handleExpandAll} className="flex items-center text-gray-500 hover:text-accent transition-colors p-1 rounded-sm hover:bg-hover-bg">
+                  <button onClick={handleExpandAll} className="flex items-center text-gray-500 hover:text-accent transition-colors py-1.5 px-2.5 rounded-lg hover:bg-hover-bg border border-transparent hover:border-border hover:shadow-sm cursor-pointer">
                     <Icon name="ChevronDown" size={14} className="mr-1" />
                     {t('expandAll')}
                   </button>

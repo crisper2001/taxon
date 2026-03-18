@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Icon } from '../Icon';
 import type { Media } from '../../types';
+import { useAppContext } from '../../context/AppContext';
 
 // --- ImageLightboxModal ---
 interface ImageLightboxModalProps {
@@ -10,6 +11,7 @@ interface ImageLightboxModalProps {
   startIndex: number;
 }
 export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, onClose, media, startIndex = 0 }) => {
+  const { t } = useAppContext();
   const [isRendered, setIsRendered] = useState(isOpen);
   const [isVisible, setIsVisible] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(startIndex);
@@ -56,19 +58,21 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
   const currentMedia = media[currentIndex];
 
   return (
-    <div onClick={onClose} className={`fixed inset-0 bg-black z-50 flex flex-col items-center justify-center p-4 transition-opacity duration-300 ${isVisible ? 'bg-opacity-80' : 'bg-opacity-0'}`}>
-      <button onClick={onClose} className="absolute top-4 right-4 text-white text-4xl hover:opacity-75 z-20">&times;</button>
+    <div onClick={onClose} className={`fixed inset-0 bg-black/80 backdrop-blur-xl z-50 flex flex-col items-center justify-center p-4 transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+      <button onClick={onClose} className="absolute top-6 right-6 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full p-2.5 transition-all z-20 backdrop-blur-md cursor-pointer">
+        <Icon name="X" size={28} />
+      </button>
 
       <div className="relative w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
         {media.length > 1 && (
-          <button onClick={handlePrev} className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-black/70 z-20 transition-opacity"><Icon name="ChevronLeft" size={32} /></button>
+          <button onClick={handlePrev} className="absolute left-6 top-1/2 -translate-y-1/2 bg-black/20 text-white/70 hover:text-white rounded-full w-14 h-14 flex items-center justify-center hover:bg-black/40 z-20 transition-all backdrop-blur-md cursor-pointer"><Icon name="ChevronLeft" size={36} /></button>
         )}
 
         <div className="relative flex flex-col items-center justify-center grow h-full py-24">
           <img
             src={currentMedia.url}
-            alt={currentMedia.caption || "Full scale view"}
-            className={`max-w-[90vw] max-h-full object-contain rounded-lg shadow-2xl transition-all duration-300 ${isVisible ? 'scale-100' : 'scale-95'}`}
+            alt={currentMedia.caption || t('fullScaleView')}
+            className={`max-w-[90vw] max-h-full object-contain rounded-2xl shadow-2xl transition-all duration-300 ${isVisible ? 'scale-100' : 'scale-95'}`}
           />
           {(currentMedia.caption || currentMedia.copyright) && (
             <div className="absolute bottom-24 text-white text-center mt-4 p-2 bg-black/40 rounded-lg max-w-[80vw]">
@@ -79,17 +83,17 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
         </div>
 
         {media.length > 1 && (
-          <button onClick={handleNext} className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-black/70 z-20 transition-opacity"><Icon name="ChevronRight" size={32} /></button>
+          <button onClick={handleNext} className="absolute right-6 top-1/2 -translate-y-1/2 bg-black/20 text-white/70 hover:text-white rounded-full w-14 h-14 flex items-center justify-center hover:bg-black/40 z-20 transition-all backdrop-blur-md cursor-pointer"><Icon name="ChevronRight" size={36} /></button>
         )}
 
         {media.length > 1 && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 justify-center p-2 bg-black/50 rounded-lg flex-wrap max-w-[80vw] overflow-y-auto max-h-[15vh]">
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3 justify-center p-3 bg-black/40 backdrop-blur-md rounded-2xl flex-wrap max-w-[80vw] overflow-y-auto max-h-[15vh] border border-white/10 shadow-xl">
             {media.map((m, i) =>
               <img
                 key={i}
                 src={m.url}
                 onClick={() => setCurrentIndex(i)}
-                className={`w-16 h-16 object-cover rounded cursor-pointer border-2 ${i === currentIndex ? 'border-accent' : 'border-transparent hover:border-gray-400'}`}
+                className={`w-16 h-16 object-cover rounded-xl cursor-pointer border-2 transition-all ${i === currentIndex ? 'border-accent scale-105 shadow-md' : 'border-transparent hover:border-white/50 opacity-60 hover:opacity-100'}`}
                 alt={`Thumbnail ${i + 1}`}
               />
             )}

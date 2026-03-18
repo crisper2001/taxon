@@ -146,6 +146,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({ title, icon, count
     <div
       onMouseEnter={showFooter}
       onMouseLeave={hideFooter}
+      className={`transition-opacity duration-300 ${isFooterVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
     >
       <div className="view-controls flex items-center bg-header-bg rounded-md p-0.5">
         <button onClick={() => setView('list')} title={t('listView')} className={`p-1 rounded transition-colors duration-200 ${view === 'list' ? 'bg-accent text-white' : 'hover:bg-hover-bg'} cursor-pointer`}><Icon name="List" size={16} /></button>
@@ -170,8 +171,8 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({ title, icon, count
         ref={containerRef}
         onMouseEnter={showFooter}
         onMouseLeave={hideFooter}
-        className={`panel-content-inner ${view === 'grid' ? 'grid gap-2' : 'flex flex-col'}`}
-        style={view === 'grid' ? { gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))' } : {}}
+        className={`panel-content-inner ${view === 'grid' ? 'grid gap-4' : 'flex flex-col'}`}
+        style={view === 'grid' ? { gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' } : {}}
       >
         {entityTree.map(node => (
           <RenderEntityNode
@@ -242,8 +243,8 @@ const RenderEntityNode: React.FC<{
           </div>
         </div>
         {isExpanded && (
-          <div className={`${isList ? 'pl-8' : 'pl-16 grid gap-2 col-span-full'}`}
-            style={isList ? {} : { gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))' }}>
+          <div className={`${isList ? 'pl-8' : 'pl-16 grid gap-4 col-span-full'}`}
+            style={isList ? {} : { gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}>
             {node.children.map(child => {
               const childProps = { node: child, mediaMap, onEntityClick, view, t, expandedNodes, onToggleNode, matchingIds, directMatches, indirectMatches };
               if (view === 'grid' && child.isGroup) {

@@ -39,7 +39,7 @@ export class LucidKeyParser {
       this.zip = await jszip.loadAsync(zipFile);
     } catch (e) {
       console.error("JSZip failed to load the file:", e);
-      throw new Error("The selected file could not be read. It might be corrupted or not a valid Lucid key (zip, lk4, lk5) file.");
+      throw new Error("errCorruptedFile");
     }
 
     this.keyName = zipFile.name.replace(/\.(zip|lk4|lk5)$/i, '');
@@ -49,7 +49,7 @@ export class LucidKeyParser {
       (file as any).dir && (file as any).name.toLowerCase().replace(/\\/g, '/').endsWith('data/')
     );
     if (!dataDirEntry) {
-      throw new Error('Invalid Lucid key zip: "Data" directory not found.');
+      throw new Error('errDataDirNotFound');
     }
     this.dataDirPath = (dataDirEntry as any).name;
     this.rootPath = this.dataDirPath.substring(0, this.dataDirPath.toLowerCase().indexOf('data/'));
@@ -57,7 +57,7 @@ export class LucidKeyParser {
     const innerDataZipPath = `${this.dataDirPath}${this.keyName}.data`;
     const keyDataXml = await this.readFromInnerZip(this.zip, innerDataZipPath, 'key.data');
     if (!keyDataXml) {
-      throw new Error(`Could not find or read "key.data" from the nested archive "${innerDataZipPath}".`);
+      throw new Error('errKeyDataNotFound');
     }
 
     const keyData: KeyData = {

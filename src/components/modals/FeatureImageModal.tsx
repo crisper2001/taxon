@@ -31,7 +31,7 @@ export const FeatureImageModal: React.FC<FeatureImageModalProps> = ({ isOpen, on
                 altText={feature?.name || ''}
                 noImageText={t('noImageAvailable')}
                 onImageClick={onImageClick}
-                className="p-4 max-h-[80vh]"
+                className="p-5 max-h-[80vh] bg-bg rounded-b-3xl"
             />
         </Modal>
     );

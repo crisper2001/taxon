@@ -10,29 +10,29 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
   const { t, triggerImport, openPreferences } = useAppContext();
 
   return (
-    <div id="sidebar" className={`fixed top-0 left-0 h-full z-30 w-60 bg-panel-bg border-r border-border p-4 flex flex-col gap-4 shadow-lg transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+    <div id="sidebar" className={`fixed top-0 left-0 h-full z-30 w-60 bg-panel-bg/95 backdrop-blur-xl border-r border-border p-5 flex flex-col gap-5 shadow-2xl transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
 
       {/* Header/Branding */}
-      <div className="pb-3 flex items-center justify-center">
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <Icon name="Leaf" /> Taxon
+      <div className="pb-4 pt-2 flex items-center justify-center border-b border-border/50">
+        <h2 className="text-2xl font-black flex items-center gap-2 text-accent tracking-tight">
+          <Icon name="Leaf" size={28} /> Taxon
         </h2>
       </div>
 
       {/* Key Management Actions */}
-      <div className="flex flex-col gap-1 text-sm font-medium">
-        <button disabled className="flex items-center gap-3 w-full p-3 text-left rounded-md hover:bg-hover-bg disabled:text-gray-500 disabled:cursor-not-allowed transition-colors cursor-pointer">
-          <Icon name="FolderOpen" /> {t('openNativeKey')}
+      <div className="flex flex-col gap-2 text-sm font-semibold">
+        <button disabled className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer">
+          <Icon name="FolderOpen" className="opacity-80" /> {t('openNativeKey')}
         </button>
-        <button onClick={triggerImport} className="flex items-center gap-3 w-full p-3 text-left rounded-md hover:bg-hover-bg transition-colors cursor-pointer">
-          <Icon name="FileJson" /> {t('importKey')}
+        <button onClick={triggerImport} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-accent hover:text-white transition-all cursor-pointer shadow-sm hover:shadow-md group">
+          <Icon name="FileJson" className="opacity-80 group-hover:opacity-100" /> {t('importKey')}
         </button>
       </div>
 
       {/* Settings & Info (Pushed to bottom) */}
-      <div className="mt-auto flex flex-col gap-1 pt-4 text-sm font-medium">
-        <button onClick={openPreferences} className="flex items-center gap-3 w-full p-3 text-left rounded-md hover:bg-hover-bg transition-colors cursor-pointer">
-          <Icon name="Settings2" /> {t('preferences')}
+      <div className="mt-auto flex flex-col gap-2 pt-5 border-t border-border/50 text-sm font-semibold">
+        <button onClick={openPreferences} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg transition-all cursor-pointer">
+          <Icon name="Settings2" className="opacity-80" /> {t('preferences')}
         </button>
       </div>
     </div>

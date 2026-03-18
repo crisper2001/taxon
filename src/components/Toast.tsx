@@ -31,7 +31,7 @@ export const Toast: React.FC<ToastProps> = ({ message, onClose, duration = 3000 
   }, [duration]);
 
   return (
-    <div className={`pointer-events-auto bg-accent text-white px-4 py-3 rounded-lg shadow-lg font-medium text-sm transition-all duration-300 transform ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
+    <div className={`pointer-events-auto bg-accent text-white px-5 py-3.5 rounded-2xl shadow-xl font-bold text-sm tracking-wide transition-all duration-300 transform ${isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'}`}>
       {message}
     </div>
   );

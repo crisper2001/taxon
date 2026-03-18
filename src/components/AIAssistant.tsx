@@ -4,6 +4,7 @@ import { callGeminiAPI } from '../services/GeminiService';
 import type { KeyData, GeminiResponse, GeminiFeatureMatch, Entity, StateScore, NumericScore, RawChatMessage, AiMessageVersion } from '../types';
 import { marked } from 'marked';
 import Spot from './Spot';
+import { ConfirmModal } from './modals';
 
 interface AIAssistantProps {
   isVisible: boolean;
@@ -136,13 +137,13 @@ const ChatMessageBubble: React.FC<{
   const hasConsideredData = hasFeatures || hasEntities;
 
   return (
-    <div className={`chat-message flex flex-col animate-fade-in-up duration-300 ease-out space-y-1 ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
-      <div className={`msg-content flex flex-col max-w-[90%] p-3 rounded-2xl shadow-sm ${msg.sender === 'user' ? 'bg-accent text-white rounded-br-lg' : 'bg-header-bg rounded-bl-lg'}`}>
+    <div className={`chat-message flex flex-col animate-fade-in-up duration-300 ease-out space-y-1 mb-2 ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
+      <div className={`msg-content flex flex-col max-w-[92%] p-3.5 rounded-3xl shadow-sm border border-black/5 dark:border-white/5 ${msg.sender === 'user' ? 'bg-accent text-white rounded-br-sm' : 'bg-header-bg rounded-bl-sm'}`}>
         
         {/* Text Content */}
         {msg.imageUrl && (
           <div className="mb-2">
-            <img src={msg.imageUrl} alt="Uploaded" className="max-h-48 rounded-lg object-contain shadow-sm cursor-pointer hover:opacity-90 transition-opacity" onClick={() => onImageClick && onImageClick(msg.imageUrl!)} />
+            <img src={msg.imageUrl} alt={t('uploadedImage')} className="max-h-48 rounded-2xl object-contain shadow-sm cursor-pointer hover:opacity-90 transition-opacity" onClick={() => onImageClick && onImageClick(msg.imageUrl!)} />
           </div>
         )}
         {isEditing ? (
@@ -156,7 +157,7 @@ const ChatMessageBubble: React.FC<{
                 e.target.style.height = `${e.target.scrollHeight}px`;
               }}
               onKeyDown={handleEditKeyDown}
-              className="w-full bg-black/10 text-white border-none rounded-lg p-2 resize-none focus:outline-none focus:ring-2 focus:ring-white/50 text-sm font-sans"
+              className="w-full bg-black/20 text-white border-none rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-white/50 text-sm font-sans"
               rows={1}
             />
             <div className="flex justify-end gap-2 mt-2">
@@ -166,7 +167,7 @@ const ChatMessageBubble: React.FC<{
           </div>
         ) : (
           <div className={`relative ${!isExpanded ? 'max-h-48 overflow-hidden' : ''}`}>
-            <div className="markdown-body text-base [&>p]:mb-2 [&>p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:mb-2 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:mb-2 [&_strong]:font-semibold [&_em]:italic [&_a]:underline [&_h1]:font-bold [&_h1]:text-lg [&_h2]:font-bold [&_h3]:font-semibold break-words" dangerouslySetInnerHTML={{ __html: marked.parse(msg.content) as string }} />
+            <div className="markdown-body text-[15px] leading-relaxed [&>p]:mb-3 [&>p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:mb-3 [&_strong]:font-bold [&_em]:italic [&_a]:underline [&_h1]:font-bold [&_h1]:text-lg [&_h2]:font-bold [&_h3]:font-semibold break-words" dangerouslySetInnerHTML={{ __html: marked.parse(msg.content) as string }} />
             {!isExpanded && (
               <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-header-bg to-transparent pointer-events-none" />
             )}
@@ -205,14 +206,14 @@ const ChatMessageBubble: React.FC<{
                       onClick={() => onVersionChange && onVersionChange(index, msg.currentVersionIndex! - 1)}
                       disabled={msg.currentVersionIndex === 0 || isThinking}
                       className="hover:text-accent disabled:opacity-30 cursor-pointer flex items-center justify-center transition-colors"
-                      title="Previous version"
+                      title={t('previousVersion')}
                     ><Icon name="ChevronLeft" size={14} /></button>
                     <span className="font-medium select-none min-w-[2rem] text-center">{msg.currentVersionIndex! + 1} / {msg.versions.length}</span>
                     <button 
                       onClick={() => onVersionChange && onVersionChange(index, msg.currentVersionIndex! + 1)}
                       disabled={msg.currentVersionIndex === msg.versions.length - 1 || isThinking}
                       className="hover:text-accent disabled:opacity-30 cursor-pointer flex items-center justify-center transition-colors"
-                      title="Next version"
+                      title={t('nextVersion')}
                     ><Icon name="ChevronRight" size={14} /></button>
                  </div>
               )}
@@ -240,7 +241,7 @@ const ChatMessageBubble: React.FC<{
         <div className={`flex flex-col max-w-[90%] w-full ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
           <button 
             onClick={() => setIsDetailsExpanded(!isDetailsExpanded)}
-            className="flex items-center gap-1 text-xs text-gray-500 hover:text-accent transition-colors py-1 px-2 rounded-md hover:bg-hover-bg focus:outline-none"
+            className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-accent transition-colors py-1.5 px-3 rounded-xl border border-border hover:bg-hover-bg focus:outline-none bg-panel-bg shadow-sm mt-1"
           >
             <Icon name="List" className="w-3.5 h-3.5" />
             <span>{t('aiConsideredData')}</span>
@@ -278,6 +279,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
   const [mentionSelectedIndex, setMentionSelectedIndex] = useState(0);
   const [selectedImage, setSelectedImage] = useState<{ file: File, base64: string, mimeType: string, url: string } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
 
   const allMentionableItems = useMemo(() => {
     if (!keyData) return [];
@@ -313,18 +315,16 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
 
   // Effect to reset chat when the key file changes.
   const handleClearHistory = () => {
-    if (confirm(t('confirmClearHistory'))) {
-      rawChatHistory.forEach(msg => {
-        if ((msg as any).imageUrl && (msg as any).imageUrl.startsWith('blob:')) {
-          URL.revokeObjectURL((msg as any).imageUrl);
-        }
-      });
-      setRawChatHistory([]);
-      consolidatedDescription.current = "";
-      if (selectedImage) {
-        URL.revokeObjectURL(selectedImage.url);
-        setSelectedImage(null);
+    rawChatHistory.forEach(msg => {
+      if ((msg as any).imageUrl && (msg as any).imageUrl.startsWith('blob:')) {
+        URL.revokeObjectURL((msg as any).imageUrl);
       }
+    });
+    setRawChatHistory([]);
+    consolidatedDescription.current = "";
+    if (selectedImage) {
+      URL.revokeObjectURL(selectedImage.url);
+      setSelectedImage(null);
     }
   };
 
@@ -908,33 +908,31 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
       {isDragging && (
         <div className="absolute inset-0 z-50 bg-bg/80 backdrop-blur-sm border-4 border-dashed border-accent flex flex-col items-center justify-center text-accent pointer-events-none">
           <Icon name="Image" size={48} className="mb-4 animate-bounce" />
-          <h3 className="text-xl font-bold">{t('dropImageHere') !== 'dropImageHere' ? t('dropImageHere') : 'Drop image to upload'}</h3>
+          <h3 className="text-xl font-bold">{t('dropImageHere')}</h3>
         </div>
       )}
+      
+      <div className="panel-header flex items-center justify-between p-3.5 border-b border-border bg-header-bg/80 backdrop-blur-sm shrink-0 z-10">
+        <button onClick={() => setIsConfirmClearOpen(true)} disabled={rawChatHistory.length === 0} title={t('clearHistory')} className="p-1.5 rounded-full hover:bg-hover-bg cursor-pointer transition-colors disabled:opacity-30 disabled:cursor-not-allowed"><Icon name="Trash2" size={18} /></button>
+        <div className="panel-title font-bold flex items-center gap-2 text-accent text-lg tracking-tight">
+          <Spot primaryColor="currentColor" secondaryColor="#f8fafb" mode="head" className="w-6 h-6" />
+          {t('assistant')}
+        </div>
+        <button onClick={handleClose} title={t('closePanel')} className="p-1.5 rounded-full hover:bg-hover-bg cursor-pointer transition-colors"><Icon name="PanelRightClose" size={20} /></button>
+      </div>
+
       {rawChatHistory.length === 0 || !keyData ? (
         // Unified Welcome Screen when chat is empty
-        <div className="flex flex-col items-center justify-center h-full text-center text-text animate-fade-in p-6 relative bg-gradient-to-b from-panel-bg to-bg">
-          <div className="absolute top-3 right-3">
-            <button onClick={handleClose} title={t('closePanel')} className="p-2 rounded-md hover:bg-hover-bg cursor-pointer opacity-70 hover:opacity-100 transition-opacity"><Icon name="PanelRightClose" size={20} /></button>
-          </div>
+        <div className="flex flex-col items-center justify-center h-full text-center text-text animate-fade-in p-6 bg-gradient-to-b from-panel-bg to-bg">
           <div className="flex flex-col items-center max-w-sm">
-            <Spot primaryColor="currentColor" secondaryColor="#f8fafb" mode="body" className="w-12 mb-4 text-accent" />
-            <h3 className="text-2xl font-bold mb-3">{t('assistant')}</h3>
-            <p className="text-sm opacity-80 leading-relaxed">{keyData ? t('aiReady') : t('aiNeedKey')}</p>
+            <Spot primaryColor="currentColor" secondaryColor="#f8fafb" mode="body" className="w-14 mb-5 text-accent drop-shadow-md" />
+            <h3 className="text-3xl font-bold mb-3 tracking-tight  text-accent">{t('assistant')}</h3>
+            <p className="text-base opacity-70 leading-relaxed">{keyData ? t('aiReady') : t('aiNeedKey')}</p>
           </div>
         </div>
       ) : (
         // Standard chat view
-        <>
-          <div className="panel-header flex items-center justify-between p-3 border-b border-border bg-header-bg shrink-0">
-            <button onClick={handleClearHistory} title={t('clearHistory')} className="p-1 rounded hover:bg-hover-bg cursor-pointer"><Icon name="Trash2" /></button>
-            <div className="panel-title font-bold flex items-center gap-2 text-md text-accent text-lg">
-              <Spot primaryColor="currentColor" secondaryColor="#f8fafb" mode="head" className="w-7" />
-              {t('assistant')}
-            </div>
-            <button onClick={handleClose} title={t('closePanel')} className="p-1 rounded hover:bg-hover-bg cursor-pointer"><Icon name="PanelRightClose" /></button>
-          </div>
-          <div ref={chatHistoryRef} onClick={handleEntityClick} className="panel-content grow p-4 overflow-y-auto space-y-4">
+        <div ref={chatHistoryRef} onClick={handleEntityClick} className="panel-content grow p-4 overflow-y-auto space-y-5 bg-gradient-to-b from-panel-bg/50 to-transparent">
             {(() => {
               const lastUserIndex = chatHistory.map(m => m.sender).lastIndexOf('user');
               return chatHistory.map((msg, index) => {
@@ -959,8 +957,8 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
               });
             })()}
             {isThinking && chatHistory.length > 0 && chatHistory[chatHistory.length - 1].sender === 'user' && (
-              <div className="chat-message flex animate-fade-in-up duration-300 ease-out justify-start">
-                <div className="msg-content w-3/4 p-4 rounded-2xl shadow-sm bg-header-bg rounded-bl-lg">
+              <div className="chat-message flex animate-fade-in-up duration-300 ease-out justify-start mb-2">
+                <div className="msg-content w-3/4 p-4 rounded-3xl shadow-sm bg-header-bg rounded-bl-sm border border-black/5 dark:border-white/5">
                   <div className="flex items-center gap-2 mb-3 text-accent opacity-70">
                     <Icon name="LoaderCircle" className="animate-spin w-4 h-4" />
                     <span className="text-xs font-medium uppercase tracking-wider">{t('aiAnalyzing')}</span>
@@ -974,7 +972,6 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
               </div>
             )}
           </div>
-        </>
       )}
       <form onSubmit={handleSubmit} className="p-3 pt-1 relative flex flex-col bg-panel-bg shrink-0">
         {mentionState.active && mentionOptions.length > 0 && (
@@ -987,24 +984,24 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
                 className={`text-left px-3 py-2 text-sm transition-colors ${idx === mentionSelectedIndex ? 'bg-accent/10 text-accent' : 'hover:bg-hover-bg text-text'}`}
                 onClick={() => insertMention(opt)}
               >
-                <span className="text-[10px] font-bold opacity-50 uppercase mr-2 inline-block w-8">{opt.type === 'entity' ? 'Ent' : 'Feat'}</span>
+                <span className="text-[10px] font-bold opacity-50 uppercase mr-2 inline-block w-8">{opt.type === 'entity' ? t('ent') : t('feat')}</span>
                 {opt.name}
               </button>
             ))}
           </div>
         )}
-        <div className={`relative flex items-end w-full border-2 border-border rounded-2xl bg-bg shadow-sm transition-all focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/20 ${(!isEnabled || isThinking || !geminiApiKey) ? 'opacity-60 grayscale-[30%]' : ''}`}>
+        <div className={`relative flex items-end w-full border border-border rounded-3xl bg-bg shadow-sm transition-all focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20 ${(!isEnabled || isThinking || !geminiApiKey) ? 'opacity-60 grayscale-[30%]' : ''}`}>
           <div className="pl-1.5 pb-1.5 shrink-0 flex items-center justify-center">
             <input type="file" ref={imageInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
-            <button type="button" onClick={() => imageInputRef.current?.click()} disabled={!isEnabled || isThinking || !geminiApiKey} className="w-8 h-8 text-gray-500 hover:text-accent rounded-lg flex items-center justify-center transition-colors cursor-pointer disabled:cursor-not-allowed disabled:hover:text-gray-500" title={t('uploadImage') || 'Upload Image'}>
-              <Icon name="Image" size={18} />
+            <button type="button" onClick={() => imageInputRef.current?.click()} disabled={!isEnabled || isThinking || !geminiApiKey} className="w-9 h-9 text-gray-500 hover:text-accent rounded-full flex items-center justify-center transition-colors cursor-pointer disabled:cursor-not-allowed disabled:hover:text-gray-500 hover:bg-hover-bg" title={t('uploadImage')}>
+              <Icon name="Image" size={20} />
             </button>
           </div>
           <div className="relative w-full overflow-hidden flex flex-col justify-end">
             {selectedImage && (
-              <div className="pt-3 px-3 pb-1">
+              <div className="pt-3 px-2 pb-1">
                 <div className="relative inline-block">
-                  <img src={selectedImage.url} alt="Preview" className="h-16 w-16 object-cover rounded-md border border-border" />
+                  <img src={selectedImage.url} alt={t('preview')} className="h-16 w-16 object-cover rounded-md border border-border" />
                   <button type="button" onClick={removeSelectedImage} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600 transition-colors shadow-sm cursor-pointer z-20">
                     <Icon name="X" size={12} />
                   </button>
@@ -1014,7 +1011,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
             <div className="relative w-full">
               <div 
                 ref={backdropRef}
-                className="absolute inset-0 w-full h-full p-3 text-sm pointer-events-none whitespace-pre-wrap break-words overflow-y-auto font-sans text-text"
+                className="absolute inset-0 w-full h-full p-3 text-[15px] pointer-events-none whitespace-pre-wrap break-words overflow-y-auto font-sans text-text leading-relaxed"
                 style={{ maxHeight: '120px' }}
                 aria-hidden="true"
               >
@@ -1035,22 +1032,33 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
                 }}
                 placeholder={placeholder}
                 disabled={!isEnabled || isThinking || !geminiApiKey}
-                className="w-full p-3 text-sm bg-transparent resize-none overflow-y-auto focus:outline-none z-10 font-sans placeholder-transparent"
+                className="w-full p-3 text-[15px] bg-transparent resize-none overflow-y-auto focus:outline-none z-10 font-sans placeholder-transparent leading-relaxed"
                 style={{ maxHeight: '120px', color: 'inherit', WebkitTextFillColor: 'transparent', caretColor: 'currentColor' }}
                 spellCheck="false"
               />
             </div>
           </div>
           <div className="pr-1.5 pb-1.5 shrink-0 flex items-center justify-center">
-            <button type="submit" disabled={!isEnabled || isThinking || (!userInput.trim() && !selectedImage) || !geminiApiKey} className="w-8 h-8 bg-accent text-white rounded-lg flex items-center justify-center disabled:bg-gray-400 disabled:scale-95 transition-all duration-200 hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-bg focus:ring-accent cursor-pointer disabled:cursor-not-allowed">
-              <Icon name="ArrowUp" size={18} />
+            <button type="submit" disabled={!isEnabled || isThinking || (!userInput.trim() && !selectedImage) || !geminiApiKey} className="w-9 h-9 bg-accent text-white rounded-full flex items-center justify-center disabled:bg-gray-400 disabled:scale-95 transition-all duration-200 hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-bg focus:ring-accent cursor-pointer disabled:cursor-not-allowed shadow-md">
+              <Icon name="ArrowUp" size={20} />
             </button>
           </div>
         </div>
       </form>
-      <div className="text-xs text-center text-gray-500 pb-2 px-4 opacity-80">
-        {t('aiDisclaimer') !== 'aiDisclaimer' ? t('aiDisclaimer') : 'AI answers might contain incorrect information. Please verify important details.'}
+      <div className="text-[11px] text-center text-gray-500 pb-3 px-4 opacity-70">
+        {t('aiDisclaimer')}
       </div>
+
+      <ConfirmModal
+        isOpen={isConfirmClearOpen}
+        onClose={() => setIsConfirmClearOpen(false)}
+        onConfirm={handleClearHistory}
+        title={t('clearHistory')}
+        message={t('confirmClearHistory')}
+        confirmText={t('clearHistory')}
+        cancelText={t('cancel')}
+        isDestructive={true}
+      />
     </div>
   );
 };

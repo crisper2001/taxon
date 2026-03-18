@@ -4,4 +4,5 @@ export * from './PreferencesModal';
 export * from './KeyInfoModal';
 export * from './FeatureImageModal';
 export * from './ImageLightboxModal';
+export * from './ConfirmModal';
 export * from '../common/ImageViewer';
