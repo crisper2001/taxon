@@ -28,6 +28,10 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **Actor:** User
 * **Description:** The user asks the AI assistant general or specific questions about the key's features, entities, or metadata (e.g., "What is feature X?", "Who authored this key?"). The AI leverages the parsed key data to provide informative answers.
 
+### UC9: Multimodal Image Identification
+* **Actor:** User
+* **Description:** The user uploads an image of a specimen to the AI assistant along with an optional text description. The AI analyzes the visual features of the image, maps them to the Lucid key's characteristics, and identifies matching entities.
+
 ### UC7: Search and Navigation
 * **Actor:** User
 * **Description:** The user searches for specific entities or chosen features via text input fields, highlighting and auto-expanding relevant tree nodes.
@@ -68,11 +72,16 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **FR3.14:** The chat interface must allow the user to regenerate the latest AI response, safely rewinding the chat history and description state.
 * **FR3.15:** The chat interface must allow the user to edit their most recent message inline within the chat bubble, replacing the history and triggering a new AI response upon submission.
 * **FR3.16:** The system must track all generated AI answer versions for a given prompt, providing UI controls to navigate back and forth to restore previous conversational states and correct context.
+* **FR3.17:** The system must allow users to provide image inputs to the AI assistant for multimodal specimen analysis.
+* **FR3.18:** The system must encode user-uploaded images as base64 and structure them as inline data within the Gemini API payload.
+* **FR3.19:** The system must automatically process, resize (max 1024x1024 pixels), and compress uploaded images to JPEG via an HTML Canvas before transmission to optimize token usage and bandwidth.
+* **FR3.20:** The system must support drag-and-drop, clipboard paste, and manual file selection for uploading images to the AI assistant.
+* **FR3.21:** The system must dynamically select a vision-optimized AI model when an image is attached, and provide an automatic fallback to a lighter model (with a visual warning indicator in the chat) if the primary model request fails.
 
 ### 2.4. User Interface & Display
 * **FR4.1:** The layout must consist of dynamically resizable panels supporting Features, Chosen Features, Remaining Entities, Discarded Entities, and the AI Assistant sidebar.
 * **FR4.2:** The system must display entities in toggleable "List" and "Grid" views.
-* **FR4.3:** The application must present modal overlays for Entity details, Feature image views, general Key Information, and an Image Lightbox viewer. The Entity details modal must display characteristics in a recursive, collapsible tree structure matching their hierarchy, and provide global "Expand All" and "Collapse All" controls.
+* **FR4.3:** The application must present modal overlays for Entity details, Feature image views, general Key Information, and an Image Lightbox viewer (which must also support viewing images uploaded within the AI chat). The Entity details modal must display characteristics in a recursive, collapsible tree structure matching their hierarchy, and provide global "Expand All" and "Collapse All" controls.
 * **FR4.4:** Entity feature scores must be visually represented with badges indicating probability/interpretations (e.g., Common, Rare, Uncertain, Interval, Misinterpreted).
 * **FR4.5:** The system must display stacking visual toast notifications when features are selected or cleared, dynamically showing the count of discarded or restored entities alongside the total number of remaining entities. These toasts must act independently and fade out based on their initial appearance time.
 

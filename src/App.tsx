@@ -358,6 +358,7 @@ const App: React.FC = () => {
               onClose={() => setAiPanelVisible(false)}
               keyData={keyData}
               onEntityClick={(id) => setModalState({ type: 'entity', entityId: id })}
+              onImageClick={(url) => handleOpenLightbox([{ url }], 0)}
               t={t}
               lang={lang}
               chatHistory={aiChatHistory}

@@ -10,6 +10,7 @@ interface AIAssistantProps {
   onClose: () => void;
   keyData: KeyData | null;
   onEntityClick: (id: string) => void;
+  onImageClick?: (url: string) => void;
   t: (key: string) => string;
   lang: string;
   geminiApiKey: string;
@@ -24,6 +25,7 @@ interface ChatMessage {
   data?: GeminiResponse;
   versions?: AiMessageVersion[];
   currentVersionIndex?: number;
+  imageUrl?: string;
 }
 
 const findMatchingEntities = (features: GeminiFeatureMatch[], keyData: KeyData): Entity[] => {
@@ -74,7 +76,8 @@ const ChatMessageBubble: React.FC<{
   onEditSubmit?: (index: number, newText: string) => void;
   onVersionChange?: (index: number, newVersionIndex: number) => void;
   isThinking?: boolean;
-} > = ({ msg, index, keyData, t, isLatestAi, isLatestUser, onRegenerate, onEditSubmit, onVersionChange, isThinking }) => {
+  onImageClick?: (url: string) => void;
+} > = ({ msg, index, keyData, t, isLatestAi, isLatestUser, onRegenerate, onEditSubmit, onVersionChange, isThinking, onImageClick }) => {
   const [isCopied, setIsCopied] = useState(false);
   
   // Truncate AI messages if they exceed 500 characters
@@ -137,6 +140,11 @@ const ChatMessageBubble: React.FC<{
       <div className={`msg-content flex flex-col max-w-[90%] p-3 rounded-2xl shadow-sm ${msg.sender === 'user' ? 'bg-accent text-white rounded-br-lg' : 'bg-header-bg rounded-bl-lg'}`}>
         
         {/* Text Content */}
+        {msg.imageUrl && (
+          <div className="mb-2">
+            <img src={msg.imageUrl} alt="Uploaded" className="max-h-48 rounded-lg object-contain shadow-sm cursor-pointer hover:opacity-90 transition-opacity" onClick={() => onImageClick && onImageClick(msg.imageUrl!)} />
+          </div>
+        )}
         {isEditing ? (
           <div className="flex flex-col w-full min-w-[200px] sm:min-w-[250px]">
             <textarea
@@ -242,10 +250,10 @@ const ChatMessageBubble: React.FC<{
           <div className={`overflow-hidden transition-all duration-300 ease-in-out w-full ${isDetailsExpanded ? 'max-h-[500px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
             <div className="p-3 bg-panel-bg border border-border rounded-xl shadow-sm text-sm w-full overflow-y-auto">
               {hasFeatures && (
-                <div className="mb-2 last:mb-0"><h4 className="text-xs font-semibold mb-1 opacity-80 uppercase tracking-wider">{t('aiFeaturesConsidered')}</h4><ul className="list-disc list-inside text-xs space-y-1 opacity-90">{msg.data!.features_used.map(f => { const feature = keyData!.allFeatures.get(f.id); const featureName = feature ? (feature.parentName ? `${feature.parentName}: ${feature.name}` : feature.name) : f.description; return <li key={f.id}>{featureName}</li>; })}</ul></div>
+                <div className="mb-2 last:mb-0"><h4 className="text-xs font-semibold mb-1 opacity-80 uppercase tracking-wider">{t('aiFeaturesConsidered')}</h4><ul className="list-disc list-inside text-xs space-y-1 opacity-90">{msg.data!.features_used.map(f => { const feature = keyData!.allFeatures.get(f.id); const featureName = feature ? (feature.parentName ? `${feature.parentName}: ${feature.name}` : feature.name) : f.description; return { f, featureName }; }).sort((a, b) => a.featureName.localeCompare(b.featureName)).map(({ f, featureName }) => <li key={f.id}>{featureName}</li>)}</ul></div>
               )}
               {hasEntities && (
-                <div className="mb-2 last:mb-0"><h4 className="text-xs font-semibold mb-1 opacity-80 uppercase tracking-wider">{t('aiEntitiesConsidered')}</h4><ul className="list-disc list-inside text-xs space-y-1 opacity-90">{msg.data!.entities_used.map(e => (<li key={e.id}>{e.name}</li>))}</ul></div>
+                <div className="mb-2 last:mb-0"><h4 className="text-xs font-semibold mb-1 opacity-80 uppercase tracking-wider">{t('aiEntitiesConsidered')}</h4><ul className="list-disc list-inside text-xs space-y-1 opacity-90">{[...msg.data!.entities_used].sort((a, b) => a.name.localeCompare(b.name)).map(e => (<li key={e.id}>{e.name}</li>))}</ul></div>
               )}
             </div>
           </div>
@@ -255,7 +263,7 @@ const ChatMessageBubble: React.FC<{
   );
 };
 
-export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, keyData, onEntityClick, t, lang, geminiApiKey, chatHistory: rawChatHistory, setChatHistory: setRawChatHistory }) => {
+export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, keyData, onEntityClick, onImageClick, t, lang, geminiApiKey, chatHistory: rawChatHistory, setChatHistory: setRawChatHistory }) => {
   const [userInput, setUserInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -263,10 +271,13 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
   const chatHistoryRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const mentionRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const [mentionState, setMentionState] = useState<{ active: boolean; search: string; startIndex: number }>({ active: false, search: '', startIndex: -1 });
   const [mentionSelectedIndex, setMentionSelectedIndex] = useState(0);
+  const [selectedImage, setSelectedImage] = useState<{ file: File, base64: string, mimeType: string, url: string } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const allMentionableItems = useMemo(() => {
     if (!keyData) return [];
@@ -303,18 +314,127 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
   // Effect to reset chat when the key file changes.
   const handleClearHistory = () => {
     if (confirm(t('confirmClearHistory'))) {
+      rawChatHistory.forEach(msg => {
+        if ((msg as any).imageUrl && (msg as any).imageUrl.startsWith('blob:')) {
+          URL.revokeObjectURL((msg as any).imageUrl);
+        }
+      });
       setRawChatHistory([]);
       consolidatedDescription.current = "";
+      if (selectedImage) {
+        URL.revokeObjectURL(selectedImage.url);
+        setSelectedImage(null);
+      }
     }
+  };
+
+  const processAndSetImage = (file: File) => {
+    if (selectedImage) {
+      URL.revokeObjectURL(selectedImage.url);
+    }
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    
+    const fallbackReader = () => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = (reader.result as string).split(',')[1];
+        setSelectedImage({ file, base64, mimeType: file.type, url: objectUrl });
+      };
+      reader.readAsDataURL(file);
+    };
+
+    img.onload = () => {
+      let { width, height } = img;
+      const MAX_DIM = 1024;
+      
+      if (width > MAX_DIM || height > MAX_DIM) {
+        const ratio = Math.min(MAX_DIM / width, MAX_DIM / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      
+      if (ctx) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        const base64 = dataUrl.split(',')[1];
+        setSelectedImage({ file, base64, mimeType: 'image/jpeg', url: objectUrl });
+      } else {
+        fallbackReader();
+      }
+    };
+    img.onerror = fallbackReader;
+    img.src = objectUrl;
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    processAndSetImage(file);
+    e.target.value = '';
+  };
+
+  const removeSelectedImage = () => {
+    if (selectedImage) {
+      URL.revokeObjectURL(selectedImage.url);
+      setSelectedImage(null);
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        if (!file) continue;
+        processAndSetImage(file);
+        break; // Only handle the first pasted image
+      }
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (!isEnabled || isThinking || !geminiApiKey) return;
+    if (e.dataTransfer.types.includes('Files')) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    if (!isEnabled || isThinking || !geminiApiKey) return;
+
+    const file = e.dataTransfer.files?.[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    
+    processAndSetImage(file);
   };
 
   // Derive translated chat history from raw data.
   // This memo re-runs when language (t) or data (rawChatHistory) changes.
   const chatHistory: ChatMessage[] = useMemo(() => {
     if (!keyData) return [];
-    return rawChatHistory.map(msg => {
+    return rawChatHistory.map((msg, index, arr) => {
       if (msg.sender === 'user') {
-        return { sender: 'user', content: msg.content || '', data: undefined };
+        return { sender: 'user', content: msg.content || '', data: undefined, imageUrl: (msg as any).imageUrl };
       }
 
       let content = '';
@@ -340,13 +460,27 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
                 .map(e => `<span class="clickable-entity text-accent font-semibold cursor-pointer hover:underline" data-id="${e.id}">${e.name}</span>`)
                 .join(', ');
 
+              let baseText = '';
               if (count === 1) {
-                content = `${t('aiSingleMatch')} ${matchesText}.`;
+                baseText = t('aiSingleMatch');
               } else if (count > 1) {
-                content = `${t('aiMultipleMatches').replace('{count}', String(count))} ${matchesText}.`;
+                baseText = t('aiMultipleMatches').replace('{count}', String(count));
               } else {
-                content = t('aiNoMatch');
+                baseText = t('aiNoMatch');
               }
+
+              const prevMsg = index > 0 ? arr[index - 1] : null;
+              const hasImage = prevMsg?.sender === 'user' && !!(prevMsg as any).imageUrl;
+              const hasText = prevMsg?.sender === 'user' && !!prevMsg.content?.trim();
+
+              if (hasImage) {
+                baseText = baseText
+                  .replace('your description', hasText ? 'the image and your description' : 'the image')
+                  .replace('sua descrição', hasText ? 'na imagem e na sua descrição' : 'na imagem')
+                  .replace('tu descripción', hasText ? 'en la imagen y tu descripción' : 'en la imagen');
+              }
+
+              content = count > 0 ? `${baseText} ${matchesText}.` : baseText;
             } else {
               content = t('aiNoFeatures');
             }
@@ -418,15 +552,17 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
 
   const sendMessage = async (overrideText?: string, overrideHistory?: RawChatMessage[], regenerateAiIndex?: number) => {
     const text = overrideText !== undefined ? overrideText : userInput;
-    if (!text.trim() || isThinking || !keyData) return;
+    if ((!text.trim() && !selectedImage) || isThinking || !keyData) return;
 
     let currentHistory = overrideHistory || rawChatHistory;
+    const currentImage = selectedImage;
 
     if (overrideText === undefined) {
-      const userMessage: RawChatMessage = { sender: 'user', content: text };
+      const userMessage: RawChatMessage = { sender: 'user', content: text, ...(currentImage ? { imageUrl: currentImage.url } : {}) } as any;
       currentHistory = [...currentHistory, userMessage];
       setRawChatHistory(currentHistory);
       setUserInput('');
+      setSelectedImage(null);
       if (textareaRef.current) textareaRef.current.style.height = 'auto'; // Reset height
     }
 
@@ -450,7 +586,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
 
     // Pre-search the feature list using keyword matching to reduce payload size
     const fullSearchContext = (consolidatedDescription.current + " " + text).toLowerCase();
-    const relevantFeatures = keyData.featureListForAI.filter(f => {
+    const relevantFeatures = currentImage ? keyData.featureListForAI : keyData.featureListForAI.filter(f => {
       if (previousFeatureIds.includes(f.id)) return true; // keep previously used features context
       
       // Include CJK full-width punctuation in the split (e.g., 、 。 ！ ？ 「 」 【 】)
@@ -487,9 +623,9 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
 **Instructions:**
 1. Determine if the user is describing a specimen for identification OR asking an informational question about the key, its features, or its entities.
 2. **If Identifying a Specimen:**
-   - Read the "Current Description" and the "New User Message". Synthesize them into an "updated_description" (e.g. adding new traits, or replacing corrected ones).
-   - Map the traits based ONLY on the "updated_description" to the provided "Feature List". Populate "features_used".
-   - Leave "answer" and "entities_used" empty.
+   - Read the "Current Description", "New User Message", and analyze any provided images. Synthesize them into an "updated_description" (e.g., adding newly observed visual traits, or replacing corrected ones).
+   - Map the traits based ONLY on the "updated_description" (which now includes your visual analysis) to the provided "Feature List". Populate "features_used".
+   - Try your best to identify the exact entities based on the description and images, and include your best matches from the Entity Profiles in "entities_used". Leave "answer" empty.
 3. **If Asking a Question:**
    - Provide a helpful, professional, and concise response based STRICTLY on the Key Metadata, Feature List, or Entity Profiles in the "answer" field.
    - **Structure:** Start with a direct answer, followed by supporting details using bullet points if applicable.
@@ -509,7 +645,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
 "${consolidatedDescription.current}"
 
 **New User Message:**
-"${text}"
+"${[text, currentImage ? '[Image Attached]' : ''].filter(Boolean).join(' ')}"
 
 **Feature List (id, type, description):**
 ${JSON.stringify(featuresToSend)}
@@ -520,18 +656,30 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
     // Format previous chat history for the API to provide multi-turn context.
     // We exclude the very last message (the current user prompt) to prevent duplicate roles in the API request.
     const historyPayload = currentHistory.slice(0, -1)
-      .filter(msg => msg.content || msg.data) // Filter out pure error or loading states
+      .filter(msg => msg.content || msg.data || (msg as any).imageUrl) // Filter out pure error or loading states
       .map(msg => ({
         role: (msg.sender === 'user' ? 'user' : 'model') as 'user' | 'model',
         parts: [{ 
           text: msg.sender === 'user' 
-            ? msg.content! 
+            ? [msg.content, (msg as any).imageUrl ? '[Image Attached]' : ''].filter(Boolean).join(' ')
             : JSON.stringify(msg.data) // Pass the AI's previous JSON responses back to it
         }]
       }));
 
+    const imagePayload = currentImage ? { mimeType: currentImage.mimeType, data: currentImage.base64 } : undefined;
+    const model = currentImage ? 'gemini-flash-latest' : 'gemini-3.1-flash-lite-preview';
+
     try {
-      const response = await callGeminiAPI(prompt, 'gemini-3.1-flash-lite-preview', geminiApiKey, systemInstruction, historyPayload);
+      let response;
+      try {
+        response = await callGeminiAPI(prompt, model, geminiApiKey, systemInstruction, historyPayload, imagePayload);
+      } catch (err) {
+        if (model !== 'gemini-3.1-flash-lite-preview') {
+          response = await callGeminiAPI(prompt, 'gemini-3.1-flash-lite-preview', geminiApiKey, systemInstruction, historyPayload, imagePayload);
+        } else {
+          throw err;
+        }
+      }
 
       // Stop "thinking" indicator
       setIsThinking(false);
@@ -750,7 +898,19 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
 
 
   return (
-    <div className={`panel flex flex-col h-full w-full bg-panel-bg border-l border-border shadow-lg overflow-hidden`} >
+    <div 
+      className={`panel flex flex-col h-full w-full bg-panel-bg border-l border-border shadow-lg overflow-hidden relative`}
+      onDragOver={handleDragOver}
+      onDragEnter={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {isDragging && (
+        <div className="absolute inset-0 z-50 bg-bg/80 backdrop-blur-sm border-4 border-dashed border-accent flex flex-col items-center justify-center text-accent pointer-events-none">
+          <Icon name="Image" size={48} className="mb-4 animate-bounce" />
+          <h3 className="text-xl font-bold">{t('dropImageHere') !== 'dropImageHere' ? t('dropImageHere') : 'Drop image to upload'}</h3>
+        </div>
+      )}
       {rawChatHistory.length === 0 || !keyData ? (
         // Unified Welcome Screen when chat is empty
         <div className="flex flex-col items-center justify-center h-full text-center text-text animate-fade-in p-6 relative bg-gradient-to-b from-panel-bg to-bg">
@@ -793,6 +953,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
                     onEditSubmit={handleEditSubmit}
                     onVersionChange={handleVersionChange}
                     isThinking={isThinking}
+                    onImageClick={onImageClick}
                   />
                 );
               });
@@ -833,36 +994,55 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
           </div>
         )}
         <div className={`relative flex items-end w-full border-2 border-border rounded-2xl bg-bg shadow-sm transition-all focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/20 ${(!isEnabled || isThinking || !geminiApiKey) ? 'opacity-60 grayscale-[30%]' : ''}`}>
+          <div className="pl-1.5 pb-1.5 shrink-0 flex items-center justify-center">
+            <input type="file" ref={imageInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
+            <button type="button" onClick={() => imageInputRef.current?.click()} disabled={!isEnabled || isThinking || !geminiApiKey} className="w-8 h-8 text-gray-500 hover:text-accent rounded-lg flex items-center justify-center transition-colors cursor-pointer disabled:cursor-not-allowed disabled:hover:text-gray-500" title={t('uploadImage') || 'Upload Image'}>
+              <Icon name="Image" size={18} />
+            </button>
+          </div>
           <div className="relative w-full overflow-hidden flex flex-col justify-end">
-            <div 
-              ref={backdropRef}
-              className="absolute inset-0 w-full h-full p-3 text-sm pointer-events-none whitespace-pre-wrap break-words overflow-y-auto font-sans text-text"
-              style={{ maxHeight: '120px' }}
-              aria-hidden="true"
-            >
-              {!userInput ? <span className="text-gray-400">{placeholder}</span> : renderHighlights()}
+            {selectedImage && (
+              <div className="pt-3 px-3 pb-1">
+                <div className="relative inline-block">
+                  <img src={selectedImage.url} alt="Preview" className="h-16 w-16 object-cover rounded-md border border-border" />
+                  <button type="button" onClick={removeSelectedImage} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600 transition-colors shadow-sm cursor-pointer z-20">
+                    <Icon name="X" size={12} />
+                  </button>
+                </div>
+              </div>
+            )}
+            <div className="relative w-full">
+              <div 
+                ref={backdropRef}
+                className="absolute inset-0 w-full h-full p-3 text-sm pointer-events-none whitespace-pre-wrap break-words overflow-y-auto font-sans text-text"
+                style={{ maxHeight: '120px' }}
+                aria-hidden="true"
+              >
+                {!userInput ? <span className="text-gray-400">{placeholder}</span> : renderHighlights()}
+              </div>
+              <textarea
+                ref={textareaRef}
+                rows={1}
+                value={userInput}
+                onChange={handleInputChange}
+                onKeyDown={handleTextareaKeyDown}
+                onScroll={(e) => { if (backdropRef.current) backdropRef.current.scrollTop = e.currentTarget.scrollTop; }}
+                onPaste={handlePaste}
+                onInput={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = 'auto';
+                  target.style.height = `${target.scrollHeight}px`;
+                }}
+                placeholder={placeholder}
+                disabled={!isEnabled || isThinking || !geminiApiKey}
+                className="w-full p-3 text-sm bg-transparent resize-none overflow-y-auto focus:outline-none z-10 font-sans placeholder-transparent"
+                style={{ maxHeight: '120px', color: 'inherit', WebkitTextFillColor: 'transparent', caretColor: 'currentColor' }}
+                spellCheck="false"
+              />
             </div>
-            <textarea
-              ref={textareaRef}
-              rows={1}
-              value={userInput}
-              onChange={handleInputChange}
-              onKeyDown={handleTextareaKeyDown}
-              onScroll={(e) => { if (backdropRef.current) backdropRef.current.scrollTop = e.currentTarget.scrollTop; }}
-              onInput={(e) => {
-                const target = e.target as HTMLTextAreaElement;
-                target.style.height = 'auto';
-                target.style.height = `${target.scrollHeight}px`;
-              }}
-              placeholder={placeholder}
-              disabled={!isEnabled || isThinking || !geminiApiKey}
-              className="w-full p-3 text-sm bg-transparent resize-none overflow-y-auto focus:outline-none z-10 font-sans placeholder-transparent"
-              style={{ maxHeight: '120px', color: 'inherit', WebkitTextFillColor: 'transparent', caretColor: 'currentColor' }}
-              spellCheck="false"
-            />
           </div>
           <div className="pr-1.5 pb-1.5 shrink-0 flex items-center justify-center">
-            <button type="submit" disabled={!isEnabled || isThinking || !userInput.trim() || !geminiApiKey} className="w-8 h-8 bg-accent text-white rounded-lg flex items-center justify-center disabled:bg-gray-400 disabled:scale-95 transition-all duration-200 hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-bg focus:ring-accent cursor-pointer disabled:cursor-not-allowed">
+            <button type="submit" disabled={!isEnabled || isThinking || (!userInput.trim() && !selectedImage) || !geminiApiKey} className="w-8 h-8 bg-accent text-white rounded-lg flex items-center justify-center disabled:bg-gray-400 disabled:scale-95 transition-all duration-200 hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-bg focus:ring-accent cursor-pointer disabled:cursor-not-allowed">
               <Icon name="ArrowUp" size={18} />
             </button>
           </div>

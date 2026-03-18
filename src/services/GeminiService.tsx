@@ -8,7 +8,8 @@ export async function callGeminiAPI(
   model: string,
   apiKey: string,
   systemInstruction?: string,
-  history?: { role: 'user' | 'model', parts: { text: string }[] }[]
+  history?: { role: 'user' | 'model', parts: any[] }[],
+  image?: { mimeType: string, data: string }
 ): Promise<GeminiResponse> {
 
   if (!apiKey) {
@@ -16,10 +17,18 @@ export async function callGeminiAPI(
   }
   const ai = new GoogleGenAI({ apiKey });
 
+  // Construct the current user message parts
+  const currentParts: any[] = [{ text: prompt }];
+  if (image) {
+    currentParts.push({
+      inlineData: { data: image.data, mimeType: image.mimeType }
+    });
+  }
+
   // Combine history (if any) with the current new prompt
   const contents = history 
-    ? [...history, { role: 'user', parts: [{ text: prompt }] }]
-    : [{ role: 'user', parts: [{ text: prompt }] }];
+    ? [...history, { role: 'user', parts: currentParts }]
+    : [{ role: 'user', parts: currentParts }];
 
   try {
     const response = await ai.models.generateContent({
@@ -62,8 +71,20 @@ export async function callGeminiAPI(
       }
     });
 
-    const responseText = response.text;
-    return JSON.parse(responseText) as GeminiResponse;
+    // Extract text manually to bypass the .text getter which triggers the "thoughtSignature" warning
+    let responseText = '';
+    if (response.candidates && response.candidates[0] && response.candidates[0].content && response.candidates[0].content.parts) {
+      responseText = response.candidates[0].content.parts.map((p: any) => p.text).filter(Boolean).join('');
+    }
+    if (!responseText) {
+      responseText = response.text;
+    }
+
+    try {
+      return JSON.parse(responseText || '{}') as GeminiResponse;
+    } catch (parseError) {
+      throw new Error("Failed to parse the AI's response into the expected JSON format. Please try rephrasing your prompt.");
+    }
   } catch (error: any) {
     let message = error.response?.data?.error?.message || error.message || "An unknown error occurred.";
 
