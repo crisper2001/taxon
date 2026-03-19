@@ -48,23 +48,24 @@ export const useKeyFiltering = (keyData: KeyData | null, chosenFeatures: Map<str
     const indirectMatches = new Set<string>();
     const remainingIds = new Set(directMatches);
 
-    const buildIndirectHierarchy = (nodes: EntityNode[]) => {
-      let changedInLoop = false;
-      nodes.forEach(node => {
-        if (node.isGroup && !remainingIds.has(node.id)) {
-          const hasMatchingChild = node.children.some(child => remainingIds.has(child.id));
-          if (hasMatchingChild) {
+    const buildIndirectHierarchy = (nodes: EntityNode[]): boolean => {
+      let subtreeHasMatch = false;
+      for (const node of nodes) {
+        let nodeHasMatch = remainingIds.has(node.id);
+        if (node.isGroup) {
+          const childrenMatch = buildIndirectHierarchy(node.children);
+          if (childrenMatch) {
             indirectMatches.add(node.id);
             remainingIds.add(node.id);
-            changedInLoop = true;
+            nodeHasMatch = true;
           }
         }
-      });
-      return changedInLoop;
+        if (nodeHasMatch) subtreeHasMatch = true;
+      }
+      return subtreeHasMatch;
     };
     
-    // Iteratively build up the hierarchy from children to parents
-    while(buildIndirectHierarchy(keyData.entityTree));
+    buildIndirectHierarchy(keyData.entityTree);
 
     // 4. Total discarded entities are everyone not in the final remaining set.
     const discardedEntityIds = new Set([...allEntityIds].filter(id => !remainingIds.has(id)));

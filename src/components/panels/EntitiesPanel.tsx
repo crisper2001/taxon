@@ -75,7 +75,12 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({ title, icon, count
       let subtreeHasMatch = false;
       for (const node of nodes) {
         const selfMatches = node.name.toLowerCase().includes(lowerCaseSearchTerm);
-        const childrenMatch = node.isGroup ? findMatches(node.children, [...parents, node.id]) : false;
+        let childrenMatch = false;
+        if (node.isGroup) {
+          parents.push(node.id);
+          childrenMatch = findMatches(node.children, parents);
+          parents.pop();
+        }
 
         if (selfMatches) newMatching.add(node.id);
         if (selfMatches || childrenMatch) {
@@ -198,18 +203,27 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({ title, icon, count
   );
 };
 
-const RenderEntityNode: React.FC<{
-  node: EntityNode,
-  mediaMap: Map<string, Media[]>,
-  onEntityClick: (id: string) => void,
-  view: 'list' | 'grid',
-  t: (key: string) => string,
-  expandedNodes: Set<string>,
-  onToggleNode: (id: string) => void,
-  matchingIds: Set<string> | null,
-  directMatches: Set<string>,
-  indirectMatches: Set<string>,
-}> = ({ node, mediaMap, onEntityClick, view, t, expandedNodes, onToggleNode, matchingIds, directMatches, indirectMatches }) => {
+interface RenderEntityNodeProps {
+  node: EntityNode;
+  mediaMap: Map<string, Media[]>;
+  onEntityClick: (id: string) => void;
+  view: 'list' | 'grid';
+  t: (key: string) => string;
+  expandedNodes: Set<string>;
+  onToggleNode: (id: string) => void;
+  matchingIds: Set<string> | null;
+  directMatches: Set<string>;
+  indirectMatches: Set<string>;
+}
+
+const RenderEntityNode: React.FC<RenderEntityNodeProps> = (props) => {
+  if (props.node.isGroup) {
+    return <EntityGroupNode {...props} />;
+  }
+  return <EntityLeafNode {...props} />;
+};
+
+const EntityGroupNode: React.FC<RenderEntityNodeProps> = ({ node, mediaMap, onEntityClick, view, t, expandedNodes, onToggleNode, matchingIds, directMatches, indirectMatches }) => {
   const isSearching = matchingIds !== null;
   const isSearchMatch = isSearching && matchingIds.has(node.id);
   const isSearchDimmed = isSearching && !isSearchMatch;
@@ -219,7 +233,6 @@ const RenderEntityNode: React.FC<{
     (indirectMatches.has(node.id) && !directMatches.has(node.id)) || (node as any).isDimmed
   );
 
-  if (node.isGroup) {
     const isList = view === 'list';
     const isExpanded = expandedNodes.has(node.id);
     const media = mediaMap.get(node.id);
@@ -237,7 +250,7 @@ const RenderEntityNode: React.FC<{
           </div>
           <div onClick={() => onEntityClick(node.id)} className="flex items-center gap-2 grow cursor-pointer min-w-0">
             {hasMedia ? (
-              <img src={thumbUrl} alt={node.name} className="w-32 h-32 object-cover rounded shrink-0" />
+              <img src={thumbUrl} alt={node.name} loading="lazy" className="w-32 h-32 object-cover rounded shrink-0" />
             ) : (
               <div className="w-32 h-32 bg-header-bg rounded shrink-0 object-cover flex items-center justify-center text-gray-400">
                 <Icon name="ImageOff" size="32" />
@@ -267,9 +280,17 @@ const RenderEntityNode: React.FC<{
         )}
       </div>
     );
-  }
+};
 
-  // It's a regular entity
+const EntityLeafNode = React.memo<RenderEntityNodeProps>(({ node, mediaMap, onEntityClick, view, t, expandedNodes, onToggleNode, matchingIds, directMatches, indirectMatches }) => {
+  const isSearching = matchingIds !== null;
+  const isSearchMatch = isSearching && matchingIds.has(node.id);
+  const isSearchDimmed = isSearching && !isSearchMatch;
+
+  const isFilterDimmed = !isSearching && (
+    (indirectMatches.has(node.id) && !directMatches.has(node.id)) || (node as any).isDimmed
+  );
+
   const media = mediaMap.get(node.id);
   const hasMedia = media && media.length > 0;
   const thumbUrl = hasMedia ? media[0].url : '';
@@ -283,9 +304,10 @@ const RenderEntityNode: React.FC<{
       onClick={() => onEntityClick(node.id)}
       data-search-match={isSearchMatch ? "true" : undefined}
       className={`entity-item flex gap-2 p-1.5 rounded cursor-pointer hover:bg-hover-bg transition-all duration-200 ${isList ? 'items-center ml-8' : 'flex-col items-center text-center'} ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20' : ''} ${isFilterDimmed ? 'opacity-50' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}
+      style={{ contentVisibility: 'auto' } as any}
     >
       {hasMedia ? (
-        <img src={thumbUrl} alt={node.name} className={imageClasses} />
+        <img src={thumbUrl} alt={node.name} loading="lazy" className={imageClasses} />
       ) : (
         <div className={`${imageClasses} flex items-center justify-center text-gray-400`}>
           <Icon name="ImageOff" size="32" />
@@ -294,4 +316,31 @@ const RenderEntityNode: React.FC<{
       <span className="text-md">{node.name}</span>
     </div>
   );
-};
+}, (prev, next) => {
+  if (prev.node !== next.node) return false;
+  if (prev.view !== next.view) return false;
+  
+  const wasSearching = prev.matchingIds !== null;
+  const isSearching = next.matchingIds !== null;
+  if (wasSearching !== isSearching) return false;
+
+  if (isSearching) {
+      const wasMatch = prev.matchingIds!.has(prev.node.id);
+      const isMatch = next.matchingIds!.has(next.node.id);
+      if (wasMatch !== isMatch) return false;
+  }
+
+  const wasIndirect = prev.indirectMatches.has(prev.node.id);
+  const isIndirect = next.indirectMatches.has(next.node.id);
+  if (wasIndirect !== isIndirect) return false;
+
+  const wasDirect = prev.directMatches.has(prev.node.id);
+  const isDirect = next.directMatches.has(next.node.id);
+  if (wasDirect !== isDirect) return false;
+
+  const wasDimmed = (prev.node as any).isDimmed;
+  const isDimmed = (next.node as any).isDimmed;
+  if (wasDimmed !== isDimmed) return false;
+
+  return true;
+});

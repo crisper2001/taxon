@@ -68,7 +68,7 @@ const findMatchingEntities = (features: GeminiFeatureMatch[], keyData: KeyData):
   return Array.from(matchingEntityIds).map(id => keyData.allEntities.get(id)!);
 };
 
-const ChatMessageBubble: React.FC<{
+const ChatMessageBubble = React.memo<{
   msg: ChatMessage;
   index: number;
   keyData: KeyData | null;
@@ -81,7 +81,7 @@ const ChatMessageBubble: React.FC<{
   isThinking?: boolean;
   onImageClick?: (url: string) => void;
   appMode: 'identify' | 'build';
-} > = ({ msg, index, keyData, t, isLatestAi, isLatestUser, onRegenerate, onEditSubmit, onVersionChange, isThinking, onImageClick, appMode }) => {
+}>(({ msg, index, keyData, t, isLatestAi, isLatestUser, onRegenerate, onEditSubmit, onVersionChange, isThinking, onImageClick, appMode }) => {
   const [isCopied, setIsCopied] = useState(false);
   
   // Truncate AI messages if they exceed 500 characters
@@ -353,7 +353,16 @@ const ChatMessageBubble: React.FC<{
       )}
     </div>
   );
-};
+}, (prev, next) => {
+  return prev.msg === next.msg &&
+         prev.index === next.index &&
+         prev.keyData === next.keyData &&
+         prev.t === next.t &&
+         prev.isLatestAi === next.isLatestAi &&
+         prev.isLatestUser === next.isLatestUser &&
+         prev.isThinking === next.isThinking &&
+         prev.appMode === next.appMode;
+});
 
 export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, keyData, onEntityClick, onImageClick, t, lang, geminiApiKey, chatHistory: rawChatHistory, setChatHistory: setRawChatHistory, appMode, getCurrentDraft }) => {
   const [userInput, setUserInput] = useState('');

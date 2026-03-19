@@ -15,52 +15,19 @@ interface RenderFeatureNodeProps {
   matchingIds: Set<string> | null;
 }
 
-export const RenderFeatureNode: React.FC<RenderFeatureNodeProps> = ({
-  node,
-  keyData,
-  chosenFeatures,
-  onFeatureChange,
-  onImageClick,
-  t,
-  expandedNodes,
-  onToggleNode,
-  matchingIds,
+export const RenderFeatureNode: React.FC<RenderFeatureNodeProps> = (props) => {
+  if (props.node.isState || props.node.type === 'numeric') {
+    return <FeatureLeafNode {...props} />;
+  }
+  return <FeatureGroupNode {...props} />;
+};
+
+const FeatureGroupNode: React.FC<RenderFeatureNodeProps> = ({
+  node, keyData, chosenFeatures, onFeatureChange, onImageClick, t, expandedNodes, onToggleNode, matchingIds
 }) => {
   const isSearching = matchingIds !== null;
   const isMatch = isSearching && matchingIds.has(node.id);
   const isDimmed = isSearching && !isMatch;
-
-  if (node.isState || node.type === 'numeric') {
-    const isSelected = chosenFeatures.has(node.id);
-    const media = keyData.featureMedia.get(node.id);
-    const hasMedia = media && media.length > 0;
-
-    return (
-      <div data-search-match={isMatch ? "true" : undefined} className={`feature-item relative pl-4 py-1 flex items-center gap-3 hover:bg-hover-bg rounded transition-all duration-200 ${isDimmed ? 'opacity-30' : ''} ${isMatch ? 'bg-accent/20' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}>
-        {hasMedia && <img src={media![0].url} alt={node.name} onClick={() => onImageClick(node.id)} className="w-24 h-24 object-cover rounded cursor-pointer shrink-0" />}
-        {node.type === 'state' ? (
-          <label className="flex items-center gap-2 cursor-pointer grow">
-            <input type="checkbox" checked={isSelected} onChange={() => onFeatureChange(node.id, !isSelected, false)} className="form-checkbox h-4 w-4 rounded text-accent focus:ring-accent" />
-            <span>{node.name}</span>
-          </label>
-        ) : (
-          <>
-            <label className="grow">{node.name}</label>
-            <div className="numeric-input-group flex items-center gap-2 pr-2">
-              <input
-                type="number"
-                value={isSelected ? chosenFeatures.get(node.id)?.value || '' : ''}
-                onChange={(e) => onFeatureChange(node.id, e.target.value, true)}
-                placeholder={t('value')}
-                className="w-20 p-1 border border-border rounded bg-panel-bg"
-              />
-              <span className="text-sm text-gray-500">{getUnitSymbol(keyData.allFeatures.get(node.id))}</span>
-            </div>
-          </>
-        )}
-      </div>
-    );
-  }
 
   const isExpanded = expandedNodes.has(node.id);
   return (
@@ -77,3 +44,64 @@ export const RenderFeatureNode: React.FC<RenderFeatureNodeProps> = ({
     </div>
   );
 };
+
+const FeatureLeafNode = React.memo<RenderFeatureNodeProps>(({
+  node, keyData, chosenFeatures, onFeatureChange, onImageClick, t, expandedNodes, onToggleNode, matchingIds
+}) => {
+  const isSearching = matchingIds !== null;
+  const isMatch = isSearching && matchingIds.has(node.id);
+  const isDimmed = isSearching && !isMatch;
+  const isSelected = chosenFeatures.has(node.id);
+  const media = keyData.featureMedia.get(node.id);
+  const hasMedia = media && media.length > 0;
+
+  return (
+    <div data-search-match={isMatch ? "true" : undefined} className={`feature-item relative pl-4 py-1 flex items-center gap-3 hover:bg-hover-bg rounded transition-all duration-200 ${isDimmed ? 'opacity-30' : ''} ${isMatch ? 'bg-accent/20' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`} style={{ contentVisibility: 'auto' } as any}>
+      {hasMedia && <img src={media![0].url} alt={node.name} loading="lazy" onClick={() => onImageClick(node.id)} className="w-24 h-24 object-cover rounded cursor-pointer shrink-0" />}
+      {node.type === 'state' ? (
+        <label className="flex items-center gap-2 cursor-pointer grow">
+          <input type="checkbox" checked={isSelected} onChange={() => onFeatureChange(node.id, !isSelected, false)} className="form-checkbox h-4 w-4 rounded text-accent focus:ring-accent" />
+          <span>{node.name}</span>
+        </label>
+      ) : (
+        <>
+          <label className="grow">{node.name}</label>
+          <div className="numeric-input-group flex items-center gap-2 pr-2">
+            <input
+              type="number"
+              value={isSelected ? chosenFeatures.get(node.id)?.value || '' : ''}
+              onChange={(e) => onFeatureChange(node.id, e.target.value, true)}
+              placeholder={t('value')}
+              className="w-20 p-1 border border-border rounded bg-panel-bg"
+            />
+            <span className="text-sm text-gray-500">{getUnitSymbol(keyData.allFeatures.get(node.id))}</span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}, (prev, next) => {
+  if (prev.node !== next.node) return false;
+  
+  const wasSelected = prev.chosenFeatures.has(prev.node.id);
+  const isSelected = next.chosenFeatures.has(next.node.id);
+  if (wasSelected !== isSelected) return false;
+
+  if (prev.node.type === 'numeric' && wasSelected) {
+    if (prev.chosenFeatures.get(prev.node.id)?.value !== next.chosenFeatures.get(next.node.id)?.value) {
+      return false;
+    }
+  }
+
+  const wasSearching = prev.matchingIds !== null;
+  const isSearching = next.matchingIds !== null;
+  if (wasSearching !== isSearching) return false;
+
+  if (isSearching) {
+    const wasMatch = prev.matchingIds!.has(prev.node.id);
+    const isMatch = next.matchingIds!.has(next.node.id);
+    if (wasMatch !== isMatch) return false;
+  }
+
+  return true;
+});

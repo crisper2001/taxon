@@ -68,6 +68,7 @@ export const Panel: React.FC<PanelProps> = ({ title, icon, count, onSearch, chil
       </div>
       <div 
         className="panel-content overflow-y-auto grow p-2"
+        style={{ contain: 'content' }}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
       >

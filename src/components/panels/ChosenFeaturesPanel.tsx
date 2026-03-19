@@ -93,7 +93,9 @@ export const ChosenFeaturesPanel: React.FC<ChosenFeaturesPanelProps> = ({ chosen
         if (node.isState || node.type === 'numeric') {
           if (selfMatches) subtreeHasMatch = true;
         } else {
-          childrenMatch = findMatches(node.children, [...parents, node.id]);
+          parents.push(node.id);
+          childrenMatch = findMatches(node.children, parents);
+          parents.pop();
         }
 
         if (selfMatches) {
