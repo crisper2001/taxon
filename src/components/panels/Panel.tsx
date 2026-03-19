@@ -14,14 +14,18 @@ interface PanelProps {
   onPrevMatch?: () => void;
   onNextMatch?: () => void;
   actionButton?: React.ReactNode;
+  onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
+  onMouseLeave?: React.MouseEventHandler<HTMLDivElement>;
 }
 
-export const Panel: React.FC<PanelProps> = ({ title, icon, count, onSearch, children, footer, currentMatchIndex, matchCount, onPrevMatch, onNextMatch, actionButton }) => {
+export const Panel: React.FC<PanelProps> = ({ title, icon, count, onSearch, children, footer, currentMatchIndex, matchCount, onPrevMatch, onNextMatch, actionButton, onMouseEnter, onMouseLeave }) => {
   const [searchValue, setSearchValue] = useState('');
   const { t } = useAppContext();
 
   return (
-    <div className="panel flex flex-col h-full w-full bg-panel-bg border border-border rounded-2xl shadow-sm overflow-hidden relative">
+    <div 
+      className="panel flex flex-col h-full w-full bg-panel-bg border border-border rounded-2xl shadow-sm overflow-hidden relative"
+    >
       <div className="panel-header flex items-center justify-between p-3.5 border-b border-border bg-header-bg/80 backdrop-blur-sm shrink-0">
         <div className="panel-title font-bold flex items-center gap-2 whitespace-nowrap text-text tracking-tight">
           {icon && <Icon name={icon} className="text-accent opacity-90" />}
@@ -62,10 +66,18 @@ export const Panel: React.FC<PanelProps> = ({ title, icon, count, onSearch, chil
           })()}
         </div>
       </div>
-      <div className="panel-content overflow-y-auto grow p-2">
+      <div 
+        className="panel-content overflow-y-auto grow p-2"
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+      >
         {children}
       </div>
-      {footer && <div className="panel-footer absolute bottom-2 right-2 z-10">{footer}</div>}
+      {footer && (
+        <div className="panel-footer absolute bottom-2 right-2 z-10" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+          {footer}
+        </div>
+      )}
     </div>
   );
 };

@@ -96,9 +96,11 @@ export const ChosenFeaturesPanel: React.FC<ChosenFeaturesPanelProps> = ({ chosen
           childrenMatch = findMatches(node.children, [...parents, node.id]);
         }
 
+        if (selfMatches) {
+          newMatching.add(node.id);
+        }
         if (selfMatches || childrenMatch) {
           subtreeHasMatch = true;
-          newMatching.add(node.id);
           parents.forEach(p => newExpanded.add(p));
         }
       }

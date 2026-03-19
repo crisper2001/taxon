@@ -1,7 +1,25 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 
-export const useResizablePanel = (initialWidth: number, minWidth: number, maxWidth: number, isVisible: boolean) => {
-  const [width, setWidth] = useState(initialWidth);
+export const useResizablePanel = (initialWidth: number, minWidth: number, maxWidth: number, isVisible: boolean, storageKey?: string) => {
+  const [width, setWidth] = useState(() => {
+    if (storageKey) {
+      const savedWidth = localStorage.getItem(storageKey);
+      if (savedWidth) {
+        const parsed = parseInt(savedWidth, 10);
+        if (!isNaN(parsed) && parsed >= minWidth && parsed <= maxWidth) {
+          return parsed;
+        }
+      }
+    }
+    return initialWidth;
+  });
+
+  useEffect(() => {
+    if (storageKey) {
+      localStorage.setItem(storageKey, width.toString());
+    }
+  }, [width, storageKey]);
+
   const isResizing = useRef(false);
   const dragOffset = useRef(0);
   const [isActivelyResizing, setIsActivelyResizing] = useState(false);
@@ -42,5 +60,5 @@ export const useResizablePanel = (initialWidth: number, minWidth: number, maxWid
     };
   }, [isVisible, handleMouseMove, handleMouseUp]);
 
-  return { width, isActivelyResizing, handleMouseDown };
+  return { width, isActivelyResizing, handleMouseDown, setWidth };
 };

@@ -28,15 +28,15 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **Actor:** User
 * **Description:** The user asks the AI assistant general or specific questions about the key's features, entities, or metadata (e.g., "What is feature X?", "Who authored this key?"). The AI leverages the parsed key data to provide informative answers.
 
-### UC9: Multimodal Image Identification
+### UC7: Multimodal Image Identification
 * **Actor:** User
 * **Description:** The user uploads an image of a specimen to the AI assistant along with an optional text description. The AI analyzes the visual features of the image, maps them to the Lucid key's characteristics, and identifies matching entities.
 
-### UC7: Search and Navigation
+### UC8: Search and Navigation
 * **Actor:** User
 * **Description:** The user searches for specific entities or chosen features via text input fields, highlighting and auto-expanding relevant tree nodes.
 
-### UC8: Configure Application Preferences
+### UC9: Configure Application Preferences
 * **Actor:** User
 * **Description:** The user accesses the preferences to set the UI theme (Light/Dark), application language, and Gemini API key required for the AI assistant.
 
@@ -92,7 +92,7 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **FR5.4:** The system must provide a clear search button (X) within the search input fields to allow users to quickly reset their active filters.
 
 ### 2.6. State Management & Persistence
-* **FR6.1:** The system must preserve user preferences (API key, language selection, light/dark theme, toast notifications toggle) across sessions using the browser's `localStorage`.
+* **FR6.1:** The system must preserve user preferences (API key, language selection, light/dark theme, toast notifications toggle, panel layout sizes, and entities view modes) across sessions using the browser's `localStorage`.
 * **FR6.2:** All application states (loaded keys, AI chat history, selected features) must be reset gracefully when a user imports a new key. The user can also manually clear their selections via the clear button in the Chosen Features panel, or clear the AI chat history via the Assistant panel (both of which prompt for confirmation via a custom modal).
 
 ### 2.7. Localization (i18n)

@@ -8,7 +8,20 @@ const MIN_PANEL_SIZE = 250;
 const RESIZER_SIZE = 5; // The size of the resizer bar in pixels.
 
 export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children }) => {
-    const [layout, setLayout] = useState({ rows: `1fr ${RESIZER_SIZE}px 1fr`, cols: `1fr ${RESIZER_SIZE}px 1fr` });
+    const [layout, setLayout] = useState(() => {
+        const savedLayout = localStorage.getItem('panelsLayout');
+        if (savedLayout) {
+            try {
+                const parsed = JSON.parse(savedLayout);
+                if (parsed.rows && parsed.cols) {
+                    return parsed;
+                }
+            } catch (e) {
+                // Ignore parse errors and fall back to default
+            }
+        }
+        return { rows: `3fr ${RESIZER_SIZE}px 2fr`, cols: `1fr ${RESIZER_SIZE}px 2fr` };
+    });
     const containerRef = useRef<HTMLDivElement>(null);
     const resizingType = useRef<null | 'v' | 'h'>(null);
     const dragOffset = useRef(0);
@@ -48,6 +61,10 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children }) =>
     }, []);
 
     useEffect(() => {
+        localStorage.setItem('panelsLayout', JSON.stringify(layout));
+    }, [layout]);
+
+    useEffect(() => {
         if (!isResizing) return;
 
         const handleMove = (e: MouseEvent) => handleMouseMove(e);
@@ -71,9 +88,21 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children }) =>
             style={{ gridTemplateRows: layout.rows, gridTemplateColumns: layout.cols }}
         >
             <div style={{ gridArea: '1 / 1 / 2 / 2' }} className="min-h-0 min-w-0">{children[0]}</div>
-            <div onMouseDown={(e) => handleMouseDown(e, 'v')} style={{ gridArea: '1 / 2 / 4 / 3' }} className={`cursor-col-resize hover:bg-accent transition-colors ${isResizing && resizingType.current === 'v' ? 'bg-accent' : ''}`}></div>
+            <div 
+                onMouseDown={(e) => handleMouseDown(e, 'v')} 
+                onDoubleClick={() => setLayout(prev => ({ ...prev, cols: `1fr ${RESIZER_SIZE}px 2fr` }))} 
+                style={{ gridArea: '1 / 2 / 4 / 3' }} 
+                className={`cursor-col-resize hover:bg-accent transition-colors ${isResizing && resizingType.current === 'v' ? 'bg-accent' : ''}`}
+                title="Double-click to reset width"
+            ></div>
             <div style={{ gridArea: '1 / 3 / 2 / 4' }} className="min-h-0 min-w-0">{children[1]}</div>
-            <div onMouseDown={(e) => handleMouseDown(e, 'h')} style={{ gridArea: '2 / 1 / 3 / 4' }} className={`cursor-row-resize hover:bg-accent transition-colors ${isResizing && resizingType.current === 'h' ? 'bg-accent' : ''}`}></div>
+            <div 
+                onMouseDown={(e) => handleMouseDown(e, 'h')} 
+                onDoubleClick={() => setLayout(prev => ({ ...prev, rows: `3fr ${RESIZER_SIZE}px 2fr` }))} 
+                style={{ gridArea: '2 / 1 / 3 / 4' }} 
+                className={`cursor-row-resize hover:bg-accent transition-colors ${isResizing && resizingType.current === 'h' ? 'bg-accent' : ''}`}
+                title="Double-click to reset height"
+            ></div>
             <div style={{ gridArea: '3 / 1 / 4 / 2' }} className="min-h-0 min-w-0">{children[2]}</div>
             <div style={{ gridArea: '3 / 3 / 4 / 4' }} className="min-h-0 min-w-0">{children[3]}</div>
         </div>

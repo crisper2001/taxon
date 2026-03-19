@@ -19,7 +19,9 @@ interface EntitiesPanelProps {
 }
 export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({ title, icon, count, entityTree, directMatches, indirectMatches, mediaMap, onEntityClick, t, expandedNodes, setExpandedNodes }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [view, setView] = useState<'list' | 'grid'>('list');
+  const [view, setView] = useState<'list' | 'grid'>(() => {
+    return (localStorage.getItem('entitiesViewMode') as 'list' | 'grid') || 'grid';
+  });
   const [isFooterVisible, setIsFooterVisible] = useState(false);
   const [matchingIds, setMatchingIds] = useState<Set<string> | null>(null);
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -49,6 +51,10 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({ title, icon, count
       }
     };
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('entitiesViewMode', view);
+  }, [view]);
 
   useEffect(() => {
     if (!searchTerm) {
@@ -144,8 +150,6 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({ title, icon, count
 
   const viewControls = (
     <div
-      onMouseEnter={showFooter}
-      onMouseLeave={hideFooter}
       className={`transition-opacity duration-300 ${isFooterVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
     >
       <div className="view-controls flex items-center bg-header-bg rounded-md p-0.5">
@@ -166,11 +170,11 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({ title, icon, count
       matchCount={matchCount}
       onPrevMatch={() => setCurrentMatchIndex(prev => prev - 1)}
       onNextMatch={() => setCurrentMatchIndex(prev => prev + 1)}
+      onMouseEnter={showFooter}
+      onMouseLeave={hideFooter}
     >
       <div
         ref={containerRef}
-        onMouseEnter={showFooter}
-        onMouseLeave={hideFooter}
         className={`panel-content-inner ${view === 'grid' ? 'grid gap-4' : 'flex flex-col'}`}
         style={view === 'grid' ? { gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' } : {}}
       >

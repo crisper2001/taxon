@@ -46,7 +46,12 @@ const App: React.FC = () => {
   // AI Panel Resizing State
   const MIN_AI_PANEL_WIDTH = 350;
   const MAX_AI_PANEL_WIDTH = 700;
-  const { width: aiPanelWidth, isActivelyResizing, handleMouseDown: handleAiPanelMouseDown } = useResizablePanel(450, MIN_AI_PANEL_WIDTH, MAX_AI_PANEL_WIDTH, isAiPanelVisible);
+  const { 
+    width: aiPanelWidth, 
+    isActivelyResizing, 
+    handleMouseDown: handleAiPanelMouseDown, 
+    setWidth: setAiPanelWidth 
+  } = useResizablePanel(450, MIN_AI_PANEL_WIDTH, MAX_AI_PANEL_WIDTH, isAiPanelVisible, 'aiPanelWidth');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -364,8 +369,9 @@ const App: React.FC = () => {
         >
           <div
             onMouseDown={handleAiPanelMouseDown}
+            onDoubleClick={() => setAiPanelWidth && setAiPanelWidth(450)}
             className={`absolute left-0 top-0 bottom-0 z-10 w-1.5 cursor-col-resize transition-colors duration-200 ease-in-out hover:bg-accent/80 ${isActivelyResizing ? 'bg-accent' : ''} ${!isAiPanelVisible ? 'hidden' : ''}`}
-            title={t('resizePanel')}
+            title={`${t('resizePanel')} (Double-click to reset)`}
           ></div>
           <div className="ai-panel-wrapper grow overflow-hidden">
             <AIAssistant
