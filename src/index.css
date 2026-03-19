@@ -20,4 +20,91 @@
   --color-border: #444;
   --color-header-bg: #333;
   --color-hover-bg: #3a3a3a;
+  
+  /* Retain the prettier light-mode blue in dark mode */
+  --color-accent: #3b82f6;
+  --color-accent-hover: #2563eb;
+}
+
+/* Global Custom Morphic Checkbox */
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  border-radius: 0.375rem !important;
+  background-color: rgba(0, 0, 0, 0.03) !important;
+  display: inline-grid !important;
+  place-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05) !important;
+  background-image: none !important; /* Removes default tailwind forms tick */
+}
+
+.dark input[type="checkbox"] {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+input[type="checkbox"]::before {
+  content: "";
+  width: 0.75rem;
+  height: 0.75rem;
+  transform: scale(0);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: inset 1em 1em white;
+  transform-origin: center;
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+}
+
+input[type="checkbox"]:checked {
+  background-color: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  background-image: linear-gradient(to bottom right, rgba(255, 255, 255, 0.15) 0%, rgba(0, 0, 0, 0.1) 100%) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+}
+
+input[type="checkbox"]:checked::before {
+  transform: scale(1);
+}
+
+/* Global Custom Number Input (Hide ugly spinners) */
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Add subtle shading/gradient to accent and red button backgrounds */
+.bg-accent, .bg-accent\/95, .bg-accent\/90, .bg-accent-hover,
+.bg-red-500, .bg-red-500\/95, .bg-red-600 {
+  background-image: linear-gradient(to bottom right, rgba(255, 255, 255, 0.15) 0%, rgba(0, 0, 0, 0.1) 100%);
+}
+
+/* Add subtle shading/gradient to accented text, safely excluding elements with backgrounds */
+@supports (-webkit-background-clip: text) {
+  :not(svg):not(input):not(textarea).text-accent:not([class*="bg-"]),
+  :not(svg):not(input):not(textarea).hover\:text-accent:not([class*="bg-"]),
+  :not(svg):not(input):not(textarea).text-accent-hover:not([class*="bg-"]),
+  :not(svg):not(input):not(textarea).hover\:text-accent-hover:not([class*="bg-"]),
+  :not(svg):not(input):not(textarea).text-red-500:not([class*="bg-"]),
+  :not(svg):not(input):not(textarea).hover\:text-red-500:not([class*="bg-"]),
+  .markdown-body a {
+    background-image: linear-gradient(to bottom right, currentColor, currentColor);
+    background-image: linear-gradient(
+      to bottom right, 
+      color-mix(in srgb, currentColor, white 15%), 
+      color-mix(in srgb, currentColor, black 10%)
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
 }

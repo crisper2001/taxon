@@ -171,8 +171,8 @@ export const ChosenFeaturesPanel: React.FC<ChosenFeaturesPanelProps> = ({ chosen
       onMouseLeave={hideFooter}
       className={`transition-opacity duration-300 ${isFooterVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
     >
-      <div className="view-controls flex items-center bg-header-bg rounded-md p-0.5 shadow-sm border border-border/50">
-        <button onClick={resetKey} title={t('clearFeatures')} className="p-1 rounded transition-colors duration-200 hover:bg-red-500 hover:text-white text-gray-500 cursor-pointer flex items-center justify-center">
+      <div className="view-controls flex items-center bg-header-bg/85 backdrop-blur-md rounded-xl p-1 shadow-md border border-white/20 dark:border-white/10">
+        <button onClick={resetKey} title={t('clearFeatures')} className="p-1.5 rounded-lg transition-all duration-300 hover:bg-red-500 hover:text-white hover:shadow-sm hover:-translate-y-0.5 text-gray-500 cursor-pointer flex items-center justify-center">
           <Icon name="Trash2" size={16} />
         </button>
       </div>

@@ -240,7 +240,7 @@ const EntityGroupNode: React.FC<RenderEntityNodeProps> = ({ node, mediaMap, onEn
     const thumbUrl = hasMedia ? media[0].url : '';
     return (
       <div className={`entity-group transition-opacity duration-200 ${isList ? '' : 'col-span-full'}`}>
-        <div data-search-match={isSearchMatch ? "true" : undefined} className={`flex items-center gap-2 p-1.5 rounded transition-colors duration-200 ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20' : ''} ${isFilterDimmed ? 'opacity-50' : ''} hover:bg-hover-bg data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}>          
+        <div data-search-match={isSearchMatch ? "true" : undefined} className={`flex items-center gap-2 p-1.5 rounded-xl transition-all duration-300 ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20 shadow-inner' : ''} ${isFilterDimmed ? 'opacity-50' : ''} hover:bg-hover-bg/80 hover:shadow-md hover:-translate-y-0.5 hover:backdrop-blur-sm data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}>          
           <div className="w-6 h-6 shrink-0 flex items-center justify-center">
             {node.children.length > 0 && (
               <div onClick={() => onToggleNode(node.id)} className="p-1 cursor-pointer rounded hover:bg-black/10 dark:hover:bg-white/10">
@@ -250,9 +250,9 @@ const EntityGroupNode: React.FC<RenderEntityNodeProps> = ({ node, mediaMap, onEn
           </div>
           <div onClick={() => onEntityClick(node.id)} className="flex items-center gap-2 grow cursor-pointer min-w-0">
             {hasMedia ? (
-              <img src={thumbUrl} alt={node.name} loading="lazy" className="w-32 h-32 object-cover rounded shrink-0" />
+              <img src={thumbUrl} alt={node.name} loading="lazy" className="w-32 h-32 object-cover rounded-lg shadow-sm shrink-0" />
             ) : (
-              <div className="w-32 h-32 bg-header-bg rounded shrink-0 object-cover flex items-center justify-center text-gray-400">
+              <div className="w-32 h-32 bg-header-bg/80 rounded-lg shadow-sm shrink-0 object-cover flex items-center justify-center text-gray-400">
                 <Icon name="ImageOff" size="32" />
               </div>
             )}
@@ -296,14 +296,14 @@ const EntityLeafNode = React.memo<RenderEntityNodeProps>(({ node, mediaMap, onEn
   const thumbUrl = hasMedia ? media[0].url : '';
 
   const isList = view === 'list';
-  const imageClasses = `bg-header-bg rounded shrink-0 object-cover ${isList ? 'w-32 h-32' : 'w-32 aspect-square'}`;
+  const imageClasses = `bg-header-bg/80 shadow-sm rounded-lg shrink-0 object-cover ${isList ? 'w-32 h-32' : 'w-32 aspect-square'}`;
 
   return (
     <div
       key={node.id}
       onClick={() => onEntityClick(node.id)}
       data-search-match={isSearchMatch ? "true" : undefined}
-      className={`entity-item flex gap-2 p-1.5 rounded cursor-pointer hover:bg-hover-bg transition-all duration-200 ${isList ? 'items-center ml-8' : 'flex-col items-center text-center'} ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20' : ''} ${isFilterDimmed ? 'opacity-50' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}
+      className={`entity-item flex gap-2 p-1.5 rounded-xl cursor-pointer hover:bg-hover-bg/80 hover:shadow-md hover:-translate-y-0.5 hover:backdrop-blur-sm transition-all duration-300 ${isList ? 'items-center ml-8' : 'flex-col items-center text-center'} ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20 shadow-inner' : ''} ${isFilterDimmed ? 'opacity-50' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}
       style={{ contentVisibility: 'auto' } as any}
     >
       {hasMedia ? (

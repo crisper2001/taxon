@@ -212,7 +212,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                         </button>
                     )}
 
-                    <button onClick={() => setSelectedFeatureId(f.id)} className={`w-full flex items-center gap-2 text-left py-2 px-2 rounded-lg text-sm font-medium transition-all cursor-pointer relative z-10 ${selectedFeatureId === f.id ? 'bg-accent text-white shadow-md' : 'hover:bg-hover-bg text-text border border-transparent hover:border-border'}`}>
+                    <button onClick={() => setSelectedFeatureId(f.id)} className={`w-full flex items-center gap-2 text-left py-2 px-2 rounded-xl text-sm font-medium transition-all duration-300 cursor-pointer relative z-10 ${selectedFeatureId === f.id ? 'bg-accent/95 backdrop-blur-md text-white shadow-md shadow-accent/30 border border-white/20' : 'hover:bg-hover-bg/80 hover:shadow-sm hover:-translate-y-0.5 text-text border border-transparent hover:border-white/10 dark:hover:border-white/5'}`}>
                         <Icon name={iconName} size={14} className={`shrink-0 ${selectedFeatureId === f.id ? 'opacity-100' : 'opacity-60'}`} />
                         <span className="truncate">{f.name || 'Unnamed Feature'}</span>
                     </button>
@@ -231,10 +231,10 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
 
   return (
     <div className="flex w-full h-full animate-fade-in">
-      <div className="w-1/3 min-w-[280px] border-r border-border flex flex-col bg-panel-bg z-10 shadow-[2px_0_8px_-4px_rgba(0,0,0,0.1)]">
-        <div className="p-4 border-b border-border flex justify-between items-center bg-header-bg">
+      <div className="w-1/3 min-w-[280px] border-r border-white/10 dark:border-white/5 flex flex-col bg-panel-bg/50 backdrop-blur-sm z-10 shadow-[4px_0_24px_-4px_rgba(0,0,0,0.1)]">
+        <div className="p-4 border-b border-white/10 dark:border-white/5 flex justify-between items-center bg-header-bg/85 backdrop-blur-md shadow-sm rounded-tl-3xl">
           <div className="flex items-center gap-2 font-bold text-text"><Icon name="ListTree" size={18} className="opacity-70"/> {t('kbFeatures')}</div>
-          <button onClick={addFeature} className="px-3 py-1.5 bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors text-sm font-bold shadow-sm flex items-center gap-1 cursor-pointer hover:shadow-md" title={t('kbAddFeature')}><Icon name="Plus" size={14} /> Add</button>
+          <button onClick={addFeature} className="px-3 py-1.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-lg hover:bg-accent-hover hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg shadow-accent/30 flex items-center gap-1 cursor-pointer" title={t('kbAddFeature')}><Icon name="Plus" size={14} /> Add</button>
         </div>
         <div 
           className={`overflow-y-auto flex-1 p-3 space-y-0.5 rounded-b-xl transition-colors ${dragOverId === 'root-feature' ? 'bg-accent/5 ring-2 ring-inset ring-accent' : ''}`}
@@ -256,7 +256,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
           {draftKey.features.length === 0 && <div className="p-6 text-center text-sm opacity-50 border-2 border-dashed border-border rounded-xl mt-2">{t('kbFeatures')} (Empty)</div>}
         </div>
       </div>
-      <div className="flex-1 p-8 overflow-y-auto bg-bg">
+      <div className="flex-1 p-8 overflow-y-auto bg-bg/50">
         {selectedFeature ? (
           <div className="max-w-xl flex flex-col gap-6 animate-fade-in-up">
             <div className="flex justify-between items-start">
@@ -265,24 +265,24 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                 <h3 className="text-2xl font-bold text-accent">{selectedFeature.name || 'Unnamed Feature'}</h3>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => duplicateFeature(selectedFeature.id)} className="text-text hover:bg-hover-bg border border-border px-3 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm hover:shadow-md"><Icon name="Copy" size={16}/> {t('kbDuplicate')}</button>
-                <button onClick={() => setDeleteTarget({ type: 'feature', id: selectedFeature.id })} className="text-red-500 hover:bg-red-500 hover:text-white border border-red-500/30 px-3 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm hover:shadow-md"><Icon name="Trash2" size={16}/> {t('kbDelete')}</button>
+                <button onClick={() => duplicateFeature(selectedFeature.id)} className="text-text hover:bg-hover-bg/80 hover:-translate-y-0.5 bg-panel-bg/50 backdrop-blur-sm border border-white/20 dark:border-white/10 px-3 py-1.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-sm hover:shadow-md"><Icon name="Copy" size={16}/> {t('kbDuplicate')}</button>
+                <button onClick={() => setDeleteTarget({ type: 'feature', id: selectedFeature.id })} className="text-red-500 hover:bg-red-500/95 hover:backdrop-blur-md hover:text-white hover:-translate-y-0.5 border border-red-500/30 hover:border-white/20 px-3 py-1.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-sm hover:shadow-md hover:shadow-red-500/30"><Icon name="Trash2" size={16}/> {t('kbDelete')}</button>
               </div>
             </div>
             
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-semibold opacity-80">{t('kbName')}</span>
-              <input type="text" value={selectedFeature.name} onChange={e => updateFeature(selectedFeature.id, { name: e.target.value })} className="p-3 bg-panel-bg border border-border rounded-xl focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent text-text text-lg font-medium shadow-sm transition-all" />
+              <input type="text" value={selectedFeature.name} onChange={e => updateFeature(selectedFeature.id, { name: e.target.value })} className="p-3 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-xl focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/50 text-text text-lg font-medium shadow-inner transition-all" />
             </label>
 
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-semibold opacity-80">{t('kbDescription')}</span>
-              <textarea value={selectedFeature.description || ''} onChange={e => updateFeature(selectedFeature.id, { description: e.target.value })} className="p-3 bg-panel-bg border border-border rounded-xl focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent text-text text-sm shadow-sm transition-all" rows={2} />
+              <textarea value={selectedFeature.description || ''} onChange={e => updateFeature(selectedFeature.id, { description: e.target.value })} className="p-3 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-xl focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/50 text-text text-sm shadow-inner transition-all" rows={2} />
             </label>
 
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-semibold opacity-80">{t('kbType')}</span>
-              <select value={selectedFeature.type} onChange={e => updateFeature(selectedFeature.id, { type: e.target.value as 'numeric' | 'state' })} className="p-3 bg-panel-bg border border-border rounded-xl focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent text-text shadow-sm transition-all cursor-pointer">
+              <select value={selectedFeature.type} onChange={e => updateFeature(selectedFeature.id, { type: e.target.value as 'numeric' | 'state' })} className="p-3 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-xl focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/50 text-text shadow-inner transition-all cursor-pointer">
                 <option value="state">{t('kbTypeState')}</option>
                 <option value="numeric">{t('kbTypeNumeric')}</option>
               </select>
@@ -291,7 +291,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
             <div className="flex flex-col gap-1.5 mt-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-semibold opacity-80">Images</span>
-                <label className="text-accent hover:bg-accent/10 px-3 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-1 cursor-pointer border border-transparent hover:border-accent/30">
+                <label className="text-accent hover:bg-accent/10 hover:-translate-y-0.5 px-3 py-1.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-1 cursor-pointer border border-transparent hover:border-accent/30 hover:shadow-sm">
                   <Icon name="Plus" size={14}/> Add Image
                   <input type="file" accept="image/*" className="hidden" onChange={e => {
                     const file = e.target.files?.[0];
@@ -322,14 +322,14 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                             }
                             setDraggedMedia(null);
                          }}>
-                      <div className="h-24 w-24 relative overflow-hidden rounded-xl border border-border shadow-sm cursor-move" onClick={() => setEditingMedia({ type: 'feature', itemId: selectedFeature.id, mediaIndex: i })}>
+                      <div className="h-24 w-24 relative overflow-hidden rounded-xl border border-white/20 dark:border-white/10 shadow-md cursor-move group-hover:shadow-lg transition-all" onClick={() => setEditingMedia({ type: 'feature', itemId: selectedFeature.id, mediaIndex: i })}>
                         <img src={m.url} alt={m.caption || ''} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300 pointer-events-none" />
                       </div>
                       <button onClick={() => {
                         const newMedia = [...selectedFeature.media!];
                         newMedia.splice(i, 1);
                         updateFeature(selectedFeature.id, { media: newMedia });
-                      }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-all opacity-0 group-hover:opacity-100 shadow-sm cursor-pointer z-10"><Icon name="X" size={12}/></button>
+                      }} className="absolute -top-2 -right-2 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-full p-1 hover:bg-red-600 transition-all opacity-0 group-hover:opacity-100 shadow-md hover:shadow-lg cursor-pointer z-10"><Icon name="X" size={12}/></button>
                     </div>
                   ))}
                 </div>
@@ -337,14 +337,14 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
             </div>
 
             {selectedFeature.type === 'state' && (
-              <div className="flex flex-col gap-4 mt-4 border border-border p-5 rounded-2xl bg-panel-bg shadow-sm">
-                <div className="flex justify-between items-center border-b border-border pb-3 mb-1">
+              <div className="flex flex-col gap-4 mt-4 border border-white/20 dark:border-white/10 p-5 rounded-3xl bg-panel-bg/50 backdrop-blur-sm shadow-md">
+                <div className="flex justify-between items-center border-b border-black/5 dark:border-white/5 pb-3 mb-1">
                   <span className="text-lg font-bold text-text">{t('kbStates')}</span>
                   <button onClick={() => addState(selectedFeature.id)} className="text-accent hover:bg-accent/10 px-3 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-1 cursor-pointer border border-transparent hover:border-accent/30"><Icon name="Plus" size={14}/> {t('kbAddState')}</button>
                 </div>
                 <div className="flex flex-col gap-2">
                   {selectedFeature.states.map(s => (
-                    <div key={s.id} className="flex flex-col gap-2 bg-bg p-3 rounded-xl border border-border shadow-sm focus-within:ring-2 focus-within:ring-accent/20 focus-within:border-accent transition-all">
+                    <div key={s.id} className="flex flex-col gap-2 bg-bg/50 backdrop-blur-sm p-3 rounded-xl border border-white/20 dark:border-white/10 shadow-inner focus-within:ring-2 focus-within:ring-accent/50 focus-within:border-accent transition-all">
                       <div className="flex gap-2 items-center">
                         <input type="text" value={s.name} onChange={e => updateState(selectedFeature.id, s.id, e.target.value)} className="flex-1 p-2 bg-transparent border-none focus:outline-none text-text font-medium" placeholder="State Name" />
                         <label className="text-gray-500 hover:text-accent p-2 rounded-lg transition-colors cursor-pointer" title="Add Image">
@@ -386,12 +386,12 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                                     } 
                                     setDraggedMedia(null); 
                                  }}>
-                               <div className="h-16 w-16 relative overflow-hidden rounded-lg border border-border shadow-sm cursor-move" onClick={() => setEditingMedia({ type: 'state', itemId: selectedFeature.id, stateId: s.id, mediaIndex: i })}>
+                               <div className="h-16 w-16 relative overflow-hidden rounded-lg border border-white/20 dark:border-white/10 shadow-sm cursor-move group-hover:shadow-md transition-all" onClick={() => setEditingMedia({ type: 'state', itemId: selectedFeature.id, stateId: s.id, mediaIndex: i })}>
                                   <img src={m.url} alt={m.caption || ''} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300 pointer-events-none" />
                                </div>
                                <button onClick={() => {
                                  updateDraftKey(prev => ({ ...prev, features: prev.features.map(f => f.id === selectedFeature.id ? { ...f, states: f.states.map(st => st.id === s.id ? { ...st, media: st.media!.filter((_, idx) => idx !== i) } : st) } : f) }));
-                               }} className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600 transition-all opacity-0 group-hover:opacity-100 shadow-sm cursor-pointer z-10"><Icon name="X" size={10}/></button>
+                               }} className="absolute -top-1.5 -right-1.5 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-full p-0.5 hover:bg-red-600 transition-all opacity-0 group-hover:opacity-100 shadow-md hover:shadow-lg cursor-pointer z-10"><Icon name="X" size={10}/></button>
                              </div>
                           ))}
                         </div>

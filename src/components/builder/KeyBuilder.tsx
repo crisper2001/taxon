@@ -327,7 +327,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
   return (
     <div className="flex flex-col h-full w-full bg-bg">
       {/* Standalone Application Header */}
-      <div className="flex justify-between items-center px-4 py-2.5 bg-panel-bg/95 backdrop-blur-md border-b border-border shrink-0 shadow-sm z-10">
+      <div className="flex justify-between items-center px-4 py-2.5 bg-panel-bg/85 backdrop-blur-xl border-b border-white/20 dark:border-white/10 shrink-0 shadow-md z-10">
         <div className="flex items-center gap-4">
           <button onClick={onExit} className="p-2 rounded-full hover:bg-hover-bg cursor-pointer transition-colors text-text opacity-80 hover:opacity-100" title={t('back')}><Icon name="ArrowLeft" size={22} /></button>
           <div className="flex items-center gap-3">
@@ -338,27 +338,27 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
           </div>
         </div>
         <div className="flex gap-3">
-          <div className="flex items-center bg-bg border border-border rounded-full shadow-sm overflow-hidden mr-2">
-            <button onClick={undo} disabled={historyIndex <= 0} className="p-1.5 px-3 hover:bg-hover-bg disabled:opacity-30 disabled:cursor-not-allowed transition-colors border-r border-border" title={t('kbUndo')}><Icon name="Undo" size={16} /></button>
+          <div className="flex items-center bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-full shadow-inner overflow-hidden mr-2">
+            <button onClick={undo} disabled={historyIndex <= 0} className="p-1.5 px-3 hover:bg-hover-bg/80 disabled:opacity-30 disabled:cursor-not-allowed transition-colors border-r border-white/20 dark:border-white/10" title={t('kbUndo')}><Icon name="Undo" size={16} /></button>
             <button onClick={redo} disabled={historyIndex >= history.length - 1} className="p-1.5 px-3 hover:bg-hover-bg disabled:opacity-30 disabled:cursor-not-allowed transition-colors" title={t('kbRedo')}><Icon name="Redo" size={16} /></button>
           </div>
-          <button onClick={() => setShowNewKeyModal(true)} className="flex items-center gap-2 px-4 py-1.5 bg-bg border border-border rounded-full hover:bg-hover-bg transition-colors text-sm font-bold cursor-pointer shadow-sm">
+          <button onClick={() => setShowNewKeyModal(true)} className="flex items-center gap-2 px-4 py-1.5 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-full hover:bg-hover-bg/80 hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold cursor-pointer shadow-sm hover:shadow-md">
             <Icon name="FilePlus" size={16} /> {t('kbNewKey' as any)}
           </button>
-          <button onClick={triggerOpenNativeKey} className="flex items-center gap-2 px-4 py-1.5 bg-bg border border-border rounded-full hover:bg-hover-bg transition-colors text-sm font-bold cursor-pointer shadow-sm">
-            <Icon name="FolderOpen" size={16} /> {t('openNativeKey')}
+          <button onClick={triggerOpenNativeKey} className="flex items-center gap-2 px-4 py-1.5 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-full hover:bg-hover-bg/80 hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold cursor-pointer shadow-sm hover:shadow-md">
+            <Icon name="FileJson" size={16} /> {t('openNativeKey')}
           </button>
-          <button onClick={exportJson} className="flex items-center gap-2 px-4 py-1.5 bg-bg border border-border rounded-full hover:bg-hover-bg transition-colors text-sm font-bold shadow-sm cursor-pointer">
+          <button onClick={exportJson} className="flex items-center gap-2 px-4 py-1.5 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-full hover:bg-hover-bg/80 hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold cursor-pointer shadow-sm hover:shadow-md">
             <Icon name="FileJson" size={16} /> {t('exportJson')}
           </button>
-          <button onClick={() => onTestKey?.(draftKey)} className="flex items-center gap-2 px-4 py-1.5 bg-accent text-white rounded-full hover:bg-accent-hover transition-colors text-sm font-bold shadow-sm cursor-pointer">
+          <button onClick={() => onTestKey?.(draftKey)} className="flex items-center gap-2 px-4 py-1.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-full hover:bg-accent-hover hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg shadow-accent/30 cursor-pointer">
             <Icon name="Play" size={16} /> {t('kbTestKey' as any)}
           </button>
-          <button onClick={openPreferences} title={t('preferences')} className="p-1.5 ml-1 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg hover:scale-105 cursor-pointer shadow-sm border border-transparent hover:border-border hover:shadow-md text-gray-500 hover:text-accent">
+          <button onClick={openPreferences} title={t('preferences')} className="p-1.5 ml-1 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 hover:-translate-y-0.5 cursor-pointer shadow-sm hover:shadow-md border border-transparent hover:border-white/20 text-gray-500 hover:text-accent">
             <Icon name="Settings2" size={20} />
           </button>
           {!hideAi && (
-            <button onClick={() => setAiPanelVisible(true)} disabled={isAiPanelVisible} title={isAiPanelVisible ? undefined : t('assistant')} aria-hidden={isAiPanelVisible} className={`p-1.5 ml-1 rounded-full transition-all duration-300 ${isAiPanelVisible ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-90 hover:opacity-100 hover:bg-hover-bg hover:scale-105 cursor-pointer shadow-sm border border-transparent hover:border-border hover:shadow-md'}`}>
+            <button onClick={() => setAiPanelVisible(true)} disabled={isAiPanelVisible} title={isAiPanelVisible ? undefined : t('assistant')} aria-hidden={isAiPanelVisible} className={`p-1.5 ml-1 rounded-full transition-all duration-300 ${isAiPanelVisible ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-90 hover:opacity-100 hover:bg-hover-bg/80 hover:-translate-y-0.5 cursor-pointer shadow-sm border border-transparent hover:border-white/20 hover:shadow-md'}`}>
               <Spot primaryColor="currentColor" secondaryColor="#f8fafb" mode="head" className="w-5 h-5 text-accent" />
             </button>
           )}
@@ -367,25 +367,25 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
       
       <div className="flex grow overflow-hidden p-4 gap-4">
         {/* Builder Sidebar Tabs */}
-        <div className="w-60 shrink-0 flex flex-col gap-2 bg-panel-bg border border-border p-4 rounded-2xl shadow-sm">
+        <div className="w-60 shrink-0 flex flex-col gap-2 bg-panel-bg/80 backdrop-blur-xl border border-white/20 dark:border-white/10 p-4 rounded-3xl shadow-lg">
           <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">Builder Menu</h3>
           <button 
             onClick={() => setActiveTab('metadata')}
-            className={`flex items-center gap-3 text-left px-3 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${activeTab === 'metadata' ? 'bg-accent text-white shadow-md' : 'hover:bg-hover-bg text-text'}`}
+            className={`flex items-center gap-3 text-left px-3 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer ${activeTab === 'metadata' ? 'bg-accent/95 backdrop-blur-md text-white shadow-lg shadow-accent/30 border border-white/20' : 'hover:bg-hover-bg/80 hover:shadow-sm hover:-translate-y-0.5 text-text border border-transparent hover:border-white/10'}`}
           >
             <Icon name="FileText" size={18} className={activeTab === 'metadata' ? 'opacity-100' : 'opacity-70'} />
             {t('kbMetadata')}
           </button>
           <button 
             onClick={() => setActiveTab('features')}
-            className={`flex items-center justify-between text-left px-3 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${activeTab === 'features' ? 'bg-accent text-white shadow-md' : 'hover:bg-hover-bg text-text'}`}
+            className={`flex items-center justify-between text-left px-3 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer ${activeTab === 'features' ? 'bg-accent/95 backdrop-blur-md text-white shadow-lg shadow-accent/30 border border-white/20' : 'hover:bg-hover-bg/80 hover:shadow-sm hover:-translate-y-0.5 text-text border border-transparent hover:border-white/10'}`}
           >
             <div className="flex items-center gap-3"><Icon name="ListTree" size={18} className={activeTab === 'features' ? 'opacity-100' : 'opacity-70'} /> {t('kbFeatures')}</div>
             <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === 'features' ? 'bg-white/20' : 'bg-bg border border-border'}`}>{draftKey.features.length}</span>
           </button>
           <button 
             onClick={() => setActiveTab('entities')}
-            className={`flex items-center justify-between text-left px-3 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${activeTab === 'entities' ? 'bg-accent text-white shadow-md' : 'hover:bg-hover-bg text-text'}`}
+            className={`flex items-center justify-between text-left px-3 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer ${activeTab === 'entities' ? 'bg-accent/95 backdrop-blur-md text-white shadow-lg shadow-accent/30 border border-white/20' : 'hover:bg-hover-bg/80 hover:shadow-sm hover:-translate-y-0.5 text-text border border-transparent hover:border-white/10'}`}
           >
             <div className="flex items-center gap-3"><Icon name="List" size={18} className={activeTab === 'entities' ? 'opacity-100' : 'opacity-70'} /> {t('kbEntities')}</div>
             <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === 'entities' ? 'bg-white/20' : 'bg-bg border border-border'}`}>{draftKey.entities.length}</span>
@@ -393,7 +393,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
         </div>
 
         {/* Builder Main Content */}
-        <div className="flex grow flex-col bg-panel-bg border border-border rounded-2xl overflow-hidden shadow-sm">
+        <div className="flex grow flex-col bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl overflow-hidden shadow-lg relative">
           {activeTab === 'metadata' && (
             <BuilderMetadataTab draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any} />
           )}
@@ -429,11 +429,11 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
       {/* Media Edit Modal */}
       {editingMedia && activeEditingMedia && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-          <div className="bg-panel-bg rounded-3xl shadow-2xl w-full max-w-4xl flex flex-col md:flex-row overflow-hidden max-h-[90vh] animate-fade-in-up">
+          <div className="bg-panel-bg/95 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-[0_16px_40px_rgba(0,0,0,0.2)] w-full max-w-4xl flex flex-col md:flex-row overflow-hidden max-h-[90vh] animate-fade-in-up">
             <div className="w-full md:w-1/2 bg-black/5 dark:bg-white/5 flex items-center justify-center p-6 relative">
                 <img src={activeEditingMedia.url} alt="Preview" className="max-w-full max-h-full object-contain drop-shadow-md rounded-lg" />
             </div>
-            <div className="w-full md:w-1/2 p-8 flex flex-col gap-6 overflow-y-auto bg-panel-bg">
+            <div className="w-full md:w-1/2 p-8 flex flex-col gap-6 overflow-y-auto bg-panel-bg/50">
                 <div className="flex justify-between items-center mb-2">
                   <h3 className="text-2xl font-bold text-accent">{t('kbEditMedia')}</h3>
                   <button onClick={() => setEditingMedia(null)} className="p-2 -mr-2 rounded-full hover:bg-hover-bg text-gray-500 hover:text-red-500 transition-colors cursor-pointer"><Icon name="X" size={24}/></button>
@@ -445,7 +445,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
                     if (editingMedia.type === 'feature') updateFeatureMedia(editingMedia.itemId, editingMedia.mediaIndex, { caption: e.target.value });
                     else if (editingMedia.type === 'entity') updateEntityMedia(editingMedia.itemId, editingMedia.mediaIndex, { caption: e.target.value });
                     else if (editingMedia.type === 'state') updateStateMedia(editingMedia.itemId, editingMedia.stateId!, editingMedia.mediaIndex, { caption: e.target.value });
-                  }} className="p-3 bg-bg border border-border rounded-xl focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent text-text text-sm resize-none shadow-sm transition-all" />
+                  }} className="p-3 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-xl focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/50 text-text text-sm resize-none shadow-inner transition-all" />
                 </label>
                 
                 <label className="flex flex-col gap-1.5">
@@ -454,11 +454,11 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
                     if (editingMedia.type === 'feature') updateFeatureMedia(editingMedia.itemId, editingMedia.mediaIndex, { copyright: e.target.value });
                     else if (editingMedia.type === 'entity') updateEntityMedia(editingMedia.itemId, editingMedia.mediaIndex, { copyright: e.target.value });
                     else if (editingMedia.type === 'state') updateStateMedia(editingMedia.itemId, editingMedia.stateId!, editingMedia.mediaIndex, { copyright: e.target.value });
-                  }} className="p-3 bg-bg border border-border rounded-xl focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent text-text text-sm shadow-sm transition-all" />
+                  }} className="p-3 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-xl focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/50 text-text text-sm shadow-inner transition-all" />
                 </label>
                 
                 <div className="mt-auto flex justify-end gap-3 pt-6">
-                  <button onClick={() => setEditingMedia(null)} className="px-6 py-2.5 bg-accent text-white font-bold rounded-xl hover:bg-accent-hover transition-colors shadow-sm cursor-pointer">{t('save')}</button>
+                  <button onClick={() => setEditingMedia(null)} className="px-6 py-2.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white font-bold rounded-xl hover:bg-accent-hover hover:-translate-y-0.5 transition-all duration-300 shadow-md hover:shadow-lg shadow-accent/30 cursor-pointer">{t('save')}</button>
                 </div>
             </div>
           </div>
@@ -480,9 +480,9 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
           <div className="p-6 text-text">
             <p className="mb-6 opacity-90">{t('kbNewKeyPrompt' as any)}</p>
             <div className="flex justify-end gap-3 flex-wrap">
-              <button onClick={() => setShowNewKeyModal(false)} className="px-4 py-2 hover:bg-hover-bg rounded-lg font-medium transition-colors cursor-pointer">{t('cancel')}</button>
-              <button onClick={() => { exportJson(); handleCreateNew(); }} className="px-4 py-2 bg-bg border border-border rounded-lg hover:bg-hover-bg transition-colors shadow-sm font-medium flex items-center gap-2 cursor-pointer"><Icon name="FileJson" size={16}/> {t('exportJson')}</button>
-              <button onClick={handleCreateNew} className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors shadow-sm font-bold cursor-pointer">{t('kbDiscardAndCreate' as any)}</button>
+              <button onClick={() => setShowNewKeyModal(false)} className="px-4 py-2 hover:bg-hover-bg/80 hover:-translate-y-0.5 rounded-xl font-medium transition-all duration-300 cursor-pointer">{t('cancel')}</button>
+              <button onClick={() => { exportJson(); handleCreateNew(); }} className="px-4 py-2 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-xl hover:bg-hover-bg/80 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 shadow-sm font-medium flex items-center gap-2 cursor-pointer"><Icon name="FileJson" size={16}/> {t('exportJson')}</button>
+              <button onClick={handleCreateNew} className="px-4 py-2 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-xl hover:bg-red-600 hover:-translate-y-0.5 transition-all duration-300 shadow-md hover:shadow-lg shadow-red-500/30 font-bold cursor-pointer">{t('kbDiscardAndCreate' as any)}</button>
             </div>
           </div>
         </Modal>

@@ -95,7 +95,7 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children }) =>
                 className={`cursor-col-resize flex items-center justify-center group`}
                 title="Double-click to reset width"
             >
-                <div className={`w-1 h-full rounded-full transition-all duration-300 ${isResizing && resizingType.current === 'v' ? 'bg-accent shadow-md shadow-accent/50 scale-x-150' : 'bg-transparent group-hover:bg-accent/50 group-hover:scale-x-150'}`}></div>
+                <div className={`w-1 h-full rounded-full transition-all duration-300 ${isResizing && resizingType.current === 'v' ? 'bg-accent shadow-md shadow-accent/50 scale-x-150' : 'bg-black/15 dark:bg-white/15 group-hover:bg-accent/50 group-hover:scale-x-150'}`}></div>
             </div>
             <div style={{ gridArea: '1 / 3 / 2 / 4' }} className="min-h-0 min-w-0">{children[1]}</div>
             <div 
@@ -105,7 +105,7 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children }) =>
                 className={`cursor-row-resize flex items-center justify-center group`}
                 title="Double-click to reset height"
             >
-                <div className={`h-1 w-full rounded-full transition-all duration-300 ${isResizing && resizingType.current === 'h' ? 'bg-accent shadow-md shadow-accent/50 scale-y-150' : 'bg-transparent group-hover:bg-accent/50 group-hover:scale-y-150'}`}></div>
+                <div className={`h-1 w-full rounded-full transition-all duration-300 ${isResizing && resizingType.current === 'h' ? 'bg-accent shadow-md shadow-accent/50 scale-y-150' : 'bg-black/15 dark:bg-white/15 group-hover:bg-accent/50 group-hover:scale-y-150'}`}></div>
             </div>
             <div style={{ gridArea: '3 / 1 / 4 / 2' }} className="min-h-0 min-w-0">{children[2]}</div>
             <div style={{ gridArea: '3 / 3 / 4 / 4' }} className="min-h-0 min-w-0">{children[3]}</div>

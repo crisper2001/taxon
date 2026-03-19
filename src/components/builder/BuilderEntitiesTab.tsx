@@ -170,7 +170,7 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
                         </button>
                     )}
 
-                    <button onClick={() => setSelectedEntityId(e.id)} className={`w-full flex items-center gap-2 text-left py-2 px-2 rounded-lg text-sm font-medium transition-all cursor-pointer relative z-10 ${selectedEntityId === e.id ? 'bg-accent text-white shadow-md' : 'hover:bg-hover-bg text-text border border-transparent hover:border-border'}`}>
+                    <button onClick={() => setSelectedEntityId(e.id)} className={`w-full flex items-center gap-2 text-left py-2 px-2 rounded-xl text-sm font-medium transition-all duration-300 cursor-pointer relative z-10 ${selectedEntityId === e.id ? 'bg-accent/95 backdrop-blur-md text-white shadow-md shadow-accent/30 border border-white/20' : 'hover:bg-hover-bg/80 hover:shadow-sm hover:-translate-y-0.5 text-text border border-transparent hover:border-white/10 dark:hover:border-white/5'}`}>
                         <Icon name="Leaf" size={14} className={`shrink-0 ${selectedEntityId === e.id ? 'opacity-100' : 'opacity-60'}`} />
                         <span className="truncate">{e.name || 'Unnamed Entity'}</span>
                     </button>
@@ -189,10 +189,10 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
 
   return (
     <div className="flex w-full h-full animate-fade-in">
-      <div className="w-1/3 min-w-[280px] border-r border-border flex flex-col bg-panel-bg z-10 shadow-[2px_0_8px_-4px_rgba(0,0,0,0.1)]">
-        <div className="p-4 border-b border-border flex justify-between items-center bg-header-bg">
+      <div className="w-1/3 min-w-[280px] border-r border-white/10 dark:border-white/5 flex flex-col bg-panel-bg/50 backdrop-blur-sm z-10 shadow-[4px_0_24px_-4px_rgba(0,0,0,0.1)]">
+        <div className="p-4 border-b border-white/10 dark:border-white/5 flex justify-between items-center bg-header-bg/85 backdrop-blur-md shadow-sm rounded-tl-3xl">
           <div className="flex items-center gap-2 font-bold text-text"><Icon name="List" size={18} className="opacity-70"/> {t('kbEntities')}</div>
-          <button onClick={addEntity} className="px-3 py-1.5 bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors text-sm font-bold shadow-sm flex items-center gap-1 cursor-pointer hover:shadow-md" title={t('kbAddEntity')}><Icon name="Plus" size={14} /> Add</button>
+          <button onClick={addEntity} className="px-3 py-1.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-lg hover:bg-accent-hover hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg shadow-accent/30 flex items-center gap-1 cursor-pointer" title={t('kbAddEntity')}><Icon name="Plus" size={14} /> Add</button>
         </div>
         <div 
           className={`overflow-y-auto flex-1 p-3 space-y-0.5 rounded-b-xl transition-colors ${dragOverId === 'root-entity' ? 'bg-accent/5 ring-2 ring-inset ring-accent' : ''}`}
@@ -214,7 +214,7 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
           {draftKey.entities.length === 0 && <div className="p-6 text-center text-sm opacity-50 border-2 border-dashed border-border rounded-xl mt-2">{t('kbEntities')} (Empty)</div>}
         </div>
       </div>
-      <div className="flex-1 p-8 overflow-y-auto bg-bg">
+      <div className="flex-1 p-8 overflow-y-auto bg-bg/50">
         {selectedEntity ? (
           <div className="max-w-2xl flex flex-col gap-6 animate-fade-in-up">
             <div className="flex justify-between items-start">
@@ -223,25 +223,25 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
                 <h3 className="text-2xl font-bold text-accent">{selectedEntity.name || 'Unnamed Entity'}</h3>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => duplicateEntity(selectedEntity.id)} className="text-text hover:bg-hover-bg border border-border px-3 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm hover:shadow-md"><Icon name="Copy" size={16}/> {t('kbDuplicate')}</button>
-                <button onClick={() => setDeleteTarget({ type: 'entity', id: selectedEntity.id })} className="text-red-500 hover:bg-red-500 hover:text-white border border-red-500/30 px-3 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm hover:shadow-md"><Icon name="Trash2" size={16}/> {t('kbDelete')}</button>
+                <button onClick={() => duplicateEntity(selectedEntity.id)} className="text-text hover:bg-hover-bg/80 hover:-translate-y-0.5 bg-panel-bg/50 backdrop-blur-sm border border-white/20 dark:border-white/10 px-3 py-1.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-sm hover:shadow-md"><Icon name="Copy" size={16}/> {t('kbDuplicate')}</button>
+                <button onClick={() => setDeleteTarget({ type: 'entity', id: selectedEntity.id })} className="text-red-500 hover:bg-red-500/95 hover:backdrop-blur-md hover:text-white hover:-translate-y-0.5 border border-red-500/30 hover:border-white/20 px-3 py-1.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-sm hover:shadow-md hover:shadow-red-500/30"><Icon name="Trash2" size={16}/> {t('kbDelete')}</button>
               </div>
             </div>
             
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-semibold opacity-80">{t('kbName')}</span>
-              <input type="text" value={selectedEntity.name} onChange={e => updateEntity(selectedEntity.id, { name: e.target.value })} className="p-3 bg-panel-bg border border-border rounded-xl focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent text-text font-bold text-xl shadow-sm transition-all" />
+              <input type="text" value={selectedEntity.name} onChange={e => updateEntity(selectedEntity.id, { name: e.target.value })} className="p-3 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-xl focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/50 text-text font-bold text-xl shadow-inner transition-all" />
             </label>
 
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-semibold opacity-80">{t('kbDescription')}</span>
-              <textarea value={selectedEntity.description || ''} onChange={e => updateEntity(selectedEntity.id, { description: e.target.value })} className="p-3 bg-panel-bg border border-border rounded-xl focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent text-text text-sm shadow-sm transition-all" rows={2} />
+              <textarea value={selectedEntity.description || ''} onChange={e => updateEntity(selectedEntity.id, { description: e.target.value })} className="p-3 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-xl focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/50 text-text text-sm shadow-inner transition-all" rows={2} />
             </label>
 
             <div className="flex flex-col gap-1.5 mt-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-semibold opacity-80">Images</span>
-                <label className="text-accent hover:bg-accent/10 px-3 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-1 cursor-pointer border border-transparent hover:border-accent/30">
+                <label className="text-accent hover:bg-accent/10 hover:-translate-y-0.5 px-3 py-1.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-1 cursor-pointer border border-transparent hover:border-accent/30 hover:shadow-sm">
                   <Icon name="Plus" size={14}/> Add Image
                   <input type="file" accept="image/*" className="hidden" onChange={e => {
                     const file = e.target.files?.[0];
@@ -272,39 +272,39 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
                             }
                             setDraggedMedia(null);
                          }}>
-                      <div className="h-24 w-24 relative overflow-hidden rounded-xl border border-border shadow-sm cursor-move" onClick={() => setEditingMedia({ type: 'entity', itemId: selectedEntity.id, mediaIndex: i })}>
+                      <div className="h-24 w-24 relative overflow-hidden rounded-xl border border-white/20 dark:border-white/10 shadow-md cursor-move group-hover:shadow-lg transition-all" onClick={() => setEditingMedia({ type: 'entity', itemId: selectedEntity.id, mediaIndex: i })}>
                         <img src={m.url} alt={m.caption || ''} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300 pointer-events-none" />
                       </div>
                       <button onClick={() => {
                         const newMedia = [...selectedEntity.media!];
                         newMedia.splice(i, 1);
                         updateEntity(selectedEntity.id, { media: newMedia });
-                      }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-all opacity-0 group-hover:opacity-100 shadow-sm cursor-pointer z-10"><Icon name="X" size={12}/></button>
+                      }} className="absolute -top-2 -right-2 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-full p-1 hover:bg-red-600 transition-all opacity-0 group-hover:opacity-100 shadow-md hover:shadow-lg cursor-pointer z-10"><Icon name="X" size={12}/></button>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            <div className="flex flex-col gap-4 mt-4 border border-border p-6 rounded-2xl bg-panel-bg shadow-sm">
-              <h4 className="text-lg font-bold text-text mb-1 border-b border-border pb-3 flex items-center gap-2"><Icon name="Target" size={20} className="text-accent" /> {t('kbScoring')}</h4>
+            <div className="flex flex-col gap-4 mt-4 border border-white/20 dark:border-white/10 p-6 rounded-3xl bg-panel-bg/50 backdrop-blur-sm shadow-md">
+              <h4 className="text-lg font-bold text-text mb-1 border-b border-black/5 dark:border-white/5 pb-3 flex items-center gap-2"><Icon name="Target" size={20} className="text-accent" /> {t('kbScoring')}</h4>
               {draftKey.features.length === 0 ? <div className="p-6 text-center text-sm opacity-50 border-2 border-dashed border-border rounded-xl">No features available to score.</div> : null}
               
               <div className="grid grid-cols-1 gap-4">
                 {draftKey.features.map(f => (
-                  <div key={f.id} className="p-5 bg-bg border border-border rounded-2xl flex flex-col gap-4 shadow-sm hover:shadow-md transition-shadow">
+                  <div key={f.id} className="p-5 bg-bg/50 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-2xl flex flex-col gap-4 shadow-inner hover:shadow-md hover:bg-bg/80 transition-all duration-300">
                     <span className="font-bold text-base text-accent flex items-center gap-2"><Icon name={f.type === 'state' ? 'ListTree' : 'Hash'} size={16} className="opacity-70" /> {f.name}</span>
                     {f.type === 'state' ? (
                       <div className="grid grid-cols-2 gap-3 pl-6">
                         {f.states.map(s => {
                           const scoreVal = selectedEntity.scores[s.id] as string;
                           return (
-                            <label key={s.id} className="flex items-center justify-between gap-2 text-sm opacity-90 hover:opacity-100 font-medium group bg-panel-bg p-1.5 px-3 rounded-lg border border-border shadow-sm hover:border-accent/50 transition-colors">
+                            <label key={s.id} className="flex items-center justify-between gap-2 text-sm opacity-90 hover:opacity-100 font-medium group bg-panel-bg/80 backdrop-blur-sm p-1.5 px-3 rounded-xl border border-white/20 dark:border-white/10 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:border-accent/50 transition-all duration-300">
                               <span className="truncate" title={s.name}>{s.name}</span>
                               <select 
                                 value={scoreVal || ''} 
                                 onChange={e => setScore(selectedEntity.id, s.id, e.target.value || null)} 
-                                className="bg-bg border border-border rounded text-xs p-1 focus:outline-none focus:border-accent min-w-[70px] cursor-pointer"
+                                className="bg-bg border border-white/10 dark:border-white/5 rounded-lg text-xs p-1 focus:outline-none focus:border-accent min-w-[70px] cursor-pointer shadow-inner"
                               >
                                 <option value="">{t('kbScoreAbsent')}</option>
                                 <option value="1">{t('kbScoreCommon')}</option>
@@ -326,7 +326,7 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
                                 const val = parseFloat(e.target.value);
                                 const currentMax = (selectedEntity.scores[f.id] as any)?.max ?? val;
                                 setScore(selectedEntity.id, f.id, isNaN(val) ? null : { min: val, max: currentMax });
-                            }} className="w-24 p-2 bg-bg border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent shadow-sm" />
+                            }} onKeyDown={(e) => { if (e.key.length === 1 && !/^[0-9.,]$/.test(e.key)) e.preventDefault(); }} className="w-24 p-2 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-lg focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/50 shadow-inner transition-all" />
                         </label>
                         <label className="flex items-center gap-3 text-sm font-medium">
                             <span className="opacity-70 w-8">Max:</span>
@@ -334,7 +334,7 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
                                 const val = parseFloat(e.target.value);
                                 const currentMin = (selectedEntity.scores[f.id] as any)?.min ?? val;
                                 setScore(selectedEntity.id, f.id, isNaN(val) ? null : { min: currentMin, max: val });
-                            }} className="w-24 p-2 bg-bg border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent shadow-sm" />
+                            }} onKeyDown={(e) => { if (e.key.length === 1 && !/^[0-9.,]$/.test(e.key)) e.preventDefault(); }} className="w-24 p-2 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-lg focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/50 shadow-inner transition-all" />
                         </label>
                       </div>
                     )}

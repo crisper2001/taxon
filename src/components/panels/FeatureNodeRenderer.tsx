@@ -32,7 +32,7 @@ const FeatureGroupNode: React.FC<RenderFeatureNodeProps> = ({
   const isExpanded = expandedNodes.has(node.id);
   return (
     <div className={`feature-node relative transition-opacity duration-200`}>
-      <div data-search-match={isMatch ? "true" : undefined} onClick={() => onToggleNode(node.id)} className={`feature-node-header flex items-center gap-1 cursor-pointer py-1 select-none hover:bg-hover-bg rounded transition-colors duration-200 ${isDimmed ? 'opacity-30' : ''} ${isMatch ? 'bg-accent/20' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}>
+      <div data-search-match={isMatch ? "true" : undefined} onClick={() => onToggleNode(node.id)} className={`feature-node-header flex items-center gap-1 cursor-pointer p-1.5 select-none hover:bg-hover-bg/80 rounded-xl transition-all duration-300 hover:shadow-sm ${isDimmed ? 'opacity-30' : ''} ${isMatch ? 'bg-accent/20 shadow-inner' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}>
         <Icon name="ChevronRight" className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
         <span>{node.name}</span>
       </div>
@@ -56,8 +56,8 @@ const FeatureLeafNode = React.memo<RenderFeatureNodeProps>(({
   const hasMedia = media && media.length > 0;
 
   return (
-    <div data-search-match={isMatch ? "true" : undefined} className={`feature-item relative pl-4 py-1 flex items-center gap-3 hover:bg-hover-bg rounded transition-all duration-200 ${isDimmed ? 'opacity-30' : ''} ${isMatch ? 'bg-accent/20' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`} style={{ contentVisibility: 'auto' } as any}>
-      {hasMedia && <img src={media![0].url} alt={node.name} loading="lazy" onClick={() => onImageClick(node.id)} className="w-24 h-24 object-cover rounded cursor-pointer shrink-0" />}
+    <div data-search-match={isMatch ? "true" : undefined} className={`feature-item relative pl-4 py-1.5 pr-2 flex items-center gap-3 hover:bg-hover-bg/80 rounded-xl transition-all duration-300 hover:shadow-sm ${isDimmed ? 'opacity-30' : ''} ${isMatch ? 'bg-accent/20 shadow-inner' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`} style={{ contentVisibility: 'auto' } as any}>
+      {hasMedia && <img src={media![0].url} alt={node.name} loading="lazy" onClick={() => onImageClick(node.id)} className="w-24 h-24 object-cover rounded-lg shadow-sm cursor-pointer shrink-0" />}
       {node.type === 'state' ? (
         <label className="flex items-center gap-2 cursor-pointer grow">
           <input type="checkbox" checked={isSelected} onChange={() => onFeatureChange(node.id, !isSelected, false)} className="form-checkbox h-4 w-4 rounded text-accent focus:ring-accent" />
@@ -71,8 +71,9 @@ const FeatureLeafNode = React.memo<RenderFeatureNodeProps>(({
               type="number"
               value={isSelected ? chosenFeatures.get(node.id)?.value || '' : ''}
               onChange={(e) => onFeatureChange(node.id, e.target.value, true)}
+              onKeyDown={(e) => { if (e.key.length === 1 && !/^[0-9.,]$/.test(e.key)) e.preventDefault(); }}
               placeholder={t('value')}
-              className="w-20 p-1 border border-border rounded bg-panel-bg"
+              className="w-20 p-1 border border-white/20 dark:border-white/10 rounded-lg bg-bg/80 backdrop-blur-sm shadow-inner focus:ring-2 focus:ring-accent/50 focus:outline-none transition-all"
             />
             <span className="text-sm text-gray-500">{getUnitSymbol(keyData.allFeatures.get(node.id))}</span>
           </div>

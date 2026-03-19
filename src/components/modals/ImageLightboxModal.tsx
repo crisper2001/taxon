@@ -58,14 +58,14 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
   const currentMedia = media[currentIndex];
 
   return (
-    <div onClick={onClose} className={`fixed inset-0 bg-black/80 backdrop-blur-xl z-50 flex flex-col items-center justify-center p-4 transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
-      <button onClick={onClose} className="absolute top-6 right-6 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full p-2.5 transition-all z-20 backdrop-blur-md cursor-pointer">
+    <div onClick={onClose} className={`fixed inset-0 bg-black/80 backdrop-blur-2xl z-50 flex flex-col items-center justify-center p-4 transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+      <button onClick={onClose} className="absolute top-6 right-6 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full p-2.5 transition-all duration-300 z-20 backdrop-blur-md cursor-pointer border border-white/10 shadow-lg hover:shadow-xl hover:-translate-y-0.5">
         <Icon name="X" size={28} />
       </button>
 
       <div className="relative w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
         {media.length > 1 && (
-          <button onClick={handlePrev} className="absolute left-6 top-1/2 -translate-y-1/2 bg-black/20 text-white/70 hover:text-white rounded-full w-14 h-14 flex items-center justify-center hover:bg-black/40 z-20 transition-all backdrop-blur-md cursor-pointer"><Icon name="ChevronLeft" size={36} /></button>
+          <button onClick={handlePrev} className="absolute left-6 top-1/2 -translate-y-1/2 bg-black/20 text-white/70 hover:text-white rounded-full w-14 h-14 flex items-center justify-center hover:bg-black/40 z-20 transition-all duration-300 backdrop-blur-md cursor-pointer border border-white/10 shadow-lg hover:shadow-xl hover:-translate-y-1"><Icon name="ChevronLeft" size={36} /></button>
         )}
 
         <div className="relative flex flex-col items-center justify-center grow h-full py-24">
@@ -83,11 +83,11 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
         </div>
 
         {media.length > 1 && (
-          <button onClick={handleNext} className="absolute right-6 top-1/2 -translate-y-1/2 bg-black/20 text-white/70 hover:text-white rounded-full w-14 h-14 flex items-center justify-center hover:bg-black/40 z-20 transition-all backdrop-blur-md cursor-pointer"><Icon name="ChevronRight" size={36} /></button>
+          <button onClick={handleNext} className="absolute right-6 top-1/2 -translate-y-1/2 bg-black/20 text-white/70 hover:text-white rounded-full w-14 h-14 flex items-center justify-center hover:bg-black/40 z-20 transition-all duration-300 backdrop-blur-md cursor-pointer border border-white/10 shadow-lg hover:shadow-xl hover:-translate-y-1"><Icon name="ChevronRight" size={36} /></button>
         )}
 
         {media.length > 1 && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3 justify-center p-3 bg-black/40 backdrop-blur-md rounded-2xl flex-wrap max-w-[80vw] overflow-y-auto max-h-[15vh] border border-white/10 shadow-xl">
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3 justify-center p-3 bg-black/40 backdrop-blur-xl rounded-2xl flex-wrap max-w-[80vw] overflow-y-auto max-h-[15vh] border border-white/20 shadow-2xl">
             {media.map((m, i) =>
               <img
                 key={i}

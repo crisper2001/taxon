@@ -35,10 +35,10 @@ export const FeatureImageModal: React.FC<FeatureImageModalProps> = ({ isOpen, on
                     altText={feature?.name || ''}
                     noImageText={t('noImageAvailable')}
                     onImageClick={onImageClick}
-                    className={`p-5 ${parsedDescription ? 'h-[50vh] shrink-0 border-b border-border/50' : 'max-h-[80vh]'} bg-bg overflow-hidden`}
+                    className={`p-5 ${parsedDescription ? 'h-[50vh] shrink-0 border-b border-white/10' : 'max-h-[80vh]'} bg-bg/80 backdrop-blur-sm overflow-hidden`}
                 />
                 {parsedDescription && (
-                    <div className="p-6 overflow-y-auto bg-panel-bg shrink-0 max-h-[30vh]">
+                    <div className="p-6 overflow-y-auto bg-panel-bg/90 backdrop-blur-xl shrink-0 max-h-[30vh] border-t border-white/10 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
                         <div className="w-full font-bold text-gray-500 dark:text-gray-400 flex items-center gap-2 mb-2 text-left p-1 tracking-tight">
                             <Icon name="FileText" size={16} />
                             <span className="grow">{t('kbDescription')}</span>

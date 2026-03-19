@@ -31,7 +31,7 @@ const RenderFeatureGroup: React.FC<{
           <div key={subgroup.path} className="mb-2 pl-2">
             <button 
               onClick={() => toggleGroup(subgroup.path)} 
-              className="w-full text-left font-bold text-gray-500 flex items-center mb-1.5 text-sm bg-panel-bg border border-border hover:bg-hover-bg transition-colors py-2 px-3 rounded-xl shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent/50 gap-2"
+              className="w-full text-left font-bold text-gray-500 flex items-center mb-1.5 text-sm bg-panel-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 hover:bg-hover-bg/80 transition-all py-2 px-3 rounded-xl shadow-sm hover:shadow-md hover:-translate-y-0.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent/50 gap-2"
             >
               <span className="shrink-0 flex items-center justify-center">
                 <Icon name="ChevronRight" size={16} className={`transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`} />
@@ -256,21 +256,21 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} size="lg">
-      <div className="flex flex-col md:flex-row h-[75vh] bg-bg rounded-b-3xl overflow-hidden relative">
+      <div className="flex flex-col md:flex-row h-[75vh] bg-bg/80 backdrop-blur-sm rounded-b-3xl overflow-hidden relative">
         <ImageViewer
           media={media}
           altText={entity.name}
           noImageText={t('noImageAvailable')}
           onImageClick={onImageClick}
-          className="w-full md:w-1/2 p-6 border-b md:border-b-0 md:border-r border-border overflow-y-auto min-h-0 bg-panel-bg"
+          className="w-full md:w-1/2 p-6 border-b md:border-b-0 md:border-r border-white/10 dark:border-white/5 overflow-y-auto min-h-0 bg-panel-bg/50"
         />
         <div 
           ref={detailsRef}
           onScroll={handleScroll}
-          className="modal-details-viewer w-full md:w-1/2 p-6 flex flex-col min-h-0 overflow-y-auto bg-panel-bg"
+          className="modal-details-viewer w-full md:w-1/2 p-6 flex flex-col min-h-0 overflow-y-auto bg-panel-bg/50"
         >
           {entityHierarchy.length > 1 && (
-            <div className="mb-4 shrink-0 bg-bg p-4 rounded-2xl border border-border shadow-sm">
+            <div className="mb-4 shrink-0 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
               <div className="w-full font-bold text-accent flex items-center gap-2 mb-3 text-left tracking-tight">
                 <Icon name="Network" size={18} />
                 <span className="grow text-base">{t('hierarchy')}</span>
@@ -295,7 +295,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
             </div>
           )}
           {profile?.description && (
-            <div className="mb-4 shrink-0 bg-bg p-4 rounded-2xl border border-border shadow-sm">
+            <div className="mb-4 shrink-0 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
               <div className="w-full font-bold text-accent flex items-center gap-2 mb-3 text-left tracking-tight">
                 <Icon name="FileText" size={18} />
                 <span className="grow text-base">{t('kbDescription')}</span>
@@ -307,7 +307,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
             </div>
           )}
           {(profile?.characteristics || []).length > 0 && (
-            <div className="flex flex-col shrink-0 bg-bg p-4 rounded-2xl border border-border shadow-sm">
+            <div className="flex flex-col shrink-0 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
               <div className="flex items-center w-full mb-3 shrink-0">
                 <div className="grow font-bold text-accent flex items-center gap-2 text-left tracking-tight">
                   <Icon name="List" size={18} />
@@ -338,7 +338,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
         </div>
         <button
           onClick={scrollToTop}
-          className={`absolute bottom-6 right-8 p-3 bg-accent text-white rounded-full shadow-lg hover:bg-accent-hover transition-all duration-300 z-10 ${showBackToTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 pointer-events-none'}`}
+          className={`absolute bottom-6 right-8 p-3 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-full shadow-lg shadow-accent/30 hover:bg-accent-hover transition-all duration-300 z-10 hover:-translate-y-0.5 ${showBackToTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 pointer-events-none'}`}
         >
           <Icon name="ArrowUp" size={20} />
         </button>

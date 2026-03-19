@@ -146,7 +146,7 @@ const ChatMessageBubble = React.memo<{
 
   return (
     <div className={`chat-message flex flex-col animate-fade-in-up duration-300 ease-out space-y-1 mb-2 ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
-      <div className={`msg-content flex flex-col max-w-[92%] p-3.5 rounded-3xl shadow-sm border border-black/5 dark:border-white/5 ${msg.sender === 'user' ? 'bg-accent text-white rounded-br-sm' : 'bg-header-bg rounded-bl-sm'}`}>
+      <div className={`msg-content flex flex-col max-w-[92%] p-3.5 rounded-3xl border transition-all ${msg.sender === 'user' ? 'bg-accent/95 backdrop-blur-md text-white rounded-br-sm border-white/20 shadow-md shadow-accent/20' : 'bg-header-bg/90 backdrop-blur-md rounded-bl-sm border-white/20 dark:border-white/10 shadow-sm'}`}>
         
         {/* Text Content */}
         {msg.imageUrl && (
@@ -1034,7 +1034,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
 
   return (
     <div 
-      className={`panel flex flex-col h-full w-full bg-panel-bg border-l border-border shadow-lg overflow-hidden relative`}
+      className={`panel flex flex-col h-full w-full bg-panel-bg/90 backdrop-blur-xl border-l border-black/10 dark:border-white/10 shadow-[-8px_0_30px_rgba(0,0,0,0.05)] dark:shadow-[-8px_0_30px_rgba(0,0,0,0.2)] overflow-hidden relative`}
       onDragOver={handleDragOver}
       onDragEnter={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -1047,7 +1047,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
         </div>
       )}
       
-      <div className="panel-header flex items-center justify-between p-3.5 border-b border-border bg-header-bg/80 backdrop-blur-sm shrink-0 z-10">
+      <div className="panel-header flex items-center justify-between p-3.5 border-b border-black/5 dark:border-white/5 bg-header-bg/85 backdrop-blur-md shadow-sm shrink-0 z-10">
         <button onClick={() => setIsConfirmClearOpen(true)} disabled={rawChatHistory.length === 0} title={t('clearHistory')} className="p-1.5 rounded-full hover:bg-hover-bg cursor-pointer transition-colors disabled:opacity-30 disabled:cursor-not-allowed"><Icon name="Trash2" size={18} /></button>
         <div className="panel-title font-bold flex items-center gap-2 text-accent text-lg tracking-tight">
           <Spot primaryColor="currentColor" secondaryColor="#f8fafb" mode="head" className="w-6 h-6" />
@@ -1094,7 +1094,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
             })()}
             {isThinking && chatHistory.length > 0 && chatHistory[chatHistory.length - 1].sender === 'user' && (
               <div className="chat-message flex animate-fade-in-up duration-300 ease-out justify-start mb-2">
-                <div className="msg-content w-3/4 p-4 rounded-3xl shadow-sm bg-header-bg rounded-bl-sm border border-black/5 dark:border-white/5">
+                <div className="msg-content w-3/4 p-4 rounded-3xl shadow-sm bg-header-bg/90 backdrop-blur-md rounded-bl-sm border border-white/20 dark:border-white/10">
                   <div className="flex items-center gap-2 mb-3 text-accent opacity-70">
                     <Icon name="LoaderCircle" className="animate-spin w-4 h-4" />
                     <span className="text-xs font-medium uppercase tracking-wider">{t('aiAnalyzing')}</span>
@@ -1126,7 +1126,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
             ))}
           </div>
         )}
-        <div className={`relative flex items-end w-full border border-border rounded-3xl bg-bg shadow-sm transition-all focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20 ${(!isEnabled || isThinking || !geminiApiKey) ? 'opacity-60 grayscale-[30%]' : ''}`}>
+        <div className={`relative flex items-end w-full border border-white/20 dark:border-white/10 rounded-3xl bg-bg/80 backdrop-blur-md shadow-inner transition-all focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20 ${(!isEnabled || isThinking || !geminiApiKey) ? 'opacity-60 grayscale-[30%]' : ''}`}>
           <div className="pl-1.5 pb-1.5 shrink-0 flex items-center justify-center">
             <input type="file" ref={imageInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
             <button type="button" onClick={() => imageInputRef.current?.click()} disabled={!isEnabled || isThinking || !geminiApiKey} className="w-9 h-9 text-gray-500 hover:text-accent rounded-full flex items-center justify-center transition-colors cursor-pointer disabled:cursor-not-allowed disabled:hover:text-gray-500 hover:bg-hover-bg" title={t('uploadImage')}>

@@ -117,10 +117,20 @@ const App: React.FC = () => {
   useEffect(() => {
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add(theme);
-    const accentColor = theme === 'light' ? '#007bff' : '#3498db';
-    const accentHoverColor = theme === 'light' ? '#0056b3' : '#217dbb';
+    const accentColor = theme === 'light' ? '#007bff' : '#3b82f6';
+    const accentHoverColor = theme === 'light' ? '#0056b3' : '#2563eb';
     document.documentElement.style.setProperty('--accent-color', accentColor);
     document.documentElement.style.setProperty('--accent-hover-color', accentHoverColor);
+
+    // Dynamically generate and set the Leaf SVG favicon using the current accent color
+    const svgFavicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${accentColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 22 12 12"/></svg>`;
+    let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.href = `data:image/svg+xml,${encodeURIComponent(svgFavicon)}`;
   }, [theme]);
 
   useEffect(() => {
@@ -338,6 +348,65 @@ const App: React.FC = () => {
   return (
     <AppProvider value={contextValue}>
     <div className={`main-container font-sans bg-bg text-text transition-colors duration-300 overflow-hidden ${isActivelyResizing ? 'select-none cursor-col-resize' : ''}`}>
+      {/* Global SVG Gradients for Icons */}
+      <svg width="0" height="0" className="absolute pointer-events-none" aria-hidden="true">
+        <defs>
+          <linearGradient id="accent-gradient" x1="0%" y1="0%" x2="100%" y2="100%" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="var(--color-accent, var(--accent-color))" style={{ stopColor: 'color-mix(in srgb, var(--color-accent, var(--accent-color)), white 15%)' }} />
+            <stop offset="100%" stopColor="var(--color-accent, var(--accent-color))" style={{ stopColor: 'color-mix(in srgb, var(--color-accent, var(--accent-color)), black 10%)' }} />
+          </linearGradient>
+          <linearGradient id="red-gradient" x1="0%" y1="0%" x2="100%" y2="100%" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#ef4444" style={{ stopColor: 'color-mix(in srgb, #ef4444, white 15%)' }} />
+            <stop offset="100%" stopColor="#ef4444" style={{ stopColor: 'color-mix(in srgb, #ef4444, black 10%)' }} />
+          </linearGradient>
+        </defs>
+      </svg>
+      <style>{`
+        .text-accent:not([class*="bg-"]) svg[stroke="currentColor"],
+        .text-accent:not([class*="bg-"]) svg *[stroke="currentColor"],
+        svg.text-accent:not([class*="bg-"])[stroke="currentColor"],
+        svg.text-accent:not([class*="bg-"]) *[stroke="currentColor"],
+        .hover\\:text-accent:not([class*="bg-"]):hover svg[stroke="currentColor"],
+        .hover\\:text-accent:not([class*="bg-"]):hover svg *[stroke="currentColor"],
+        .group:hover .group-hover\\:text-accent:not([class*="bg-"]) svg[stroke="currentColor"],
+        .group:hover .group-hover\\:text-accent:not([class*="bg-"]) svg *[stroke="currentColor"] {
+          stroke: url(#accent-gradient) !important;
+        }
+        
+        .text-accent:not([class*="bg-"]) svg[fill="currentColor"],
+        .text-accent:not([class*="bg-"]) svg *[fill="currentColor"],
+        svg.text-accent:not([class*="bg-"])[fill="currentColor"],
+        svg.text-accent:not([class*="bg-"]) *[fill="currentColor"],
+        .hover\\:text-accent:not([class*="bg-"]):hover svg[fill="currentColor"],
+        .hover\\:text-accent:not([class*="bg-"]):hover svg *[fill="currentColor"],
+        .group:hover .group-hover\\:text-accent:not([class*="bg-"]) svg[fill="currentColor"],
+        .group:hover .group-hover\\:text-accent:not([class*="bg-"]) svg *[fill="currentColor"] {
+          fill: url(#accent-gradient) !important;
+        }
+
+        .text-red-500:not([class*="bg-"]) svg[stroke="currentColor"],
+        .text-red-500:not([class*="bg-"]) svg *[stroke="currentColor"],
+        svg.text-red-500:not([class*="bg-"])[stroke="currentColor"],
+        svg.text-red-500:not([class*="bg-"]) *[stroke="currentColor"],
+        .hover\\:text-red-500:not([class*="bg-"]):hover svg[stroke="currentColor"],
+        .hover\\:text-red-500:not([class*="bg-"]):hover svg *[stroke="currentColor"],
+        .group:hover .group-hover\\:text-red-500:not([class*="bg-"]) svg[stroke="currentColor"],
+        .group:hover .group-hover\\:text-red-500:not([class*="bg-"]) svg *[stroke="currentColor"] {
+          stroke: url(#red-gradient) !important;
+        }
+        
+        .text-red-500:not([class*="bg-"]) svg[fill="currentColor"],
+        .text-red-500:not([class*="bg-"]) svg *[fill="currentColor"],
+        svg.text-red-500:not([class*="bg-"])[fill="currentColor"],
+        svg.text-red-500:not([class*="bg-"]) *[fill="currentColor"],
+        .hover\\:text-red-500:not([class*="bg-"]):hover svg[fill="currentColor"],
+        .hover\\:text-red-500:not([class*="bg-"]):hover svg *[fill="currentColor"],
+        .group:hover .group-hover\\:text-red-500:not([class*="bg-"]) svg[fill="currentColor"],
+        .group:hover .group-hover\\:text-red-500:not([class*="bg-"]) svg *[fill="currentColor"] {
+          fill: url(#red-gradient) !important;
+        }
+      `}</style>
+
       {/* --- Modals --- */}
       <EntityModal
         isOpen={modalState.type === 'entity'}
@@ -507,10 +576,12 @@ const App: React.FC = () => {
           <div
             onMouseDown={handleAiPanelMouseDown}
             onDoubleClick={() => setAiPanelWidth && setAiPanelWidth(450)}
-            className={`absolute left-0 top-0 bottom-0 z-10 w-1.5 cursor-col-resize transition-colors duration-200 ease-in-out hover:bg-accent/80 ${isActivelyResizing ? 'bg-accent' : ''} ${!isAiPanelVisible ? 'hidden' : ''}`}
+            className={`absolute left-0 top-0 bottom-0 z-20 w-3 -ml-1.5 cursor-col-resize flex items-center justify-center group ${!isAiPanelVisible ? 'hidden' : ''}`}
             title={`${t('resizePanel')} (Double-click to reset)`}
-          ></div>
-          <div className="ai-panel-wrapper grow overflow-hidden">
+          >
+            <div className={`w-1 h-full transition-all duration-300 ${isActivelyResizing ? 'bg-accent shadow-md shadow-accent/50 scale-x-150' : 'bg-transparent group-hover:bg-accent/50 group-hover:scale-x-150'}`}></div>
+          </div>
+          <div className="ai-panel-wrapper grow">
             <AIAssistant
               isVisible={isAiPanelVisible}
               onClose={() => setAiPanelVisible(false)}

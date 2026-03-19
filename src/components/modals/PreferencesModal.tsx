@@ -33,17 +33,17 @@ interface PreferencesModalProps {
 export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onClose, currentPrefs, onPreferenceChange, t, availableLanguages }) => {
 
     const prefButtonClasses = (isSelected: boolean) =>
-        `px-4 py-3 rounded-2xl border-2 transition-all duration-200 flex items-center gap-2 justify-center w-full font-bold
+        `px-4 py-3 rounded-2xl border transition-all duration-300 flex items-center gap-2 justify-center w-full font-bold hover:-translate-y-0.5
         ${isSelected
-            ? 'bg-accent text-white border-accent shadow-md shadow-accent/20'
-            : 'bg-panel-bg border-border hover:border-gray-400 dark:hover:border-gray-500 hover:bg-hover-bg text-text/80 shadow-sm'
+            ? 'bg-accent/95 backdrop-blur-md text-white border-white/20 shadow-lg shadow-accent/30'
+            : 'bg-panel-bg/50 backdrop-blur-sm border-white/20 dark:border-white/10 hover:bg-hover-bg/80 hover:shadow-md text-text/80 shadow-sm'
         }`;
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={t('preferences')}>
             <div className="p-7 space-y-8">
                 {/* General Section */}
                 <section>
-                    <div className="flex items-center gap-2 mb-4 border-b border-border/50 pb-2 text-accent">
+                    <div className="flex items-center gap-2 mb-4 border-b border-black/5 dark:border-white/5 pb-2 text-accent">
                         <Icon name="Settings2" size={20} />
                         <h4 className="font-black text-lg tracking-tight text-text">{t('prefsGeneral')}</h4>
                     </div>
@@ -54,7 +54,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                                 id="language-select"
                                 value={currentPrefs.lang}
                                 onChange={(e) => onPreferenceChange('lang', e.target.value as Language)}
-                                className="w-full p-3.5 border-2 border-border rounded-2xl bg-bg focus:ring-4 focus:ring-accent/20 focus:border-accent transition-all outline-none font-semibold cursor-pointer"
+                                className="w-full p-3.5 border border-white/20 dark:border-white/10 rounded-2xl bg-bg/80 backdrop-blur-sm shadow-inner focus:ring-4 focus:ring-accent/20 focus:border-accent transition-all outline-none font-semibold cursor-pointer"
                             >
                                 {availableLanguages.map((langCode) => (
                                     <option key={langCode} value={langCode}>
@@ -75,13 +75,13 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                             </div>
                         </div>
                         <div>
-                            <label className="flex items-center justify-between cursor-pointer p-4 border-2 border-border rounded-2xl hover:border-gray-400 dark:hover:border-gray-500 transition-all bg-panel-bg shadow-sm hover:shadow-md">
+                            <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:bg-hover-bg/50">
                                 <span className="font-bold text-base tracking-tight text-text/90">{t('uiShowToasts')}</span>
                                 <input
                                     type="checkbox"
                                     checked={currentPrefs.showToasts}
                                     onChange={(e) => onPreferenceChange('showToasts', e.target.checked)}
-                                    className="w-5 h-5 rounded border-2 border-border text-accent focus:ring-accent focus:ring-offset-bg bg-bg cursor-pointer"
+                                    className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-bg bg-bg cursor-pointer shadow-inner"
                                 />
                             </label>
                         </div>
@@ -90,19 +90,19 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
 
                 {/* AI Configuration Section */}
                 <section>
-                    <div className="flex items-center gap-2 mb-4 border-b border-border/50 pb-2 text-accent">
+                    <div className="flex items-center gap-2 mb-4 border-b border-black/5 dark:border-white/5 pb-2 text-accent">
                         <Spot primaryColor="currentColor" secondaryColor="#f8fafb" mode="head" className="w-5 h-5" />
                         <h4 className="font-black text-lg tracking-tight text-text">{t('prefsAI')}</h4>
                     </div>
                     <div className="space-y-6">
                         <div>
-                            <label className="flex items-center justify-between cursor-pointer p-4 border-2 border-border rounded-2xl hover:border-gray-400 dark:hover:border-gray-500 transition-all bg-panel-bg shadow-sm hover:shadow-md">
+                            <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:bg-hover-bg/50">
                                 <span className="font-bold text-base tracking-tight text-text/90">{t('uiHideAi' as any)}</span>
                                 <input
                                     type="checkbox"
                                     checked={currentPrefs.hideAi}
                                     onChange={(e) => onPreferenceChange('hideAi', e.target.checked)}
-                                    className="w-5 h-5 rounded border-2 border-border text-accent focus:ring-accent focus:ring-offset-bg bg-bg cursor-pointer"
+                                    className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-bg bg-bg cursor-pointer shadow-inner"
                                 />
                             </label>
                         </div>
@@ -115,7 +115,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                                 type="password"
                                 value={currentPrefs.geminiApiKey}
                                 onChange={(e) => onPreferenceChange('geminiApiKey', e.target.value)}
-                                className="w-full p-3.5 border-2 border-border rounded-2xl bg-bg focus:ring-4 focus:ring-accent/20 focus:border-accent transition-all outline-none font-medium"
+                                className="w-full p-3.5 border border-white/20 dark:border-white/10 rounded-2xl bg-bg/80 backdrop-blur-sm shadow-inner focus:ring-4 focus:ring-accent/20 focus:border-accent transition-all outline-none font-medium"
                                 placeholder={t('enterApiKey')}
                             />
                             <p className="text-xs text-gray-500 mt-2">{t('apiKeyNote')}</p>
