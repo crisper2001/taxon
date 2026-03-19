@@ -7,7 +7,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
-  const { t, triggerImport, openPreferences } = useAppContext();
+  const { t, triggerImport, triggerOpenNativeKey, openPreferences, appMode, setAppMode } = useAppContext();
 
   return (
     <div id="sidebar" className={`fixed top-0 left-0 h-full z-30 w-60 bg-panel-bg/95 backdrop-blur-xl border-r border-border p-5 flex flex-col gap-5 shadow-2xl transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
@@ -19,12 +19,28 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
         </h2>
       </div>
 
+      {/* Mode Switcher */}
+      <div className="flex bg-bg rounded-xl p-1 shadow-inner border border-border">
+        <button
+          onClick={() => setAppMode('identify')}
+          className={`flex-1 py-1.5 text-sm font-bold rounded-lg transition-all cursor-pointer ${appMode === 'identify' ? 'bg-accent text-white shadow-sm' : 'text-text opacity-70 hover:opacity-100 hover:bg-hover-bg'}`}
+        >
+          Identify
+        </button>
+        <button
+          onClick={() => setAppMode('build')}
+          className={`flex-1 py-1.5 text-sm font-bold rounded-lg transition-all cursor-pointer ${appMode === 'build' ? 'bg-accent text-white shadow-sm' : 'text-text opacity-70 hover:opacity-100 hover:bg-hover-bg'}`}
+        >
+          Build
+        </button>
+      </div>
+
       {/* Key Management Actions */}
       <div className="flex flex-col gap-2 text-sm font-semibold">
-        <button disabled className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer">
-          <Icon name="FolderOpen" className="opacity-80" /> {t('openNativeKey')}
+        <button onClick={triggerOpenNativeKey} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg transition-all cursor-pointer shadow-sm hover:shadow-md group">
+          <Icon name="FolderOpen" className="opacity-80 group-hover:opacity-100" /> {t('openNativeKey')}
         </button>
-        <button onClick={triggerImport} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-accent hover:text-white transition-all cursor-pointer shadow-sm hover:shadow-md group">
+        <button onClick={triggerImport} disabled={appMode === 'build'} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-accent hover:text-white transition-all cursor-pointer shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed group">
           <Icon name="FileJson" className="opacity-80 group-hover:opacity-100" /> {t('importKey')}
         </button>
       </div>

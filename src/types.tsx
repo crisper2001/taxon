@@ -27,6 +27,7 @@ export interface Feature {
   type: FeatureType;
   isState: boolean;
   parentName?: string;
+  description?: string;
   base_unit?: string;
   unit_prefix?: string;
 }
@@ -59,6 +60,7 @@ export interface Characteristic {
 
 export interface EntityProfile {
   name: string;
+  description?: string;
   characteristics: Characteristic[];
 }
 
@@ -81,6 +83,39 @@ export interface KeyData {
 
 export interface ChosenFeature {
   value?: string | number; // value for numeric features
+}
+
+export interface DraftState {
+  id: string;
+  name: string;
+  media?: Media[];
+}
+
+export interface DraftFeature {
+  id: string;
+  name: string;
+  description?: string;
+  parentId?: string;
+  type: 'numeric' | 'state';
+  states: DraftState[];
+  media?: Media[];
+}
+
+export interface DraftEntity {
+  id: string;
+  name: string;
+  description?: string;
+  parentId?: string;
+  scores: Record<string, string | { min: number; max: number }>;
+  media?: Media[];
+}
+
+export interface DraftKeyData {
+  title: string;
+  authors: string;
+  description: string;
+  features: DraftFeature[];
+  entities: DraftEntity[];
 }
 
 export type ModalState = 
@@ -109,6 +144,8 @@ export interface GeminiResponse {
   features_used: GeminiFeatureMatch[];
   entities_used?: { id: string; name: string }[];
   answer?: string;
+  suggested_features?: { name: string; description: string; type: 'state' | 'numeric'; states?: string[] }[];
+  suggested_entities?: { name: string; description: string }[];
 }
 
 // Raw message structure for storing in state

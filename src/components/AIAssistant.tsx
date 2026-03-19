@@ -17,6 +17,8 @@ interface AIAssistantProps {
   geminiApiKey: string;
   chatHistory: RawChatMessage[];
   setChatHistory: React.Dispatch<React.SetStateAction<RawChatMessage[]>>;
+  appMode: 'identify' | 'build';
+  getCurrentDraft?: () => any;
 }
 
 // Rendered message structure
@@ -78,7 +80,8 @@ const ChatMessageBubble: React.FC<{
   onVersionChange?: (index: number, newVersionIndex: number) => void;
   isThinking?: boolean;
   onImageClick?: (url: string) => void;
-} > = ({ msg, index, keyData, t, isLatestAi, isLatestUser, onRegenerate, onEditSubmit, onVersionChange, isThinking, onImageClick }) => {
+  appMode: 'identify' | 'build';
+} > = ({ msg, index, keyData, t, isLatestAi, isLatestUser, onRegenerate, onEditSubmit, onVersionChange, isThinking, onImageClick, appMode }) => {
   const [isCopied, setIsCopied] = useState(false);
   
   // Truncate AI messages if they exceed 500 characters
@@ -86,6 +89,10 @@ const ChatMessageBubble: React.FC<{
   const [isExpanded, setIsExpanded] = useState(!isLong);
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
   
+  const [addedFeatures, setAddedFeatures] = useState<Set<number>>(new Set());
+  const [addedEntities, setAddedEntities] = useState<Set<number>>(new Set());
+  const [addedAll, setAddedAll] = useState(false);
+
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(msg.content);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -134,7 +141,8 @@ const ChatMessageBubble: React.FC<{
 
   const hasFeatures = msg.data?.features_used && msg.data.features_used.length > 0;
   const hasEntities = msg.data?.entities_used && msg.data.entities_used.length > 0;
-  const hasConsideredData = hasFeatures || hasEntities;
+  const hasConsideredData = appMode === 'identify' && (hasFeatures || hasEntities);
+  const hasSuggestions = appMode === 'build' && (msg.data?.suggested_features?.length || msg.data?.suggested_entities?.length);
 
   return (
     <div className={`chat-message flex flex-col animate-fade-in-up duration-300 ease-out space-y-1 mb-2 ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
@@ -166,12 +174,95 @@ const ChatMessageBubble: React.FC<{
             </div>
           </div>
         ) : (
-          <div className={`relative ${!isExpanded ? 'max-h-48 overflow-hidden' : ''}`}>
-            <div className="markdown-body text-[15px] leading-relaxed [&>p]:mb-3 [&>p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:mb-3 [&_strong]:font-bold [&_em]:italic [&_a]:underline [&_h1]:font-bold [&_h1]:text-lg [&_h2]:font-bold [&_h3]:font-semibold break-words" dangerouslySetInnerHTML={{ __html: marked.parse(msg.content) as string }} />
-            {!isExpanded && (
-              <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-header-bg to-transparent pointer-events-none" />
+          <>
+            {msg.content && (
+              <div className={`relative ${!isExpanded ? 'max-h-48 overflow-hidden' : ''}`}>
+                <div className="markdown-body text-[15px] leading-relaxed [&>p]:mb-3 [&>p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:mb-3 [&_strong]:font-bold [&_em]:italic [&_a]:underline [&_a]:text-accent hover:[&_a]:text-accent-hover [&_h1]:font-bold [&_h1]:text-lg [&_h2]:font-bold [&_h3]:font-semibold break-words" dangerouslySetInnerHTML={{ __html: (marked.parse(msg.content) as string).replace(/<a (?![^>]*\btarget=)/g, '<a target="_blank" rel="noopener noreferrer" ') }} />
+                {!isExpanded && (
+                  <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-header-bg to-transparent pointer-events-none" />
+                )}
+              </div>
             )}
-          </div>
+            
+            {appMode === 'build' && msg.data?.suggested_features && msg.data.suggested_features.length > 0 && (
+              <div className="mt-3 flex flex-col gap-2 w-full">
+                <h4 className="text-[11px] font-bold opacity-80 uppercase tracking-wider">{t('aiSuggestedFeatures' as any)}</h4>
+                {msg.data.suggested_features.map((sf, idx) => {
+                  const isAdded = addedFeatures.has(idx) || addedAll;
+                  return (
+                  <div key={idx} className={`bg-bg p-2.5 rounded-xl border border-black/5 dark:border-white/5 shadow-sm flex flex-col gap-1.5 animate-fade-in-up transition-opacity ${isAdded ? 'opacity-60' : ''}`}>
+                     <div className="flex justify-between items-start gap-2">
+                        <span className="font-bold text-sm text-accent leading-tight">{sf.name}</span>
+                        <button 
+                          onClick={() => {
+                            if (!isAdded) {
+                              window.dispatchEvent(new CustomEvent('add-draft-feature', { detail: sf }));
+                              setAddedFeatures(prev => new Set(prev).add(idx));
+                            }
+                          }} 
+                          disabled={isAdded}
+                          className={`shrink-0 text-[11px] px-2 py-1 rounded-md transition-colors font-semibold shadow-sm flex items-center gap-1 ${isAdded ? 'bg-green-500/20 text-green-600 dark:text-green-400 cursor-default shadow-none' : 'bg-accent text-white hover:bg-accent-hover cursor-pointer'}`}
+                        >
+                          <Icon name={isAdded ? "Check" : "Plus"} size={12} /> {isAdded ? (t('addedItem' as any) || 'Added') : t('addToKey' as any)}
+                        </button>
+                     </div>
+                     {sf.description && <span className="text-xs opacity-75 leading-snug">{sf.description}</span>}
+                     {sf.type === 'state' && sf.states && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {sf.states.map(s => <span key={s} className="text-[10px] px-1.5 py-0.5 bg-black/5 dark:bg-white/10 rounded-md font-medium opacity-90">{s}</span>)}
+                        </div>
+                     )}
+                     {sf.type === 'numeric' && <div className="text-[10px] px-1.5 py-0.5 bg-black/5 dark:bg-white/10 rounded-md font-medium opacity-90 w-fit mt-1">Numeric (Range)</div>}
+                  </div>
+                )})}
+              </div>
+            )}
+
+            {appMode === 'build' && msg.data?.suggested_entities && msg.data.suggested_entities.length > 0 && (
+              <div className="mt-3 flex flex-col gap-2 w-full">
+                <h4 className="text-[11px] font-bold opacity-80 uppercase tracking-wider">{t('aiSuggestedEntities' as any)}</h4>
+                {msg.data.suggested_entities.map((se, idx) => {
+                  const isAdded = addedEntities.has(idx) || addedAll;
+                  return (
+                  <div key={idx} className={`bg-bg p-2.5 rounded-xl border border-black/5 dark:border-white/5 shadow-sm flex flex-col gap-1.5 animate-fade-in-up transition-opacity ${isAdded ? 'opacity-60' : ''}`}>
+                     <div className="flex justify-between items-start gap-2">
+                        <span className="font-bold text-sm text-accent leading-tight">{se.name}</span>
+                        <button 
+                          onClick={() => {
+                            if (!isAdded) {
+                              window.dispatchEvent(new CustomEvent('add-draft-entity', { detail: se }));
+                              setAddedEntities(prev => new Set(prev).add(idx));
+                            }
+                          }} 
+                          disabled={isAdded}
+                          className={`shrink-0 text-[11px] px-2 py-1 rounded-md transition-colors font-semibold shadow-sm flex items-center gap-1 ${isAdded ? 'bg-green-500/20 text-green-600 dark:text-green-400 cursor-default shadow-none' : 'bg-accent text-white hover:bg-accent-hover cursor-pointer'}`}
+                        >
+                          <Icon name={isAdded ? "Check" : "Plus"} size={12} /> {isAdded ? (t('addedItem' as any) || 'Added') : t('addToKey' as any)}
+                        </button>
+                     </div>
+                     {se.description && <span className="text-xs opacity-75 leading-snug">{se.description}</span>}
+                  </div>
+                )})}
+              </div>
+            )}
+
+            {hasSuggestions && (
+              <div className="mt-4 flex justify-end">
+                <button 
+                  onClick={() => {
+                    if (!addedAll) {
+                      window.dispatchEvent(new CustomEvent('add-all-draft-items', { detail: { features: msg.data?.suggested_features, entities: msg.data?.suggested_entities } }));
+                      setAddedAll(true);
+                    }
+                  }} 
+                  disabled={addedAll}
+                  className={`text-xs px-3 py-1.5 rounded-lg transition-colors shadow-sm font-bold flex items-center gap-1.5 ${addedAll ? 'bg-green-500/20 text-green-600 dark:text-green-400 cursor-default shadow-none' : 'bg-accent text-white hover:bg-accent-hover cursor-pointer'}`}
+                >
+                  <Icon name={addedAll ? "Check" : "Plus"} size={14} /> {addedAll ? (t('addedItem' as any) || 'Added') : t('addAllToKey' as any)}
+                </button>
+              </div>
+            )}
+          </>
         )}
 
         {/* Read More Toggle */}
@@ -264,7 +355,7 @@ const ChatMessageBubble: React.FC<{
   );
 };
 
-export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, keyData, onEntityClick, onImageClick, t, lang, geminiApiKey, chatHistory: rawChatHistory, setChatHistory: setRawChatHistory }) => {
+export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, keyData, onEntityClick, onImageClick, t, lang, geminiApiKey, chatHistory: rawChatHistory, setChatHistory: setRawChatHistory, appMode, getCurrentDraft }) => {
   const [userInput, setUserInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -282,17 +373,17 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
   const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
 
   const allMentionableItems = useMemo(() => {
-    if (!keyData) return [];
+    if (appMode === 'build' || !keyData) return [];
     const entities = Array.from(keyData.allEntities.values()).map(e => ({ type: 'entity' as const, id: e.id, name: e.name }));
     const features = Array.from(keyData.allFeatures.values()).map(f => {
       const name = f.parentName ? `${f.parentName}: ${f.name}` : f.name;
       return { type: 'feature' as const, id: f.id, name };
     });
     return [...entities, ...features].sort((a, b) => b.name.length - a.name.length);
-  }, [keyData]);
+  }, [keyData, appMode]);
 
   const mentionOptions = useMemo(() => {
-    if (!mentionState.active || !keyData) return [];
+    if (!mentionState.active || appMode === 'build' || !keyData) return [];
     
     const search = mentionState.search.toLowerCase();
     const entities = Array.from(keyData.allEntities.values()).map(e => ({ type: 'entity' as const, id: e.id, name: e.name }));
@@ -305,13 +396,28 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
     if (!search) return all.slice(0, 30);
     
     return all.filter(item => item.name.toLowerCase().includes(search)).slice(0, 30);
-  }, [mentionState.active, mentionState.search, keyData]);
+  }, [mentionState.active, mentionState.search, keyData, appMode]);
 
   useEffect(() => {
     if (mentionState.active && mentionRefs.current[mentionSelectedIndex]) {
       mentionRefs.current[mentionSelectedIndex]?.scrollIntoView({ block: 'nearest' });
     }
   }, [mentionSelectedIndex, mentionState.active]);
+
+  // Clear the history and any attached image blob references when modes switch
+  useEffect(() => {
+    rawChatHistory.forEach(msg => {
+      if ((msg as any).imageUrl && (msg as any).imageUrl.startsWith('blob:')) {
+        URL.revokeObjectURL((msg as any).imageUrl);
+      }
+    });
+    setRawChatHistory([]);
+    consolidatedDescription.current = "";
+    if (selectedImage) {
+      URL.revokeObjectURL(selectedImage.url);
+      setSelectedImage(null);
+    }
+  }, [appMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Effect to reset chat when the key file changes.
   const handleClearHistory = () => {
@@ -431,7 +537,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
   // Derive translated chat history from raw data.
   // This memo re-runs when language (t) or data (rawChatHistory) changes.
   const chatHistory: ChatMessage[] = useMemo(() => {
-    if (!keyData) return [];
+    if (appMode === 'identify' && !keyData) return [];
     return rawChatHistory.map((msg, index, arr) => {
       if (msg.sender === 'user') {
         return { sender: 'user', content: msg.content || '', data: undefined, imageUrl: (msg as any).imageUrl };
@@ -440,7 +546,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
       let content = '';
       switch (msg.aiType) {
         case 'ready':
-          content = t('aiReady');
+          content = appMode === 'build' ? t('aiBuildReady' as any) : t('aiReady');
           break;
         case 'error':
           content = msg.errorText || t('aiError');
@@ -451,6 +557,8 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
         case 'response': {
           if (msg.data?.answer && msg.data.answer.trim().length > 0) {
             content = msg.data.answer;
+          } else if (appMode === 'build' && (msg.data?.suggested_features?.length || msg.data?.suggested_entities?.length)) {
+            content = '';
           } else {
             const features = msg.data?.features_used || [];
             if (features.length > 0) {
@@ -498,7 +606,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
         currentVersionIndex: msg.currentVersionIndex
       };
     });
-  }, [rawChatHistory, t, keyData]);
+  }, [rawChatHistory, t, keyData, appMode]);
 
   useEffect(() => {
     chatHistoryRef.current?.scrollTo(0, chatHistoryRef.current.scrollHeight);
@@ -552,7 +660,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
 
   const sendMessage = async (overrideText?: string, overrideHistory?: RawChatMessage[], regenerateAiIndex?: number) => {
     const text = overrideText !== undefined ? overrideText : userInput;
-    if ((!text.trim() && !selectedImage) || isThinking || !keyData) return;
+    if ((!text.trim() && !selectedImage) || isThinking || (appMode === 'identify' && !keyData)) return;
 
     let currentHistory = overrideHistory || rawChatHistory;
     const currentImage = selectedImage;
@@ -577,16 +685,16 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
     const previousEntityNames = (lastAiMessage?.data?.entities_used || []).map(e => e.name.toLowerCase());
     const previousFeatureIds = (lastAiMessage?.data?.features_used || []).map(f => f.id);
 
-    const relevantEntityProfiles = Array.from(keyData.entityProfiles.values())
+    const relevantEntityProfiles = keyData ? Array.from(keyData.entityProfiles.values())
       .filter(ep => lowerInput.includes(ep.name.toLowerCase()) || previousEntityNames.includes(ep.name.toLowerCase()))
       .map(ep => ({
         name: ep.name,
         characteristics: ep.characteristics.map(c => `${c.parent ? c.parent + ': ' : ''}${c.text}`)
-      }));
+      })) : [];
 
     // Pre-search the feature list using keyword matching to reduce payload size
     const fullSearchContext = (consolidatedDescription.current + " " + text).toLowerCase();
-    const relevantFeatures = currentImage ? keyData.featureListForAI : keyData.featureListForAI.filter(f => {
+    const relevantFeatures = currentImage || !keyData ? (keyData?.featureListForAI || []) : keyData.featureListForAI.filter(f => {
       if (previousFeatureIds.includes(f.id)) return true; // keep previously used features context
       
       // Include CJK full-width punctuation in the split (e.g., 、 。 ！ ？ 「 」 【 】)
@@ -597,7 +705,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
         return (isCJK ? word.length >= 1 : word.length > 3) && fullSearchContext.includes(word);
       });
     });
-    const featuresToSend = relevantFeatures.length > 0 ? relevantFeatures : keyData.featureListForAI;
+    const featuresToSend = relevantFeatures.length > 0 ? relevantFeatures : (keyData?.featureListForAI || []);
 
     const languageNames: Record<string, string> = {
       'en': 'English',
@@ -613,12 +721,16 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
     };
     const targetLanguage = languageNames[lang] || 'English';
 
-    const systemInstruction = `You are an expert taxonomist assisting a user with a Lucid identification key.
+    const draft = getCurrentDraft?.();
+    const existingFeatures = draft?.features.map((f: any) => f.name).join(', ') || 'None';
+    const existingEntities = draft?.entities.map((e: any) => e.name).join(', ') || 'None';
+
+    const systemInstruction = appMode === 'identify' ? `You are an expert taxonomist assisting a user with a Lucid identification key.
 
 **Key Metadata:**
-- Title: ${keyData.keyTitle}
-- Authors: ${keyData.keyAuthors}
-- Description: ${keyData.keyDescription}
+- Title: ${keyData?.keyTitle}
+- Authors: ${keyData?.keyAuthors}
+- Description: ${keyData?.keyDescription}
 
 **Instructions:**
 1. Determine if the user is describing a specimen for identification OR asking an informational question about the key, its features, or its entities.
@@ -638,8 +750,21 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
     - \`features_used\`: (array of objects) With \`id\`, \`description\`, and optionally \`value\`.
     - \`entities_used\`: (array of objects) With \`id\` and \`name\` of entities explicitly mentioned.
     - \`answer\`: (string) Your conversational answer to a question (leave empty if identifying).
-`;
-    const prompt = `**Data:**
+` : `You are an expert taxonomist assisting a user in building an identification key from scratch.
+
+**Instructions:**
+1. The user will ask for suggestions for taxonomic features or entities, or describe a domain.
+2. Provide helpful suggestions using the "suggested_features" and "suggested_entities" arrays.
+3. For features, provide a "name", "description", "type" ("state" or "numeric"), and if "state", a "states" array of possible categorical strings.
+4. For entities, provide a "name" and "description".
+5. Respond with a helpful conversational answer in the "answer" field explaining your suggestions.
+6. Leave "updated_description", "features_used", and "entities_used" empty.
+7. **Language:** Always formulate your "answer", names, descriptions, and states in ${targetLanguage}.
+8. **JSON Output:** Respond ONLY with a single JSON object matching the required schema.
+9. **IMPORTANT Context:** The user already has the following features in their draft: [${existingFeatures}]. Do NOT suggest these again.
+10. **IMPORTANT Context:** The user already has the following entities in their draft: [${existingEntities}]. Do NOT suggest these again.`;
+
+    const prompt = appMode === 'identify' ? `**Data:**
 
 **Current Description:**
 "${consolidatedDescription.current}"
@@ -651,7 +776,8 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
 ${JSON.stringify(featuresToSend)}
 
 **Entity Profiles (name, characteristics):**
-${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `No specific entities cited. Available entities in this key: ${Array.from(keyData.allEntities.values()).map(e => e.name).join(', ')}`}`;
+${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `No specific entities cited. Available entities in this key: ${keyData ? Array.from(keyData.allEntities.values()).map(e => e.name).join(', ') : ''}`}` : `**User Request:**
+"${[text, currentImage ? '[Image Attached]' : ''].filter(Boolean).join(' ')}"`;
 
     // Format previous chat history for the API to provide multi-turn context.
     // We exclude the very last message (the current user prompt) to prevent duplicate roles in the API request.
@@ -752,7 +878,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
   const handleRegenerate = () => {
     const lastUserMsgIndex = rawChatHistory.map(m => m.sender).lastIndexOf('user');
     const lastAiMsgIndex = rawChatHistory.map(m => m.sender).lastIndexOf('ai');
-    if (lastUserMsgIndex === -1 || lastAiMsgIndex === -1 || isThinking || !keyData) return;
+    if (lastUserMsgIndex === -1 || lastAiMsgIndex === -1 || isThinking || (appMode === 'identify' && !keyData)) return;
 
     const lastUserMsg = rawChatHistory[lastUserMsgIndex];
     const historyForPrompt = rawChatHistory.slice(0, lastUserMsgIndex + 1);
@@ -764,7 +890,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
   };
 
   const handleEditSubmit = (index: number, newContent: string) => {
-    if (isThinking || !keyData) return;
+    if (isThinking || (appMode === 'identify' && !keyData)) return;
 
     const newHistory = rawChatHistory.slice(0, index); // exclude the message itself
     
@@ -890,11 +1016,11 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
     onClose();
   };
 
-  const isEnabled = !!keyData;
+  const isEnabled = appMode === 'build' || !!keyData;
   let placeholder = t('aiWaiting');
   if (!geminiApiKey) placeholder = t('aiNeedApi');
-  else if (!keyData) placeholder = t('aiNeedKey');
-  else placeholder = t('aiDescribe');
+  else if (!isEnabled) placeholder = t('aiNeedKey');
+  else placeholder = appMode === 'build' ? t('aiBuildDescribe' as any) : t('aiDescribe');
 
 
   return (
@@ -921,13 +1047,13 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
         <button onClick={handleClose} title={t('closePanel')} className="p-1.5 rounded-full hover:bg-hover-bg cursor-pointer transition-colors"><Icon name="PanelRightClose" size={20} /></button>
       </div>
 
-      {rawChatHistory.length === 0 || !keyData ? (
+      {rawChatHistory.length === 0 || !isEnabled ? (
         // Unified Welcome Screen when chat is empty
         <div className="flex flex-col items-center justify-center h-full text-center text-text animate-fade-in p-6 bg-gradient-to-b from-panel-bg to-bg">
           <div className="flex flex-col items-center max-w-sm">
             <Spot primaryColor="currentColor" secondaryColor="#f8fafb" mode="body" className="w-14 mb-5 text-accent drop-shadow-md" />
             <h3 className="text-3xl font-bold mb-3 tracking-tight  text-accent">{t('assistant')}</h3>
-            <p className="text-base opacity-70 leading-relaxed">{keyData ? t('aiReady') : t('aiNeedKey')}</p>
+            <p className="text-base opacity-70 leading-relaxed">{isEnabled ? (appMode === 'build' ? t('aiBuildReady' as any) : t('aiReady')) : t('aiNeedKey')}</p>
           </div>
         </div>
       ) : (
@@ -952,6 +1078,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
                     onVersionChange={handleVersionChange}
                     isThinking={isThinking}
                     onImageClick={onImageClick}
+                    appMode={appMode}
                   />
                 );
               });

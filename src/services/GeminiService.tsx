@@ -65,6 +65,30 @@ export async function callGeminiAPI(
                 required: ['id', 'name'],
               },
             },
+            suggested_features: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  name: { type: Type.STRING },
+                  description: { type: Type.STRING },
+                  type: { type: Type.STRING },
+                  states: { type: Type.ARRAY, items: { type: Type.STRING } }
+                },
+                required: ['name', 'type']
+              }
+            },
+            suggested_entities: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  name: { type: Type.STRING },
+                  description: { type: Type.STRING }
+                },
+                required: ['name']
+              }
+            }
           },
           required: ['updated_description', 'features_used', 'entities_used'],
         },

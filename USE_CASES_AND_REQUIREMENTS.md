@@ -6,7 +6,7 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 
 ### UC1: Import and Load Identification Key
 * **Actor:** User
-* **Description:** The user uploads a Lucid key archive file (`.zip`, `.lk4`, `.lk5`). The system processes the nested XML files (`key.data`, `normal.sco`) to build the taxonomy tree, feature lists, and scoring logic.
+* **Description:** The user clicks "Identify" on the welcome screen (or uses the sidebar) to upload a Lucid key archive file (`.zip`, `.lk4`, `.lk5`) or a native Taxon JSON file (`.json`). The system processes the file to build the taxonomy tree, feature lists, and scoring logic.
 
 ### UC2: Manual Specimen Identification
 * **Actor:** User
@@ -38,14 +38,18 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 
 ### UC9: Configure Application Preferences
 * **Actor:** User
-* **Description:** The user accesses the preferences to set the UI theme (Light/Dark), application language, and Gemini API key required for the AI assistant.
+* **Description:** The user accesses the preferences (available directly from the welcome screen or the sidebar) to set the UI theme (Light/Dark), application language, toggle toast notifications, hide the AI assistant, and provide the Gemini API key required for the AI assistant.
+
+### UC10: Create and Edit Identification Keys
+* **Actor:** User
+* **Description:** The user selects "Create" on the welcome screen or switches to the "Builder Mode" to author a new identification key or edit an existing one (from an empty slate or a loaded `.json` key). They can add, duplicate, or delete entities and features, establish hierarchical relationships via drag-and-drop, assign images, input Markdown descriptions, and define score matrices. The user can leverage the AI Assistant to generate suggested structures, test the key instantly in the Identify engine, rely on background auto-saves, revert mistakes using Undo/Redo, and export the finalized key as a custom JSON file.
 
 ---
 
 ## 2. Functional Requirements
 
 ### 2.1. File Parsing & Data Extraction
-* **FR1.1:** The system must accept and parse `.zip` archives containing Lucid key data structures.
+* **FR1.1:** The system must accept and parse `.zip` archives containing Lucid key data structures, as well as native `.json` drafting schemas.
 * **FR1.2:** The system must parse nested ZIP structures to read `key.data` (XML) for entities, features, and media definitions, and `normal.sco` (XML) for scoring matrices.
 * **FR1.3:** The system must generate temporary object URLs (`Blob`) to display images stored locally inside the ZIP's `Media/` directory without requiring a backend.
 
@@ -79,11 +83,12 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **FR3.21:** The system must dynamically select a vision-optimized AI model when an image is attached, and provide an automatic fallback to a lighter model (with a visual warning indicator in the chat) if the primary model request fails.
 
 ### 2.4. User Interface & Display
-* **FR4.1:** The layout must consist of dynamically resizable panels supporting Features, Chosen Features, Remaining Entities, Discarded Entities, and the AI Assistant sidebar.
-* **FR4.2:** The system must display entities in toggleable "List" and "Grid" views.
-* **FR4.3:** The application must present modal overlays for Entity details, Feature image views, general Key Information, an Image Lightbox viewer (which must also support viewing images uploaded within the AI chat), and confirmation dialogs for destructive actions. The Entity details modal must display characteristics in a recursive, collapsible tree structure matching their hierarchy, and provide global "Expand All" and "Collapse All" controls.
-* **FR4.4:** Entity feature scores must be visually represented with badges indicating probability/interpretations (e.g., Common, Rare, Uncertain, Interval, Misinterpreted).
-* **FR4.5:** The system must display stacking visual toast notifications when features are selected or cleared, dynamically showing the count of discarded or restored entities alongside the total number of remaining entities. These toasts must act independently and fade out based on their initial appearance time.
+* **FR4.1:** The application must provide a dedicated Welcome Screen allowing users to branch into either "Identify" or "Create" modes before loading the main interface.
+* **FR4.2:** The main layout must consist of dynamically resizable panels supporting Features, Chosen Features, Remaining Entities, Discarded Entities, and the AI Assistant sidebar (which can be hidden via user preferences).
+* **FR4.3:** The system must display entities in toggleable "List" and "Grid" views.
+* **FR4.4:** The application must present modal overlays for Entity details, Feature image views, general Key Information, an Image Lightbox viewer (which must also support viewing images uploaded within the AI chat), and confirmation dialogs for destructive actions. The Entity details modal must display descriptions and characteristics in distinct visually elevated sections, feature a recursive collapsible tree structure, provide global "Expand All" and "Collapse All" controls, and offer a "Back to Top" scrolling button.
+* **FR4.5:** Entity feature scores must be visually represented with badges indicating probability/interpretations (e.g., Common, Rare, Uncertain, Interval, Misinterpreted).
+* **FR4.6:** The system must display stacking visual toast notifications when features are selected or cleared, dynamically showing the count of discarded or restored entities alongside the total number of remaining entities. These toasts must act independently and fade out based on their initial appearance time.
 
 ### 2.5. Search and Filtering
 * **FR5.1:** Tree components must support text-based search filtering, automatically expanding parent groups to reveal matching child nodes.
@@ -92,10 +97,25 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **FR5.4:** The system must provide a clear search button (X) within the search input fields to allow users to quickly reset their active filters.
 
 ### 2.6. State Management & Persistence
-* **FR6.1:** The system must preserve user preferences (API key, language selection, light/dark theme, toast notifications toggle, panel layout sizes, and entities view modes) across sessions using the browser's `localStorage`.
+* **FR6.1:** The system must preserve user preferences (API key, language selection, light/dark theme, toast notifications toggle, AI assistant visibility, panel layout sizes, and entities view modes) across sessions using the browser's `localStorage`.
 * **FR6.2:** All application states (loaded keys, AI chat history, selected features) must be reset gracefully when a user imports a new key. The user can also manually clear their selections via the clear button in the Chosen Features panel, or clear the AI chat history via the Assistant panel (both of which prompt for confirmation via a custom modal).
 
 ### 2.7. Localization (i18n)
 * **FR7.1:** The system must support multi-language translation using an internal dictionary.
 * **FR7.2:** Supported languages must include English, Portuguese (BR), Spanish, Russian, Chinese, Japanese, French, German, Latin, and Italian.
 * **FR7.3:** The system must automatically detect the user's browser language on first load and fall back to English if the language is unsupported.
+
+### 2.8. Key Builder (Authoring Mode)
+* **FR8.1:** The system must provide a dedicated UI mode for building and editing keys.
+* **FR8.2:** The system must allow users to add, edit, duplicate, and safely delete (via a confirmation modal) entities and features/states.
+* **FR8.3:** The system must allow users to establish parent-child hierarchical relationships for entities and features via visual drag-and-drop interaction, with visual depth indicators and collapsible groups.
+* **FR8.4:** The system must allow users to assign all supported score types (e.g., Common, Rare, Uncertain, Misinterpreted) connecting entities to features and states.
+* **FR8.5:** The system must maintain an internal history stack to support Undo and Redo operations.
+* **FR8.6:** The system must allow users to attach, preview (via lightbox modal), and reorder (via drag-and-drop) local images for entities, features, and states, capturing caption and copyright metadata.
+* **FR8.7:** The system must allow adding Markdown-formatted descriptions to entities and features.
+* **FR8.8:** The system must support resuming work by natively loading previously exported custom `.json` keys directly into the builder.
+* **FR8.9:** The system must support exporting the constructed key data into a custom JSON format.
+* **FR8.10:** The system must automatically and continuously save the active draft key to the browser's `localStorage` to prevent data loss.
+* **FR8.11:** The system must provide a "Test Key" function that instantly loads the working draft into the Identification Engine for real-time testing without requiring file exports.
+* **FR8.12:** The system must integrate the AI Assistant within the Builder Mode to provide and directly ingest taxonomic feature and entity suggestions based on user domain descriptions.
+* **FR8.13:** The system must provide a safe "New Key" workflow that prompts the user to export their current draft before wiping the active builder state.

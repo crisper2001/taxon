@@ -1,5 +1,5 @@
 import JSZip from 'jszip';
-import type { KeyData, FeatureNode, Feature, Score, StateScore, NumericScore, EntityProfile, FeatureType, ScoreType, Media, EntityNode } from '../types';
+import type { KeyData, FeatureNode, Feature, Score, StateScore, NumericScore, EntityProfile, FeatureType, ScoreType, Media, EntityNode, DraftKeyData } from '../types';
 
 // --- Lucid Key Parser Service ---
 
@@ -307,5 +307,110 @@ export class LucidKeyParser {
         console.warn(`Could not load media from zip path: ${pathFromXml}`, e);
       }
     }
+  }
+
+  public processDraftKey(draftKey: DraftKeyData): KeyData {
+    const keyData: KeyData = {
+      keyTitle: draftKey.title || 'Untitled Key',
+      keyAuthors: draftKey.authors || '',
+      keyDescription: draftKey.description || '',
+      allEntities: new Map(), entityTree: [], allFeatures: new Map(),
+      entityMedia: new Map(), featureMedia: new Map(),
+      featureTree: [], entityScores: new Map(),
+      entityProfiles: new Map(), totalFeaturesCount: 0, parsingErrors: [],
+      featureListForAI: [],
+    };
+
+    const entityNodes = new Map<string, EntityNode>();
+    draftKey.entities.forEach(e => {
+      keyData.allEntities.set(e.id, { id: e.id, name: e.name });
+      keyData.entityScores.set(e.id, new Map());
+      keyData.entityProfiles.set(e.id, { name: e.name, description: e.description, characteristics: [] });
+      entityNodes.set(e.id, { id: e.id, name: e.name, children: [], isGroup: false });
+      if (e.media && e.media.length > 0) {
+        keyData.entityMedia.set(e.id, e.media);
+      }
+    });
+
+    draftKey.entities.forEach(e => {
+      const node = entityNodes.get(e.id)!;
+      if (e.parentId && entityNodes.has(e.parentId)) {
+        const parentNode = entityNodes.get(e.parentId)!;
+        parentNode.children.push(node);
+        parentNode.isGroup = true;
+      } else {
+        keyData.entityTree.push(node);
+      }
+    });
+
+    const featureNodes = new Map<string, FeatureNode>();
+    draftKey.features.forEach(f => {
+      const featureType: FeatureType = f.type === 'state' ? 'state' : 'numeric';
+      keyData.allFeatures.set(f.id, {
+        id: f.id,
+        name: f.name,
+        type: featureType,
+        isState: false,
+        description: f.description,
+      });
+      keyData.featureListForAI.push({ id: f.id, type: featureType, description: f.description ? `${f.name} - ${f.description}` : f.name });
+
+      const featureNode: FeatureNode = {
+        id: f.id,
+        name: f.name,
+        type: featureType,
+        isState: false,
+        children: []
+      };
+
+      if (f.media && f.media.length > 0) {
+        keyData.featureMedia.set(f.id, f.media);
+      }
+      featureNodes.set(f.id, featureNode);
+    });
+
+    draftKey.features.forEach(f => {
+      const featureNode = featureNodes.get(f.id)!;
+      if (f.type === 'state') {
+        f.states.forEach(s => {
+          keyData.allFeatures.set(s.id, { id: s.id, name: s.name, type: 'state', isState: true, parentName: f.name });
+          featureNode.children.push({ id: s.id, name: s.name, type: 'state', isState: true, children: [] });
+
+          if (s.media && s.media.length > 0) {
+            keyData.featureMedia.set(s.id, s.media);
+          }
+          draftKey.entities.forEach(e => {
+            const score = e.scores[s.id] as string;
+            if (score) {
+              keyData.entityScores.get(e.id)?.set(s.id, { value: score as ScoreType });
+              keyData.entityProfiles.get(e.id)?.characteristics.push({ text: s.name, parent: f.name, type: 'state', score: score as ScoreType });
+            }
+          });
+        });
+      } else if (f.type === 'numeric') {
+        draftKey.entities.forEach(e => {
+          const score = e.scores[f.id];
+          if (score && typeof score === 'object' && 'min' in score) {
+            keyData.entityScores.get(e.id)?.set(f.id, { min: score.min, max: score.max });
+            keyData.entityProfiles.get(e.id)?.characteristics.push({ text: `${score.min} - ${score.max}`, parent: f.name, type: 'numeric' });
+          }
+        });
+      }
+
+      if (f.parentId && featureNodes.has(f.parentId)) {
+        const parentNode = featureNodes.get(f.parentId)!;
+        parentNode.children.push(featureNode);
+        const parentFeature = keyData.allFeatures.get(f.parentId);
+        if (parentFeature) {
+          keyData.allFeatures.get(f.id)!.parentName = parentFeature.name;
+        }
+      } else {
+        keyData.featureTree.push(featureNode);
+      }
+    });
+
+    keyData.totalFeaturesCount = this.countAvailableFeatures(keyData.featureTree);
+
+    return keyData;
   }
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import type { KeyData, ChosenFeature, ModalState, Media, RawChatMessage } from './types';
+import type { KeyData, ChosenFeature, ModalState, Media, RawChatMessage, DraftKeyData } from './types';
 import { LucidKeyParser } from './services/LucidKeyParserService';
 import { FeaturesPanel, EntitiesPanel, ChosenFeaturesPanel } from './components/panels';
 import { AIAssistant } from './components/AIAssistant';
@@ -11,7 +11,8 @@ import { useResizablePanel } from './hooks/useResizablePanel';
 import { filterEntityTree } from './utils/treeUtils';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
-import { EmptyState } from './components/EmptyState';
+import { Icon } from './components/Icon';
+import { KeyBuilder } from './components/builder/KeyBuilder';
 import { Toast } from './components/Toast';
 import { AppProvider } from './context/AppContext';
 
@@ -22,6 +23,8 @@ const App: React.FC = () => {
   // --- STATE MANAGEMENT ---
   const [keyData, setKeyData] = useState<KeyData | null>(null);
   const [chosenFeatures, setChosenFeatures] = useState<Map<string, ChosenFeature>>(new Map());
+  const [appMode, setAppMode] = useState<'identify' | 'build'>('identify');
+  const [draftKeyData, setDraftKeyData] = useState<DraftKeyData | undefined>(undefined);
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +33,7 @@ const App: React.FC = () => {
   const [theme, setTheme] = useState<Theme>('light');
   const [geminiApiKey, setGeminiApiKey] = useState<string>('');
   const [showToasts, setShowToasts] = useState<boolean>(true);
+  const [hideAi, setHideAi] = useState<boolean>(false);
 
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isAiPanelVisible, setAiPanelVisible] = useState(false);
@@ -54,6 +58,9 @@ const App: React.FC = () => {
   } = useResizablePanel(450, MIN_AI_PANEL_WIDTH, MAX_AI_PANEL_WIDTH, isAiPanelVisible, 'aiPanelWidth');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const jsonFileInputRef = useRef<HTMLInputElement>(null);
+  const combinedFileInputRef = useRef<HTMLInputElement>(null);
+  const currentDraftRef = useRef<DraftKeyData | null>(null);
 
   // --- DERIVED STATE & MEMOS ---
   const { directMatches, indirectMatches, discardedEntityIds, directlyDiscarded } = useKeyFiltering(keyData, chosenFeatures);
@@ -96,6 +103,11 @@ const App: React.FC = () => {
     if (savedToasts !== null) {
       setShowToasts(savedToasts === 'true');
     }
+
+    const savedHideAi = localStorage.getItem('hideAi');
+    if (savedHideAi !== null) {
+      setHideAi(savedHideAi === 'true');
+    }
   }, []);
 
   useEffect(() => {
@@ -110,6 +122,10 @@ const App: React.FC = () => {
     document.documentElement.style.setProperty('--accent-color', accentColor);
     document.documentElement.style.setProperty('--accent-hover-color', accentHoverColor);
   }, [theme]);
+
+  useEffect(() => {
+    setAiPanelVisible(false);
+  }, [appMode]);
 
   // --- TRANSLATIONS ---
   const t = useCallback((key: keyof typeof translations['en']) => {
@@ -198,6 +214,39 @@ const App: React.FC = () => {
     }
   };
 
+  const handleJsonFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsLoading(true);
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text) as DraftKeyData;
+      if (data.title !== undefined && Array.isArray(data.features) && Array.isArray(data.entities)) {
+        setDraftKeyData(data);
+        if (appMode === 'identify') {
+          const parser = new LucidKeyParser();
+          const loadedKeyData = parser.processDraftKey(data);
+          setKeyData(loadedKeyData);
+          resetKey();
+          setAiChatHistory([]);
+        }
+        setSidebarOpen(false);
+        addToast(`${t('openNativeKey')} \u2014 ${data.title}`);
+      } else {
+        addToast(t('errCorruptedFile'));
+      }
+    } catch (err: unknown) {
+      addToast(t('errProcessingKey'));
+      console.error("Error processing JSON key file:", err);
+    } finally {
+      setIsLoading(false);
+      if (event.target) {
+        event.target.value = '';
+      }
+    }
+  };
+
   const updateFeature = (id: string, value: string | boolean | number, isNumeric = false) => {
     isFeatureUpdateRef.current = true;
     setChosenFeatures(prevMap => {
@@ -225,7 +274,7 @@ const App: React.FC = () => {
     });
   };
 
-  const handlePreferenceChange = (key: 'lang' | 'theme' | 'geminiApiKey' | 'showToasts', value: string | boolean) => {
+  const handlePreferenceChange = (key: 'lang' | 'theme' | 'geminiApiKey' | 'showToasts' | 'hideAi', value: string | boolean) => {
     if (key === 'lang') {
       const newLang = value as Language;
       setLang(newLang);
@@ -240,6 +289,10 @@ const App: React.FC = () => {
     } else if (key === 'showToasts') {
       setShowToasts(value as boolean);
       localStorage.setItem('showToasts', String(value));
+    } else if (key === 'hideAi') {
+      setHideAi(value as boolean);
+      localStorage.setItem('hideAi', String(value));
+      if (value) setAiPanelVisible(false);
     }
   };
 
@@ -271,12 +324,15 @@ const App: React.FC = () => {
     statusText,
     lang, setLang,
     theme, setTheme,
+    appMode, setAppMode,
     geminiApiKey, setGeminiApiKey,
     isAiPanelVisible, setAiPanelVisible,
     triggerImport: () => fileInputRef.current?.click(),
+    triggerOpenNativeKey: () => jsonFileInputRef.current?.click(),
     resetKey: handleReset,
     openPreferences: () => setModalState({ type: 'preferences' }),
     openKeyInfo: () => keyData && setModalState({ type: 'keyInfo' }),
+    hideAi,
   };
 
   return (
@@ -291,7 +347,7 @@ const App: React.FC = () => {
         t={t}
         onImageClick={handleOpenLightbox}
       />
-      <PreferencesModal isOpen={modalState.type === 'preferences'} onClose={() => setModalState({ type: 'none' })} currentPrefs={{ lang, theme, geminiApiKey, showToasts }} onPreferenceChange={handlePreferenceChange} t={t} availableLanguages={Object.keys(translations) as Language[]} />
+      <PreferencesModal isOpen={modalState.type === 'preferences'} onClose={() => setModalState({ type: 'none' })} currentPrefs={{ lang, theme, geminiApiKey, showToasts, hideAi }} onPreferenceChange={handlePreferenceChange} t={t} availableLanguages={Object.keys(translations) as Language[]} />
       <KeyInfoModal isOpen={modalState.type === 'keyInfo'} onClose={() => setModalState({ type: 'none' })} keyData={keyData} t={t} />
       <FeatureImageModal isOpen={modalState.type === 'featureImage'} onClose={handleModalClose} featureId={(modalState as any).featureId} keyData={keyData} t={t} onImageClick={handleOpenLightbox} />
       <ImageLightboxModal isOpen={modalState.type === 'lightbox'} onClose={handleModalClose} media={(modalState as any).media} startIndex={(modalState as any).startIndex ?? 0} />
@@ -314,6 +370,28 @@ const App: React.FC = () => {
         className="hidden"
         accept=".zip"
       />
+      <input
+        type="file"
+        ref={jsonFileInputRef}
+        onChange={handleJsonFileSelect}
+        className="hidden"
+        accept=".json"
+      />
+      <input
+        type="file"
+        ref={combinedFileInputRef}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          if (file.name.toLowerCase().endsWith('.json')) {
+            handleJsonFileSelect(e);
+          } else {
+            handleFileSelect(e);
+          }
+        }}
+        className="hidden"
+        accept=".zip,.lk4,.lk5,.json"
+      />
 
       {/* --- Sidebar --- */}
       <Sidebar
@@ -323,13 +401,30 @@ const App: React.FC = () => {
       <div className={`content-wrapper flex grow h-screen transition-all duration-300 ease-in-out ${isSidebarOpen ? 'ml-60' : 'ml-0'}`}>
         <div className="page-content grow flex flex-col h-full min-w-0 overflow-hidden">
           {/* --- Header --- */}
-          <Header
-            isSidebarOpen={isSidebarOpen}
-            setSidebarOpen={setSidebarOpen}
-          />
+          {appMode === 'identify' && keyData && (
+            <Header isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} />
+          )}
 
           {/* --- Main Panels --- */}
-          {keyData ? (
+          {appMode === 'build' ? (
+            <div className="flex grow min-h-0 bg-bg animate-fade-in relative z-10">
+              <KeyBuilder 
+                onExit={() => {
+                  if (currentDraftRef.current) setDraftKeyData(currentDraftRef.current);
+                  setAppMode('identify');
+                }} 
+                initialData={draftKeyData} 
+                onChange={(draft) => currentDraftRef.current = draft} 
+                onTestKey={(draft) => {
+                  const parser = new LucidKeyParser();
+                  setKeyData(parser.processDraftKey(draft));
+                  resetKey(); setAiChatHistory([]);
+                  setDraftKeyData(draft);
+                  setAppMode('identify');
+                }}
+              />
+            </div>
+          ) : keyData ? (
             <ResizablePanels>
               <FeaturesPanel keyData={keyData} chosenFeatures={chosenFeatures} onFeatureChange={updateFeature} onImageClick={(id) => setModalState({ type: 'featureImage', featureId: id })} t={t} />
               <EntitiesPanel
@@ -356,11 +451,53 @@ const App: React.FC = () => {
                 setExpandedNodes={setExpandedDiscardedNodes} />
             </ResizablePanels>
           ) : (
-            <EmptyState />
+            <div className="flex grow flex-col items-center justify-center bg-bg p-8 animate-fade-in relative">
+              <button 
+                onClick={() => setModalState({ type: 'preferences' })}
+                className="absolute top-6 right-6 p-3 rounded-full bg-panel-bg border border-border shadow-sm hover:shadow-md hover:bg-hover-bg transition-all cursor-pointer text-gray-500 hover:text-accent"
+                title={t('preferences')}
+              >
+                <Icon name="Settings2" size={24} />
+              </button>
+              <h2 className="text-6xl font-black flex items-center justify-center gap-4 mb-12 animate-fade-in-up text-accent tracking-tight">
+                <Icon name="Leaf" size={60} /> Taxon
+              </h2>
+              <div className="flex flex-col md:flex-row gap-6 w-full max-w-2xl">
+                <button 
+                  onClick={() => combinedFileInputRef.current?.click()}
+                  className="flex-1 flex flex-col items-center gap-4 p-8 bg-panel-bg border border-border rounded-3xl hover:border-accent hover:shadow-lg transition-all group cursor-pointer"
+                >
+                  <div className="w-16 h-16 bg-accent/10 rounded-2xl flex items-center justify-center text-accent group-hover:scale-110 transition-transform">
+                    <Icon name="FolderOpen" size={32} />
+                  </div>
+                  <div className="text-center">
+                    <h3 className="text-xl font-bold text-text mb-2">{t('startOpenKey')}</h3>
+                    <p className="text-sm text-gray-500">{t('startOpenKeyDesc')}</p>
+                  </div>
+                </button>
+                
+                <button 
+                  onClick={() => {
+                    setDraftKeyData(undefined);
+                    setAppMode('build');
+                  }}
+                  className="flex-1 flex flex-col items-center gap-4 p-8 bg-panel-bg border border-border rounded-3xl hover:border-accent hover:shadow-lg transition-all group cursor-pointer"
+                >
+                  <div className="w-16 h-16 bg-accent/10 rounded-2xl flex items-center justify-center text-accent group-hover:scale-110 transition-transform">
+                    <Icon name="PenTool" size={32} />
+                  </div>
+                  <div className="text-center">
+                    <h3 className="text-xl font-bold text-text mb-2">{t('startCreateKey')}</h3>
+                    <p className="text-sm text-gray-500">{t('startCreateKeyDesc')}</p>
+                  </div>
+                </button>
+              </div>
+            </div>
           )}
         </div>
 
         {/* --- AI Panel --- */}
+        {!hideAi && (
         <div
           className="shrink-0 flex items-stretch relative"
           style={{
@@ -385,9 +522,12 @@ const App: React.FC = () => {
               chatHistory={aiChatHistory}
               geminiApiKey={geminiApiKey}
               setChatHistory={setAiChatHistory}
+              appMode={appMode}
+              getCurrentDraft={() => currentDraftRef.current}
             />
           </div>
         </div>
+        )}
       </div>
       <div className="fixed bottom-6 left-6 z-50 flex flex-col gap-2 pointer-events-none">
         {toasts.map(toast => (

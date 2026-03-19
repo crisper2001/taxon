@@ -25,8 +25,8 @@ const languageNames: Record<Language, string> = {
 interface PreferencesModalProps {
     isOpen: boolean;
     onClose: () => void;
-    currentPrefs: { lang: Language; theme: Theme; geminiApiKey: string; showToasts: boolean; };
-    onPreferenceChange: (key: 'lang' | 'theme' | 'geminiApiKey' | 'showToasts', value: string | boolean) => void;
+    currentPrefs: { lang: Language; theme: Theme; geminiApiKey: string; showToasts: boolean; hideAi: boolean; };
+    onPreferenceChange: (key: 'lang' | 'theme' | 'geminiApiKey' | 'showToasts' | 'hideAi', value: string | boolean) => void;
     t: (key: keyof typeof translations['en']) => string;
     availableLanguages: Language[];
 }
@@ -95,6 +95,17 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                         <h4 className="font-black text-lg tracking-tight text-text">{t('prefsAI')}</h4>
                     </div>
                     <div className="space-y-6">
+                        <div>
+                            <label className="flex items-center justify-between cursor-pointer p-4 border-2 border-border rounded-2xl hover:border-gray-400 dark:hover:border-gray-500 transition-all bg-panel-bg shadow-sm hover:shadow-md">
+                                <span className="font-bold text-base tracking-tight text-text/90">{t('uiHideAi' as any)}</span>
+                                <input
+                                    type="checkbox"
+                                    checked={currentPrefs.hideAi}
+                                    onChange={(e) => onPreferenceChange('hideAi', e.target.checked)}
+                                    className="w-5 h-5 rounded border-2 border-border text-accent focus:ring-accent focus:ring-offset-bg bg-bg cursor-pointer"
+                                />
+                            </label>
+                        </div>
                         <div>
                             <label htmlFor="gemini-api-key" className="font-bold mb-2 text-base block tracking-tight text-text/90">
                                 Gemini API Key

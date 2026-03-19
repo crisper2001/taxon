@@ -14,6 +14,7 @@ interface AppContextProps {
   statusText: string;
   lang: Language;
   theme: Theme;
+  appMode: 'identify' | 'build';
   geminiApiKey: string;
   isAiPanelVisible: boolean;
 
@@ -21,10 +22,12 @@ interface AppContextProps {
   setLang: (lang: Language) => void;
   setTheme: (theme: Theme) => void;
   setGeminiApiKey: (key: string) => void;
+  setAppMode: (mode: 'identify' | 'build') => void;
   setAiPanelVisible: (visible: boolean) => void;
 
   // Actions
   triggerImport: () => void;
+  triggerOpenNativeKey: () => void;
   resetKey: () => void;
   openPreferences: () => void;
   openKeyInfo: () => void;
