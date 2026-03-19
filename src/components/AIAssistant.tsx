@@ -1034,7 +1034,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
 
   return (
     <div 
-      className={`panel flex flex-col h-full w-full bg-panel-bg/90 backdrop-blur-xl border-l border-black/10 dark:border-white/10 shadow-[-8px_0_30px_rgba(0,0,0,0.05)] dark:shadow-[-8px_0_30px_rgba(0,0,0,0.2)] overflow-hidden relative`}
+      className={`panel flex flex-col h-full w-full bg-panel-bg/90 backdrop-blur-xl border-l border-black/10 dark:border-white/10 ${isVisible ? 'shadow-[-8px_0_30px_rgba(0,0,0,0.05)] dark:shadow-[-8px_0_30px_rgba(0,0,0,0.2)] opacity-100' : 'shadow-none opacity-0'} transition-all duration-300 overflow-hidden relative`}
       onDragOver={handleDragOver}
       onDragEnter={handleDragOver}
       onDragLeave={handleDragLeave}

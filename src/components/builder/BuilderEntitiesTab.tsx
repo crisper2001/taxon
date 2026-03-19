@@ -188,8 +188,8 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
   };
 
   return (
-    <div className="flex w-full h-full animate-fade-in">
-      <div className="w-1/3 min-w-[280px] border-r border-white/10 dark:border-white/5 flex flex-col bg-panel-bg/50 backdrop-blur-sm z-10 shadow-[4px_0_24px_-4px_rgba(0,0,0,0.1)]">
+    <div className="flex flex-col md:flex-row w-full h-full animate-fade-in">
+      <div className="w-full md:w-1/3 h-[40%] md:h-full md:min-w-[280px] border-b md:border-b-0 md:border-r border-white/10 dark:border-white/5 flex flex-col bg-panel-bg/50 backdrop-blur-sm z-10 shadow-[4px_0_24px_-4px_rgba(0,0,0,0.1)] shrink-0">
         <div className="p-4 border-b border-white/10 dark:border-white/5 flex justify-between items-center bg-header-bg/85 backdrop-blur-md shadow-sm rounded-tl-3xl">
           <div className="flex items-center gap-2 font-bold text-text"><Icon name="List" size={18} className="opacity-70"/> {t('kbEntities')}</div>
           <button onClick={addEntity} className="px-3 py-1.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-lg hover:bg-accent-hover hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg shadow-accent/30 flex items-center gap-1 cursor-pointer" title={t('kbAddEntity')}><Icon name="Plus" size={14} /> Add</button>

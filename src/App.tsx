@@ -75,6 +75,21 @@ const App: React.FC = () => {
     return filterEntityTree(keyData.entityTree, discardedEntityIds, new Set(), directlyDiscarded);
   }, [keyData, discardedEntityIds, directlyDiscarded]);
 
+  const chosenFeatureCount = useMemo(() => {
+    if (!keyData) return 0;
+    const uniqueFeatures = new Set<string>();
+    for (const id of chosenFeatures.keys()) {
+      const feature = keyData.allFeatures.get(id);
+      if (!feature) continue;
+      if (feature.isState && feature.parentName) {
+        uniqueFeatures.add(feature.parentName);
+      } else {
+        uniqueFeatures.add(feature.id);
+      }
+    }
+    return uniqueFeatures.size;
+  }, [chosenFeatures, keyData]);
+
   // --- EFFECTS ---
   useEffect(() => {
     const savedLang = localStorage.getItem('userLanguage') as Language;
@@ -131,6 +146,15 @@ const App: React.FC = () => {
       document.head.appendChild(link);
     }
     link.href = `data:image/svg+xml,${encodeURIComponent(svgFavicon)}`;
+
+    // Dynamically update the browser's theme-color meta tag
+    let metaThemeColor = document.querySelector("meta[name='theme-color']");
+    if (!metaThemeColor) {
+      metaThemeColor = document.createElement('meta');
+      metaThemeColor.setAttribute('name', 'theme-color');
+      document.head.appendChild(metaThemeColor);
+    }
+    metaThemeColor.setAttribute('content', theme === 'light' ? '#f8f9fa' : '#1a1a1a');
   }, [theme]);
 
   useEffect(() => {
@@ -347,7 +371,7 @@ const App: React.FC = () => {
 
   return (
     <AppProvider value={contextValue}>
-    <div className={`main-container font-sans bg-bg text-text transition-colors duration-300 overflow-hidden ${isActivelyResizing ? 'select-none cursor-col-resize' : ''}`}>
+    <div className={`main-container flex flex-col h-[100dvh] w-full font-sans bg-bg text-text transition-colors duration-300 overflow-hidden ${isActivelyResizing ? 'select-none cursor-col-resize' : ''}`}>
       {/* Global SVG Gradients for Icons */}
       <svg width="0" height="0" className="absolute pointer-events-none" aria-hidden="true">
         <defs>
@@ -467,8 +491,13 @@ const App: React.FC = () => {
         isOpen={isSidebarOpen}
       />
 
-      <div className={`content-wrapper flex grow h-screen transition-all duration-300 ease-in-out ${isSidebarOpen ? 'ml-60' : 'ml-0'}`}>
-        <div className="page-content grow flex flex-col h-full min-w-0 overflow-hidden">
+      {/* Mobile Sidebar Backdrop */}
+      {isSidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 md:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
+      <div className={`content-wrapper flex grow min-h-0 transition-all duration-300 ease-in-out ${isSidebarOpen ? 'md:ml-60 ml-0' : 'ml-0'}`}>
+        <div className="page-content grow flex flex-col h-full min-w-0 min-h-0 overflow-hidden">
           {/* --- Header --- */}
           {appMode === 'identify' && keyData && (
             <Header isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} />
@@ -494,7 +523,14 @@ const App: React.FC = () => {
               />
             </div>
           ) : keyData ? (
-            <ResizablePanels>
+            <ResizablePanels
+              bottomBarItems={[
+                { id: 'features', icon: 'ListFilter', label: t('features') },
+                { id: 'remaining', icon: 'List', label: t('entitiesRemaining'), count: directMatches.size },
+                { id: 'chosen', icon: 'ListChecks', label: t('featuresChosen'), count: chosenFeatureCount },
+                { id: 'discarded', icon: 'ListX', label: t('entitiesDiscarded'), count: discardedEntityIds.size }
+              ]}
+            >
               <FeaturesPanel keyData={keyData} chosenFeatures={chosenFeatures} onFeatureChange={updateFeature} onImageClick={(id) => setModalState({ type: 'featureImage', featureId: id })} t={t} />
               <EntitiesPanel
                 title={t('entitiesRemaining')}
@@ -567,13 +603,18 @@ const App: React.FC = () => {
 
         {/* --- AI Panel --- */}
         {!hideAi && (
-        <div
-          className="shrink-0 flex items-stretch relative"
-          style={{
-            width: isAiPanelVisible ? `${aiPanelWidth}px` : '0px', transition: isActivelyResizing ? 'none' : 'width 300ms ease-in-out'
-          }}
-        >
+        <>
+          {/* Mobile AI Panel Backdrop */}
+          {isAiPanelVisible && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 md:hidden" onClick={() => setAiPanelVisible(false)} />
+          )}
           <div
+            className="shrink-0 flex items-stretch absolute md:relative right-0 z-40 md:z-auto h-full max-w-[100vw]"
+            style={{
+              width: isAiPanelVisible ? `${aiPanelWidth}px` : '0px', transition: isActivelyResizing ? 'none' : 'width 300ms ease-in-out'
+            }}
+          >
+            <div
             onMouseDown={handleAiPanelMouseDown}
             onDoubleClick={() => setAiPanelWidth && setAiPanelWidth(450)}
             className={`absolute left-0 top-0 bottom-0 z-20 w-3 -ml-1.5 cursor-col-resize flex items-center justify-center group ${!isAiPanelVisible ? 'hidden' : ''}`}
@@ -581,7 +622,7 @@ const App: React.FC = () => {
           >
             <div className={`w-1 h-full transition-all duration-300 ${isActivelyResizing ? 'bg-accent shadow-md shadow-accent/50 scale-x-150' : 'bg-transparent group-hover:bg-accent/50 group-hover:scale-x-150'}`}></div>
           </div>
-          <div className="ai-panel-wrapper grow">
+          <div className="ai-panel-wrapper grow min-w-0">
             <AIAssistant
               isVisible={isAiPanelVisible}
               onClose={() => setAiPanelVisible(false)}
@@ -597,10 +638,11 @@ const App: React.FC = () => {
               getCurrentDraft={() => currentDraftRef.current}
             />
           </div>
-        </div>
+          </div>
+        </>
         )}
       </div>
-      <div className="fixed bottom-6 left-6 z-50 flex flex-col gap-2 pointer-events-none">
+      <div className="fixed md:bottom-6 bottom-24 left-0 right-0 md:right-auto md:left-6 z-50 flex flex-col items-center md:items-start gap-2 pointer-events-none px-4 md:px-0">
         {toasts.map(toast => (
           <Toast key={toast.id} message={toast.message} onClose={() => handleCloseToast(toast.id)} />
         ))}

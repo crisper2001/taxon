@@ -169,7 +169,7 @@ export const ChosenFeaturesPanel: React.FC<ChosenFeaturesPanelProps> = ({ chosen
     <div 
       onMouseEnter={showFooter} 
       onMouseLeave={hideFooter}
-      className={`transition-opacity duration-300 ${isFooterVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+      className={`transition-opacity duration-300 ${isFooterVisible ? 'opacity-100 pointer-events-auto' : 'max-md:opacity-100 max-md:pointer-events-auto opacity-0 pointer-events-none'}`}
     >
       <div className="view-controls flex items-center bg-header-bg/85 backdrop-blur-md rounded-xl p-1 shadow-md border border-white/20 dark:border-white/10">
         <button onClick={resetKey} title={t('clearFeatures')} className="p-1.5 rounded-lg transition-all duration-300 hover:bg-red-500 hover:text-white hover:shadow-sm hover:-translate-y-0.5 text-gray-500 cursor-pointer flex items-center justify-center">

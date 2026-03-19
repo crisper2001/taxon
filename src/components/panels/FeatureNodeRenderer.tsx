@@ -56,7 +56,7 @@ const FeatureLeafNode = React.memo<RenderFeatureNodeProps>(({
   const hasMedia = media && media.length > 0;
 
   return (
-    <div data-search-match={isMatch ? "true" : undefined} className={`feature-item relative pl-4 py-1.5 pr-2 flex items-center gap-3 hover:bg-hover-bg/80 rounded-xl transition-all duration-300 hover:shadow-sm ${isDimmed ? 'opacity-30' : ''} ${isMatch ? 'bg-accent/20 shadow-inner' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`} style={{ contentVisibility: 'auto' } as any}>
+    <div data-search-match={isMatch ? "true" : undefined} className={`feature-item relative pl-4 py-1.5 pr-2 flex items-center gap-3 hover:bg-hover-bg/80 rounded-xl transition-all duration-300 hover:shadow-sm ${isDimmed ? 'opacity-30' : ''} ${isMatch ? 'bg-accent/20 shadow-inner' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}>
       {hasMedia && <img src={media![0].url} alt={node.name} loading="lazy" onClick={() => onImageClick(node.id)} className="w-24 h-24 object-cover rounded-lg shadow-sm cursor-pointer shrink-0" />}
       {node.type === 'state' ? (
         <label className="flex items-center gap-2 cursor-pointer grow">

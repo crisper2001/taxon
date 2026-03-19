@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Panel } from './Panel';
 import { Icon, type IconName } from '../Icon';
 import type { Entity, Media, EntityNode } from '../../types';
@@ -22,6 +22,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({ title, icon, count
   const [view, setView] = useState<'list' | 'grid'>(() => {
     return (localStorage.getItem('entitiesViewMode') as 'list' | 'grid') || 'grid';
   });
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
   const [isFooterVisible, setIsFooterVisible] = useState(false);
   const [matchingIds, setMatchingIds] = useState<Set<string> | null>(null);
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -55,6 +56,12 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({ title, icon, count
   useEffect(() => {
     localStorage.setItem('entitiesViewMode', view);
   }, [view]);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (!searchTerm) {
@@ -150,12 +157,14 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({ title, icon, count
   const countEntities = (nodes: EntityNode[]): number => {
     let entityCount = 0;
     for (const node of nodes) entityCount += node.isGroup ? countEntities(node.children) : 1;
-    return count;
+    return entityCount;
   };
+
+  const effectiveView = isMobile ? 'list' : view;
 
   const viewControls = (
     <div
-      className={`transition-opacity duration-300 ${isFooterVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+      className={`hidden md:block transition-opacity duration-300 ${isFooterVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
     >
       <div className="view-controls flex items-center bg-header-bg rounded-md p-0.5">
         <button onClick={() => setView('list')} title={t('listView')} className={`p-1 rounded transition-colors duration-200 ${view === 'list' ? 'bg-accent text-white' : 'hover:bg-hover-bg'} cursor-pointer`}><Icon name="List" size={16} /></button>
@@ -180,8 +189,8 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({ title, icon, count
     >
       <div
         ref={containerRef}
-        className={`panel-content-inner ${view === 'grid' ? 'grid gap-4' : 'flex flex-col'}`}
-        style={view === 'grid' ? { gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' } : {}}
+        className={`panel-content-inner ${effectiveView === 'grid' ? 'grid gap-4' : 'flex flex-col'}`}
+        style={effectiveView === 'grid' ? { gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' } : {}}
       >
         {entityTree.map(node => (
           <RenderEntityNode
@@ -189,7 +198,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({ title, icon, count
             node={node}
             mediaMap={mediaMap}
             onEntityClick={onEntityClick}
-            view={view}
+            view={effectiveView}
             t={t}
             expandedNodes={expandedNodes}
             onToggleNode={handleToggleNode}
@@ -304,7 +313,6 @@ const EntityLeafNode = React.memo<RenderEntityNodeProps>(({ node, mediaMap, onEn
       onClick={() => onEntityClick(node.id)}
       data-search-match={isSearchMatch ? "true" : undefined}
       className={`entity-item flex gap-2 p-1.5 rounded-xl cursor-pointer hover:bg-hover-bg/80 hover:shadow-md hover:-translate-y-0.5 hover:backdrop-blur-sm transition-all duration-300 ${isList ? 'items-center ml-8' : 'flex-col items-center text-center'} ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20 shadow-inner' : ''} ${isFilterDimmed ? 'opacity-50' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}
-      style={{ contentVisibility: 'auto' } as any}
     >
       {hasMedia ? (
         <img src={thumbUrl} alt={node.name} loading="lazy" className={imageClasses} />

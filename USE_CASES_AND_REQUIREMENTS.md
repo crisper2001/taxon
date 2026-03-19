@@ -89,6 +89,8 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **FR4.4:** The application must present modal overlays for Entity details, Feature image views, general Key Information, an Image Lightbox viewer (which must also support viewing images uploaded within the AI chat), and confirmation dialogs for destructive actions. The Entity details modal must display descriptions and characteristics in distinct visually elevated sections, feature a recursive collapsible tree structure, provide global "Expand All" and "Collapse All" controls, and offer a "Back to Top" scrolling button.
 * **FR4.5:** Entity feature scores must be visually represented with badges indicating probability/interpretations (e.g., Common, Rare, Uncertain, Interval, Misinterpreted).
 * **FR4.6:** The system must display stacking visual toast notifications when features are selected or cleared, dynamically showing the count of discarded or restored entities alongside the total number of remaining entities. These toasts must act independently and fade out based on their initial appearance time.
+* **FR4.7:** The application must be fully responsive for mobile devices, dynamically transforming the desktop multi-pane grid layout into horizontally swipeable tab views anchored by a persistent bottom navigation bar.
+* **FR4.8:** Media lightboxes and modal image viewers must support native-feeling mobile touch gestures, allowing users to smoothly swipe horizontally to navigate between images with visual edge-resistance.
 
 ### 2.5. Search and Filtering
 * **FR5.1:** Tree components must support text-based search filtering, automatically expanding parent groups to reveal matching child nodes.

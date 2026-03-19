@@ -18,7 +18,7 @@ export const Header: React.FC<HeaderProps> = ({ isSidebarOpen, setSidebarOpen })
       <button onClick={() => setSidebarOpen(!isSidebarOpen)} title={t('toggleMenu')} className="p-2 rounded-full hover:bg-hover-bg cursor-pointer transition-colors opacity-80 hover:opacity-100">
         <Icon name={isSidebarOpen ? "PanelLeftClose" : "PanelLeftOpen"} size={22} />
       </button>
-      <button id="status-display" onClick={openKeyInfo} disabled={!keyData || isLoading || !!error || appMode === 'build'} className="text-center italic text-gray-500 disabled:cursor-default enabled:cursor-pointer enabled:not-italic enabled:font-bold enabled:text-text px-4 py-1.5 rounded-full hover:enabled:bg-hover-bg/80 hover:enabled:shadow-sm transition-all tracking-tight">
+      <button id="status-display" onClick={openKeyInfo} disabled={!keyData || isLoading || !!error || appMode === 'build'} className="text-center italic text-gray-500 disabled:cursor-default enabled:cursor-pointer enabled:not-italic enabled:font-bold enabled:text-text px-3 md:px-4 py-1.5 rounded-full hover:enabled:bg-hover-bg/80 hover:enabled:shadow-sm transition-all tracking-tight truncate max-w-[150px] sm:max-w-xs md:max-w-md text-sm md:text-base">
         {appMode === 'build' ? t('builderMode') : statusText}
       </button>
       {!hideAi && appMode === 'identify' && keyData ? (

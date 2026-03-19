@@ -82,6 +82,10 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const detailsRef = useRef<HTMLDivElement>(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [mobileTab, setMobileTab] = useState<'image' | 'details' | 'features'>('image');
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const touchStart = useRef<{ x: number, y: number } | null>(null);
 
   // Cache the entityId when the modal opens to prevent content disappearing during close animation
   useEffect(() => {
@@ -89,6 +93,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
       setActiveEntityId(entityId);
       setNavigationHistory([]); // Reset history when modal is opened from outside
       setCollapsedGroups(new Set());
+      setMobileTab('image'); // Reset tab on open
     }
     setIsCopied(false); // Reset copied state when modal opens/closes
   }, [isOpen, entityId]);
@@ -97,9 +102,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
   useEffect(() => {
     if (isOpen) {
       setShowBackToTop(false);
-      if (detailsRef.current) {
-        detailsRef.current.scrollTop = 0;
-      }
+      document.querySelectorAll('.entity-modal-panel, .entity-modal-desktop-right-pane').forEach(el => el.scrollTop = 0);
     }
   }, [activeEntityId, isOpen]);
 
@@ -242,7 +245,60 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
   };
 
   const scrollToTop = () => {
-    detailsRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    document.querySelectorAll('.entity-modal-panel, .entity-modal-desktop-right-pane').forEach(el => el.scrollTo({ top: 0, behavior: 'smooth' }));
+  };
+
+  const tabIndex = mobileTab === 'image' ? 0 : mobileTab === 'details' ? 1 : 2;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+      touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      setIsSwiping(false);
+      setSwipeOffset(0);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+      if (!touchStart.current) return;
+      const currentX = e.touches[0].clientX;
+      const currentY = e.touches[0].clientY;
+      const deltaX = currentX - touchStart.current.x;
+      const deltaY = currentY - touchStart.current.y;
+
+      if (!isSwiping) {
+          if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+              setIsSwiping(true);
+          } else if (Math.abs(deltaY) > 10) {
+              touchStart.current = null;
+              return;
+          }
+      }
+
+      if (isSwiping) {
+          let effectiveDelta = deltaX;
+          if (mobileTab === 'image' && deltaX > 0) effectiveDelta *= 0.3;
+          if (mobileTab === 'features' && deltaX < 0) effectiveDelta *= 0.3;
+          setSwipeOffset(effectiveDelta);
+      }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+      if (!touchStart.current) {
+          setIsSwiping(false);
+          setSwipeOffset(0);
+          return;
+      }
+      if (isSwiping) {
+          const deltaX = e.changedTouches[0].clientX - touchStart.current.x;
+          if (deltaX < -50) {
+              if (mobileTab === 'image') setMobileTab('details');
+              else if (mobileTab === 'details') setMobileTab('features');
+          } else if (deltaX > 50) {
+              if (mobileTab === 'features') setMobileTab('details');
+              else if (mobileTab === 'details') setMobileTab('image');
+          }
+      }
+      setIsSwiping(false);
+      setSwipeOffset(0);
+      touchStart.current = null;
   };
 
   const modalTitle = (
@@ -256,20 +312,78 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} size="lg">
-      <div className="flex flex-col md:flex-row h-[75vh] bg-bg/80 backdrop-blur-sm rounded-b-3xl overflow-hidden relative">
-        <ImageViewer
-          media={media}
-          altText={entity.name}
-          noImageText={t('noImageAvailable')}
-          onImageClick={onImageClick}
-          className="w-full md:w-1/2 p-6 border-b md:border-b-0 md:border-r border-white/10 dark:border-white/5 overflow-y-auto min-h-0 bg-panel-bg/50"
-        />
-        <div 
-          ref={detailsRef}
-          onScroll={handleScroll}
-          className="modal-details-viewer w-full md:w-1/2 p-6 flex flex-col min-h-0 overflow-y-auto bg-panel-bg/50"
-        >
-          {entityHierarchy.length > 1 && (
+      <div className="flex flex-col h-[75vh] bg-bg/80 backdrop-blur-sm rounded-b-3xl overflow-hidden relative">
+        <div className="flex md:contents flex-col grow min-h-0 overflow-hidden relative" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+           <style>{`
+                @media (max-width: 767px) {
+                    .entity-modal-mobile-view {
+                        display: flex;
+                        flex-direction: row;
+                        width: 100%;
+                        height: 100%;
+                        transform: translateX(calc(-${tabIndex * 100}% + ${swipeOffset}px));
+                        transition: ${isSwiping ? 'none' : 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)'};
+                        will-change: transform;
+                        touch-action: pan-y;
+                    }
+                    .entity-modal-desktop-right-pane {
+                        display: contents;
+                    }
+                    .entity-modal-panel {
+                        flex: 0 0 100%;
+                        width: 100%;
+                        height: 100%;
+                        overflow-y: auto;
+                        padding: 1.5rem;
+                    }
+                }
+                @media (min-width: 768px) {
+                    .entity-modal-mobile-view {
+                        display: flex;
+                        flex-direction: row;
+                        width: 100%;
+                        height: 100%;
+                    }
+                    .entity-modal-desktop-right-pane {
+                        flex: 1 1 50%;
+                        width: 50%;
+                        height: 100%;
+                        overflow-y: auto;
+                        padding: 1.5rem;
+                        display: flex;
+                        flex-direction: column;
+                    }
+                    .entity-modal-panel.is-image {
+                        flex: 1 1 50%;
+                        width: 50%;
+                        height: 100%;
+                        overflow-y: auto;
+                        padding: 1.5rem;
+                    }
+                    .entity-modal-panel.is-details, .entity-modal-panel.is-features {
+                        flex: none;
+                        width: 100%;
+                        height: auto;
+                        overflow: visible;
+                        padding: 0;
+                    }
+                }
+           `}</style>
+           <div className="entity-modal-mobile-view grow">
+              <ImageViewer
+                media={media}
+                altText={entity.name}
+                noImageText={t('noImageAvailable')}
+                onImageClick={onImageClick}
+                className="entity-modal-panel is-image md:border-r border-white/10 dark:border-white/5 bg-panel-bg/50"
+              />
+              <div 
+                ref={detailsRef}
+                onScroll={handleScroll}
+                className="entity-modal-desktop-right-pane md:bg-panel-bg/50"
+              >
+               <div className="entity-modal-panel is-details max-md:bg-panel-bg/50 flex flex-col" onScroll={handleScroll}>
+                 {entityHierarchy.length > 1 && (
             <div className="mb-4 shrink-0 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
               <div className="w-full font-bold text-accent flex items-center gap-2 mb-3 text-left tracking-tight">
                 <Icon name="Network" size={18} />
@@ -295,19 +409,21 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
             </div>
           )}
           {profile?.description && (
-            <div className="mb-4 shrink-0 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
-              <div className="w-full font-bold text-accent flex items-center gap-2 mb-3 text-left tracking-tight">
+            <div className="mb-4 flex flex-col grow min-h-0 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
+              <div className="w-full font-bold text-accent flex items-center gap-2 mb-3 text-left tracking-tight shrink-0">
                 <Icon name="FileText" size={18} />
                 <span className="grow text-base">{t('kbDescription')}</span>
               </div>
               <div 
-                className="text-sm text-text opacity-90 leading-relaxed markdown-body max-h-[30vh] overflow-y-auto pr-2 [&>p]:mb-3 [&>p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:mb-3 [&_strong]:font-bold [&_em]:italic [&_a]:underline [&_a]:text-accent hover:[&_a]:text-accent-hover [&_h1]:font-bold [&_h1]:text-lg [&_h2]:font-bold [&_h3]:font-semibold break-words"
+                className="text-sm text-text opacity-90 leading-relaxed markdown-body md:max-h-[30vh] grow overflow-y-auto pr-2 [&>p]:mb-3 [&>p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:mb-3 [&_strong]:font-bold [&_em]:italic [&_a]:underline [&_a]:text-accent hover:[&_a]:text-accent-hover [&_h1]:font-bold [&_h1]:text-lg [&_h2]:font-bold [&_h3]:font-semibold break-words"
               dangerouslySetInnerHTML={{ __html: parsedDescription }}
               />
             </div>
-          )}
-          {(profile?.characteristics || []).length > 0 && (
-            <div className="flex flex-col shrink-0 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
+                 )}
+               </div>
+               <div className="entity-modal-panel is-features max-md:bg-panel-bg/50 flex flex-col" onScroll={handleScroll}>
+                 {(profile?.characteristics || []).length > 0 && (
+            <div className="flex flex-col grow min-h-0 mb-4 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
               <div className="flex items-center w-full mb-3 shrink-0">
                 <div className="grow font-bold text-accent flex items-center gap-2 text-left tracking-tight">
                   <Icon name="List" size={18} />
@@ -324,7 +440,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
                   </button>
                 </div>
               </div>
-              <div className="grow pr-1 -mr-1">
+              <div className="grow overflow-y-auto pr-1 -mr-1">
                   <RenderFeatureGroup 
                     node={featureTree} 
                     collapsedGroups={collapsedGroups} 
@@ -334,11 +450,31 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
                   />
               </div>
             </div>
-          )}
+                 )}
+               </div>
+              </div>
+           </div>
         </div>
+
+        {/* Mobile Bottom Bar for EntityModal */}
+        <div className="flex md:hidden items-center justify-around bg-panel-bg/85 backdrop-blur-xl border-t border-white/20 dark:border-white/10 p-2 shrink-0 z-20 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] w-full">
+            <button onClick={() => setMobileTab('image')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 ${mobileTab === 'image' ? 'text-accent bg-accent/10 shadow-inner scale-105' : 'text-gray-500 hover:text-accent hover:bg-hover-bg/50'}`}>
+              <Icon name="Image" size={22} />
+              <span className="text-[10px] font-bold text-center leading-none tracking-tight">{t('preview')}</span>
+            </button>
+            <button onClick={() => setMobileTab('details')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 ${mobileTab === 'details' ? 'text-accent bg-accent/10 shadow-inner scale-105' : 'text-gray-500 hover:text-accent hover:bg-hover-bg/50'}`}>
+              <Icon name="FileText" size={22} />
+              <span className="text-[10px] font-bold text-center leading-none tracking-tight">{t('kbDescription')}</span>
+            </button>
+            <button onClick={() => setMobileTab('features')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 ${mobileTab === 'features' ? 'text-accent bg-accent/10 shadow-inner scale-105' : 'text-gray-500 hover:text-accent hover:bg-hover-bg/50'}`}>
+              <Icon name="List" size={22} />
+              <span className="text-[10px] font-bold text-center leading-none tracking-tight">{t('features')}</span>
+            </button>
+        </div>
+
         <button
           onClick={scrollToTop}
-          className={`absolute bottom-6 right-8 p-3 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-full shadow-lg shadow-accent/30 hover:bg-accent-hover transition-all duration-300 z-10 hover:-translate-y-0.5 ${showBackToTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 pointer-events-none'}`}
+          className={`absolute md:bottom-6 bottom-20 right-8 p-3 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-full shadow-lg shadow-accent/30 hover:bg-accent-hover transition-all duration-300 z-10 hover:-translate-y-0.5 ${showBackToTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 pointer-events-none'}`}
         >
           <Icon name="ArrowUp" size={20} />
         </button>

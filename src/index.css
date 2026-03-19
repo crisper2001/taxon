@@ -82,6 +82,14 @@ input[type="number"]::-webkit-inner-spin-button {
   margin: 0;
 }
 
+/* Hide native search clear button in WebKit browsers */
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+}
+
 /* Add subtle shading/gradient to accent and red button backgrounds */
 .bg-accent, .bg-accent\/95, .bg-accent\/90, .bg-accent-hover,
 .bg-red-500, .bg-red-500\/95, .bg-red-600 {
@@ -106,5 +114,25 @@ input[type="number"]::-webkit-inner-spin-button {
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
+  }
+}
+
+/* Mobile Touch Feedback */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 767px) {
+  button:active,
+  a:active,
+  .cursor-pointer:active {
+    opacity: 0.5 !important;
+    transform: scale(0.96) !important;
+    transition: all 0.05s ease-out !important;
+  }
+  
+  input:active, textarea:active {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }

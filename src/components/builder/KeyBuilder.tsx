@@ -338,21 +338,21 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
           </div>
         </div>
         <div className="flex gap-3">
-          <div className="flex items-center bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-full shadow-inner overflow-hidden mr-2">
+          <div className="hidden md:flex items-center bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-full shadow-inner overflow-hidden mr-2">
             <button onClick={undo} disabled={historyIndex <= 0} className="p-1.5 px-3 hover:bg-hover-bg/80 disabled:opacity-30 disabled:cursor-not-allowed transition-colors border-r border-white/20 dark:border-white/10" title={t('kbUndo')}><Icon name="Undo" size={16} /></button>
             <button onClick={redo} disabled={historyIndex >= history.length - 1} className="p-1.5 px-3 hover:bg-hover-bg disabled:opacity-30 disabled:cursor-not-allowed transition-colors" title={t('kbRedo')}><Icon name="Redo" size={16} /></button>
           </div>
-          <button onClick={() => setShowNewKeyModal(true)} className="flex items-center gap-2 px-4 py-1.5 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-full hover:bg-hover-bg/80 hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold cursor-pointer shadow-sm hover:shadow-md">
-            <Icon name="FilePlus" size={16} /> {t('kbNewKey' as any)}
+          <button onClick={() => setShowNewKeyModal(true)} className="hidden sm:flex items-center gap-2 px-3 md:px-4 py-1.5 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-full hover:bg-hover-bg/80 hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold cursor-pointer shadow-sm hover:shadow-md">
+            <Icon name="FilePlus" size={16} /> <span className="hidden md:inline">{t('kbNewKey' as any)}</span>
           </button>
-          <button onClick={triggerOpenNativeKey} className="flex items-center gap-2 px-4 py-1.5 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-full hover:bg-hover-bg/80 hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold cursor-pointer shadow-sm hover:shadow-md">
-            <Icon name="FileJson" size={16} /> {t('openNativeKey')}
+          <button onClick={triggerOpenNativeKey} title={t('openNativeKey')} className="flex items-center gap-2 px-3 md:px-4 py-1.5 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-full hover:bg-hover-bg/80 hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold cursor-pointer shadow-sm hover:shadow-md">
+            <Icon name="FileJson" size={16} /> <span className="hidden md:inline">{t('openNativeKey')}</span>
           </button>
-          <button onClick={exportJson} className="flex items-center gap-2 px-4 py-1.5 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-full hover:bg-hover-bg/80 hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold cursor-pointer shadow-sm hover:shadow-md">
-            <Icon name="FileJson" size={16} /> {t('exportJson')}
+          <button onClick={exportJson} title={t('exportJson')} className="flex items-center gap-2 px-3 md:px-4 py-1.5 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-full hover:bg-hover-bg/80 hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold cursor-pointer shadow-sm hover:shadow-md">
+            <Icon name="Download" size={16} /> <span className="hidden md:inline">{t('exportJson')}</span>
           </button>
-          <button onClick={() => onTestKey?.(draftKey)} className="flex items-center gap-2 px-4 py-1.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-full hover:bg-accent-hover hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg shadow-accent/30 cursor-pointer">
-            <Icon name="Play" size={16} /> {t('kbTestKey' as any)}
+          <button onClick={() => onTestKey?.(draftKey)} title={t('kbTestKey' as any)} className="flex items-center gap-2 px-3 md:px-4 py-1.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-full hover:bg-accent-hover hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg shadow-accent/30 cursor-pointer">
+            <Icon name="Play" size={16} /> <span className="hidden md:inline">{t('kbTestKey' as any)}</span>
           </button>
           <button onClick={openPreferences} title={t('preferences')} className="p-1.5 ml-1 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 hover:-translate-y-0.5 cursor-pointer shadow-sm hover:shadow-md border border-transparent hover:border-white/20 text-gray-500 hover:text-accent">
             <Icon name="Settings2" size={20} />
@@ -365,27 +365,27 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
         </div>
       </div>
       
-      <div className="flex grow overflow-hidden p-4 gap-4">
+      <div className="flex flex-col md:flex-row grow overflow-hidden p-2 md:p-4 gap-2 md:gap-4">
         {/* Builder Sidebar Tabs */}
-        <div className="w-60 shrink-0 flex flex-col gap-2 bg-panel-bg/80 backdrop-blur-xl border border-white/20 dark:border-white/10 p-4 rounded-3xl shadow-lg">
-          <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">Builder Menu</h3>
+        <div className="w-full md:w-60 shrink-0 flex flex-row md:flex-col overflow-x-auto gap-2 bg-panel-bg/80 backdrop-blur-xl border border-white/20 dark:border-white/10 p-2 md:p-4 rounded-2xl md:rounded-3xl shadow-lg scrollbar-hide">
+          <h3 className="hidden md:block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">Builder Menu</h3>
           <button 
             onClick={() => setActiveTab('metadata')}
-            className={`flex items-center gap-3 text-left px-3 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer ${activeTab === 'metadata' ? 'bg-accent/95 backdrop-blur-md text-white shadow-lg shadow-accent/30 border border-white/20' : 'hover:bg-hover-bg/80 hover:shadow-sm hover:-translate-y-0.5 text-text border border-transparent hover:border-white/10'}`}
+            className={`flex items-center gap-2 md:gap-3 text-left px-3 py-2 md:py-2.5 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer whitespace-nowrap ${activeTab === 'metadata' ? 'bg-accent/95 backdrop-blur-md text-white shadow-lg shadow-accent/30 border border-white/20' : 'hover:bg-hover-bg/80 hover:shadow-sm hover:-translate-y-0.5 text-text border border-transparent hover:border-white/10'}`}
           >
             <Icon name="FileText" size={18} className={activeTab === 'metadata' ? 'opacity-100' : 'opacity-70'} />
             {t('kbMetadata')}
           </button>
           <button 
             onClick={() => setActiveTab('features')}
-            className={`flex items-center justify-between text-left px-3 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer ${activeTab === 'features' ? 'bg-accent/95 backdrop-blur-md text-white shadow-lg shadow-accent/30 border border-white/20' : 'hover:bg-hover-bg/80 hover:shadow-sm hover:-translate-y-0.5 text-text border border-transparent hover:border-white/10'}`}
+            className={`flex items-center justify-between gap-2 md:gap-0 text-left px-3 py-2 md:py-2.5 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer whitespace-nowrap ${activeTab === 'features' ? 'bg-accent/95 backdrop-blur-md text-white shadow-lg shadow-accent/30 border border-white/20' : 'hover:bg-hover-bg/80 hover:shadow-sm hover:-translate-y-0.5 text-text border border-transparent hover:border-white/10'}`}
           >
             <div className="flex items-center gap-3"><Icon name="ListTree" size={18} className={activeTab === 'features' ? 'opacity-100' : 'opacity-70'} /> {t('kbFeatures')}</div>
             <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === 'features' ? 'bg-white/20' : 'bg-bg border border-border'}`}>{draftKey.features.length}</span>
           </button>
           <button 
             onClick={() => setActiveTab('entities')}
-            className={`flex items-center justify-between text-left px-3 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer ${activeTab === 'entities' ? 'bg-accent/95 backdrop-blur-md text-white shadow-lg shadow-accent/30 border border-white/20' : 'hover:bg-hover-bg/80 hover:shadow-sm hover:-translate-y-0.5 text-text border border-transparent hover:border-white/10'}`}
+            className={`flex items-center justify-between gap-2 md:gap-0 text-left px-3 py-2 md:py-2.5 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer whitespace-nowrap ${activeTab === 'entities' ? 'bg-accent/95 backdrop-blur-md text-white shadow-lg shadow-accent/30 border border-white/20' : 'hover:bg-hover-bg/80 hover:shadow-sm hover:-translate-y-0.5 text-text border border-transparent hover:border-white/10'}`}
           >
             <div className="flex items-center gap-3"><Icon name="List" size={18} className={activeTab === 'entities' ? 'opacity-100' : 'opacity-70'} /> {t('kbEntities')}</div>
             <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === 'entities' ? 'bg-white/20' : 'bg-bg border border-border'}`}>{draftKey.entities.length}</span>
@@ -457,8 +457,8 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
                   }} className="p-3 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-xl focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/50 text-text text-sm shadow-inner transition-all" />
                 </label>
                 
-                <div className="mt-auto flex justify-end gap-3 pt-6">
-                  <button onClick={() => setEditingMedia(null)} className="px-6 py-2.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white font-bold rounded-xl hover:bg-accent-hover hover:-translate-y-0.5 transition-all duration-300 shadow-md hover:shadow-lg shadow-accent/30 cursor-pointer">{t('save')}</button>
+                <div className="mt-auto flex flex-col md:flex-row justify-end gap-3 pt-6">
+                  <button onClick={() => setEditingMedia(null)} className="w-full md:w-auto px-6 py-2.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white font-bold rounded-xl hover:bg-accent-hover hover:-translate-y-0.5 transition-all duration-300 shadow-md hover:shadow-lg shadow-accent/30 cursor-pointer">{t('save')}</button>
                 </div>
             </div>
           </div>
@@ -479,10 +479,10 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
         <Modal isOpen={showNewKeyModal} onClose={() => setShowNewKeyModal(false)} title={t('kbNewKey' as any)}>
           <div className="p-6 text-text">
             <p className="mb-6 opacity-90">{t('kbNewKeyPrompt' as any)}</p>
-            <div className="flex justify-end gap-3 flex-wrap">
-              <button onClick={() => setShowNewKeyModal(false)} className="px-4 py-2 hover:bg-hover-bg/80 hover:-translate-y-0.5 rounded-xl font-medium transition-all duration-300 cursor-pointer">{t('cancel')}</button>
-              <button onClick={() => { exportJson(); handleCreateNew(); }} className="px-4 py-2 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-xl hover:bg-hover-bg/80 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 shadow-sm font-medium flex items-center gap-2 cursor-pointer"><Icon name="FileJson" size={16}/> {t('exportJson')}</button>
-              <button onClick={handleCreateNew} className="px-4 py-2 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-xl hover:bg-red-600 hover:-translate-y-0.5 transition-all duration-300 shadow-md hover:shadow-lg shadow-red-500/30 font-bold cursor-pointer">{t('kbDiscardAndCreate' as any)}</button>
+            <div className="flex flex-col-reverse md:flex-row justify-end gap-3">
+              <button onClick={() => setShowNewKeyModal(false)} className="w-full md:w-auto px-4 py-2 hover:bg-hover-bg/80 hover:-translate-y-0.5 rounded-xl font-medium transition-all duration-300 cursor-pointer">{t('cancel')}</button>
+              <button onClick={() => { exportJson(); handleCreateNew(); }} className="w-full md:w-auto justify-center px-4 py-2 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-xl hover:bg-hover-bg/80 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 shadow-sm font-medium flex items-center gap-2 cursor-pointer"><Icon name="FileJson" size={16}/> {t('exportJson')}</button>
+              <button onClick={handleCreateNew} className="w-full md:w-auto justify-center px-4 py-2 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-xl hover:bg-red-600 hover:-translate-y-0.5 transition-all duration-300 shadow-md hover:shadow-lg shadow-red-500/30 font-bold cursor-pointer">{t('kbDiscardAndCreate' as any)}</button>
             </div>
           </div>
         </Modal>

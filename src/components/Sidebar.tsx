@@ -10,7 +10,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
   const { t, triggerImport, triggerOpenNativeKey, openPreferences, appMode, setAppMode } = useAppContext();
 
   return (
-    <div id="sidebar" className={`fixed top-0 left-0 h-full z-30 w-60 bg-panel-bg/90 backdrop-blur-2xl border-r border-white/20 dark:border-white/10 p-5 flex flex-col gap-5 shadow-2xl transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+    <div id="sidebar" className={`fixed top-0 left-0 h-full z-40 w-60 bg-panel-bg/90 backdrop-blur-2xl border-r border-white/20 dark:border-white/10 p-5 flex flex-col gap-5 shadow-2xl transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
 
       {/* Header/Branding */}
       <div className="pb-4 pt-2 flex items-center justify-center border-b border-black/5 dark:border-white/5">
