@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Icon } from '../Icon';
 import type { DraftKeyData, DraftFeature } from '../../types';
+import { CustomSelect } from '../common/CustomSelect';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 const reorderArray = <T,>(arr: T[], from: number, to: number): T[] => {
@@ -33,11 +34,15 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
   draftKey, updateDraftKey, t, selectedFeatureId, setSelectedFeatureId, collapsedFeatures, toggleFeatureCollapse,
   draggedItem, setDraggedItem, dragOverId, setDragOverId, draggedMedia, setDraggedMedia, setEditingMedia, setDeleteTarget, processAndSetImage
 }) => {
+  const touchTimeout = useRef<NodeJS.Timeout | null>(null);
+  const ghostRef = useRef<HTMLDivElement>(null);
+  const lastTouchPos = useRef({ x: 0, y: 0 });
+
   const addFeature = () => {
     const id = generateId();
     updateDraftKey(prev => ({
       ...prev,
-      features: [...prev.features, { id, name: 'New Feature', type: 'state', states: [] }]
+      features: [...prev.features, { id, name: t('kbNewFeature'), type: 'state', states: [] }]
     }));
     setSelectedFeatureId(id);
   };
@@ -66,7 +71,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
       const newFeature: DraftFeature = {
         ...featureToCopy,
         id: newFeatureId,
-        name: `${featureToCopy.name} (Copy)`,
+        name: `${featureToCopy.name} (${t('copy')})`,
         states: newStates,
         media: featureToCopy.media ? [...featureToCopy.media] : undefined
       };
@@ -99,7 +104,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
       ...prev,
       features: prev.features.map(f => {
         if (f.id === featureId) {
-          return { ...f, states: [...f.states, { id: generateId(), name: 'New State' }] };
+          return { ...f, states: [...f.states, { id: generateId(), name: t('kbNewState') }] };
         }
         return f;
       })
@@ -155,6 +160,8 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
             <React.Fragment key={f.id}>
                 <div
                     draggable
+                    data-feature-id={f.id}
+                    onContextMenu={(e) => e.preventDefault()}
                     onDragStart={(e) => {
                         e.stopPropagation();
                         setDraggedItem({ type: 'feature', id: f.id });
@@ -194,8 +201,66 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                         }
                         setDraggedItem(null);
                     }}
-                    className={`rounded-lg transition-all relative group/item flex items-center ${dragOverId === f.id ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-10' : ''}`}
-                    style={{ paddingLeft: `${1.5 + depth * 1.5}rem`, paddingRight: '0.75rem' }}
+                    onTouchStart={(e) => {
+                        e.stopPropagation();
+                        lastTouchPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                        touchTimeout.current = setTimeout(() => {
+                            setDraggedItem({ type: 'feature', id: f.id });
+                            if (navigator.vibrate) navigator.vibrate(50);
+                        }, 300);
+                    }}
+                    onTouchMove={(e) => {
+                        const touch = e.touches[0];
+                        lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
+                        if (ghostRef.current) {
+                            ghostRef.current.style.left = `${touch.clientX}px`;
+                            ghostRef.current.style.top = `${touch.clientY}px`;
+                        }
+                        if (!draggedItem) {
+                            if (touchTimeout.current) clearTimeout(touchTimeout.current);
+                            return;
+                        }
+                        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+                        const targetFeature = el?.closest('[data-feature-id]');
+                        const targetRoot = el?.closest('[data-root-drop="true"]');
+                        
+                        if (targetFeature) {
+                            const id = targetFeature.getAttribute('data-feature-id');
+                            if (id && id !== f.id) {
+                                let current: string | undefined = id;
+                                let isCycle = false;
+                                while (current) {
+                                    if (current === draggedItem.id) { isCycle = true; break; }
+                                    current = draftKey.features.find(x => x.id === current)?.parentId;
+                                }
+                                if (!isCycle && dragOverId !== id) setDragOverId(id);
+                            }
+                        } else if (targetRoot) {
+                            if (dragOverId !== 'root-feature') setDragOverId('root-feature');
+                        } else {
+                            if (dragOverId) setDragOverId(null);
+                        }
+                    }}
+                    onTouchEnd={(e) => {
+                        if (touchTimeout.current) clearTimeout(touchTimeout.current);
+                        if (draggedItem) {
+                            if (e.cancelable) e.preventDefault();
+                            if (dragOverId && dragOverId !== 'root-feature' && dragOverId !== f.id) {
+                                updateFeature(draggedItem.id, { parentId: dragOverId });
+                            } else if (dragOverId === 'root-feature') {
+                                updateFeature(draggedItem.id, { parentId: undefined });
+                            }
+                            setDraggedItem(null);
+                            setDragOverId(null);
+                        }
+                    }}
+                    onTouchCancel={() => {
+                        if (touchTimeout.current) clearTimeout(touchTimeout.current);
+                        setDraggedItem(null);
+                        setDragOverId(null);
+                    }}
+                    className={`rounded-lg transition-all relative group/item flex items-center ${dragOverId === f.id ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-10' : ''} ${draggedItem?.id === f.id ? 'opacity-50' : ''}`}
+                    style={{ paddingLeft: `${1.5 + depth * 1.5}rem`, paddingRight: '0.75rem', touchAction: draggedItem ? 'none' : 'auto' }}
                 >
                     {depth > 0 && (
                         <div className="absolute top-1/2 -translate-y-1/2 border-t-2 border-border/50 pointer-events-none transition-colors group-hover/item:border-accent/50" 
@@ -214,7 +279,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
 
                     <button onClick={() => setSelectedFeatureId(f.id)} className={`w-full flex items-center gap-2 text-left py-2 px-2 rounded-xl text-sm font-medium transition-all duration-300 cursor-pointer relative z-10 ${selectedFeatureId === f.id ? 'bg-accent/95 backdrop-blur-md text-white shadow-md shadow-accent/30 border border-white/20' : 'hover:bg-hover-bg/80 hover:shadow-sm hover:-translate-y-0.5 text-text border border-transparent hover:border-white/10 dark:hover:border-white/5'}`}>
                         <Icon name={iconName} size={14} className={`shrink-0 ${selectedFeatureId === f.id ? 'opacity-100' : 'opacity-60'}`} />
-                        <span className="truncate">{f.name || 'Unnamed Feature'}</span>
+                        <span className="truncate">{f.name || t('kbUnnamedFeature')}</span>
                     </button>
                 </div>
                 {children.length > 0 && !isCollapsed && (
@@ -234,10 +299,11 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
       <div className="w-full md:w-1/3 h-[40%] md:h-full md:min-w-[280px] border-b md:border-b-0 md:border-r border-white/10 dark:border-white/5 flex flex-col bg-panel-bg/50 backdrop-blur-sm z-10 shadow-[4px_0_24px_-4px_rgba(0,0,0,0.1)] shrink-0">
         <div className="p-4 border-b border-white/10 dark:border-white/5 flex justify-between items-center bg-header-bg/85 backdrop-blur-md shadow-sm rounded-tl-3xl">
           <div className="flex items-center gap-2 font-bold text-text"><Icon name="ListTree" size={18} className="opacity-70"/> {t('kbFeatures')}</div>
-          <button onClick={addFeature} className="px-3 py-1.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-lg hover:bg-accent-hover hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg shadow-accent/30 flex items-center gap-1 cursor-pointer" title={t('kbAddFeature')}><Icon name="Plus" size={14} /> Add</button>
+          <button onClick={addFeature} className="px-3 py-1.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-lg hover:bg-accent-hover hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg shadow-accent/30 flex items-center gap-1 cursor-pointer" title={t('kbAddFeature')}><Icon name="Plus" size={14} /> {t('kbAdd' as any)}</button>
         </div>
         <div 
           className={`overflow-y-auto flex-1 p-3 space-y-0.5 rounded-b-xl transition-colors ${dragOverId === 'root-feature' ? 'bg-accent/5 ring-2 ring-inset ring-accent' : ''}`}
+          data-root-drop="true"
           onDragOver={(e) => {
               e.preventDefault();
               if (draggedItem?.type === 'feature' && dragOverId !== 'root-feature') setDragOverId('root-feature');
@@ -253,7 +319,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
           }}
         >
           {renderFeatureList()}
-          {draftKey.features.length === 0 && <div className="p-6 text-center text-sm opacity-50 border-2 border-dashed border-border rounded-xl mt-2">{t('kbFeatures')} (Empty)</div>}
+          {draftKey.features.length === 0 && <div className="p-6 text-center text-sm opacity-50 border-2 border-dashed border-border rounded-xl mt-2">{t('kbFeatures')} ({t('kbEmpty' as any)})</div>}
         </div>
       </div>
       <div className="flex-1 p-8 overflow-y-auto bg-bg/50">
@@ -262,37 +328,39 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-3">
                 <Icon name={selectedFeature.type === 'state' ? 'ListTree' : 'Hash'} size={24} className="text-accent" />
-                <h3 className="text-2xl font-bold text-accent">{selectedFeature.name || 'Unnamed Feature'}</h3>
+                <h3 className="text-2xl font-bold text-accent">{selectedFeature.name || t('kbUnnamedFeature')}</h3>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => duplicateFeature(selectedFeature.id)} className="text-text hover:bg-hover-bg/80 hover:-translate-y-0.5 bg-panel-bg/50 backdrop-blur-sm border border-white/20 dark:border-white/10 px-3 py-1.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-sm hover:shadow-md"><Icon name="Copy" size={16}/> {t('kbDuplicate')}</button>
-                <button onClick={() => setDeleteTarget({ type: 'feature', id: selectedFeature.id })} className="text-red-500 hover:bg-red-500/95 hover:backdrop-blur-md hover:text-white hover:-translate-y-0.5 border border-red-500/30 hover:border-white/20 px-3 py-1.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-sm hover:shadow-md hover:shadow-red-500/30"><Icon name="Trash2" size={16}/> {t('kbDelete')}</button>
+                <button onClick={() => duplicateFeature(selectedFeature.id)} className="btn-secondary"><Icon name="Copy" size={16}/> {t('kbDuplicate')}</button>
+                <button onClick={() => setDeleteTarget({ type: 'feature', id: selectedFeature.id })} className="btn-danger"><Icon name="Trash2" size={16}/> {t('kbDelete')}</button>
               </div>
             </div>
             
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-semibold opacity-80">{t('kbName')}</span>
-              <input type="text" value={selectedFeature.name} onChange={e => updateFeature(selectedFeature.id, { name: e.target.value })} className="p-3 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-xl focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/50 text-text text-lg font-medium shadow-inner transition-all" />
+              <input type="text" value={selectedFeature.name} onChange={e => updateFeature(selectedFeature.id, { name: e.target.value })} className="input-base text-lg font-medium" />
             </label>
 
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-semibold opacity-80">{t('kbDescription')}</span>
-              <textarea value={selectedFeature.description || ''} onChange={e => updateFeature(selectedFeature.id, { description: e.target.value })} className="p-3 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-xl focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/50 text-text text-sm shadow-inner transition-all" rows={2} />
+              <textarea value={selectedFeature.description || ''} onChange={e => updateFeature(selectedFeature.id, { description: e.target.value })} className="input-base text-sm" rows={2} />
             </label>
 
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-semibold opacity-80">{t('kbType')}</span>
-              <select value={selectedFeature.type} onChange={e => updateFeature(selectedFeature.id, { type: e.target.value as 'numeric' | 'state' })} className="p-3 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-xl focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/50 text-text shadow-inner transition-all cursor-pointer">
-                <option value="state">{t('kbTypeState')}</option>
-                <option value="numeric">{t('kbTypeNumeric')}</option>
-              </select>
+              <CustomSelect
+                value={selectedFeature.type}
+                onChange={val => updateFeature(selectedFeature.id, { type: val as 'numeric' | 'state' })}
+                options={[{ value: 'state', label: t('kbTypeState') }, { value: 'numeric', label: t('kbTypeNumeric') }]}
+                className="input-base cursor-pointer"
+              />
             </label>
 
             <div className="flex flex-col gap-1.5 mt-2">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-semibold opacity-80">Images</span>
+                <span className="text-sm font-semibold opacity-80">{t('kbImages' as any) || 'Images'}</span>
                 <label className="text-accent hover:bg-accent/10 hover:-translate-y-0.5 px-3 py-1.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-1 cursor-pointer border border-transparent hover:border-accent/30 hover:shadow-sm">
-                  <Icon name="Plus" size={14}/> Add Image
+                  <Icon name="Plus" size={14}/> {t('kbAddImage' as any)}
                   <input type="file" accept="image/*" className="hidden" onChange={e => {
                     const file = e.target.files?.[0];
                     if (file) processAndSetImage(file, url => updateFeature(selectedFeature.id, { media: [...(selectedFeature.media || []), { url }] }));
@@ -303,8 +371,10 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
               {(selectedFeature.media?.length || 0) > 0 && (
                 <div className="flex gap-3 overflow-x-auto pb-2 pt-2 pr-2">
                   {selectedFeature.media?.map((m, i) => (
-                    <div key={i} className={`relative shrink-0 group rounded-xl transition-all ${dragOverId === `feature-media-${i}` ? 'ring-2 ring-accent ring-offset-2 ring-offset-bg scale-[1.02]' : ''}`}
+                    <div key={i} className={`relative shrink-0 group rounded-xl transition-all ${dragOverId === `feature-media-${i}` ? 'ring-2 ring-accent ring-offset-2 ring-offset-bg scale-[1.02]' : ''} ${draggedMedia?.index === i && draggedMedia.itemId === selectedFeature.id ? 'opacity-50' : ''}`}
                          draggable
+                         data-feature-media-idx={i}
+                         onContextMenu={(e) => e.preventDefault()}
                          onDragStart={() => setDraggedMedia({ type: 'feature', itemId: selectedFeature.id, index: i })}
                          onDragEnd={() => { setDraggedMedia(null); setDragOverId(null); }}
                          onDragOver={(e) => {
@@ -321,7 +391,53 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                                reorderFeatureMedia(selectedFeature.id, draggedMedia.index, i);
                             }
                             setDraggedMedia(null);
-                         }}>
+                         }}
+                         onTouchStart={(e) => {
+                             e.stopPropagation();
+                             lastTouchPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                             touchTimeout.current = setTimeout(() => {
+                                 setDraggedMedia({ type: 'feature', itemId: selectedFeature.id, index: i });
+                                 if (navigator.vibrate) navigator.vibrate(50);
+                             }, 300);
+                         }}
+                         onTouchMove={(e) => {
+                             const touch = e.touches[0];
+                             lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
+                             if (ghostRef.current) {
+                                 ghostRef.current.style.left = `${touch.clientX}px`;
+                                 ghostRef.current.style.top = `${touch.clientY}px`;
+                             }
+                             if (!draggedMedia) {
+                                 if (touchTimeout.current) clearTimeout(touchTimeout.current);
+                                 return;
+                             }
+                             const el = document.elementFromPoint(touch.clientX, touch.clientY);
+                             const targetMedia = el?.closest('[data-feature-media-idx]');
+                             if (targetMedia) {
+                                 const targetIdx = parseInt(targetMedia.getAttribute('data-feature-media-idx') || '-1');
+                                 if (targetIdx !== -1 && targetIdx !== i && dragOverId !== `feature-media-${targetIdx}`) setDragOverId(`feature-media-${targetIdx}`);
+                             } else {
+                                 if (dragOverId) setDragOverId(null);
+                             }
+                         }}
+                         onTouchEnd={(e) => {
+                             if (touchTimeout.current) clearTimeout(touchTimeout.current);
+                             if (draggedMedia) {
+                                 if (e.cancelable) e.preventDefault();
+                                 if (dragOverId && dragOverId.startsWith('feature-media-')) {
+                                     const targetIdx = parseInt(dragOverId.replace('feature-media-', ''));
+                                     if (!isNaN(targetIdx) && targetIdx !== i) reorderFeatureMedia(selectedFeature.id, i, targetIdx);
+                                 }
+                                 setDraggedMedia(null);
+                                 setDragOverId(null);
+                             }
+                         }}
+                         onTouchCancel={() => {
+                             if (touchTimeout.current) clearTimeout(touchTimeout.current);
+                             setDraggedMedia(null);
+                             setDragOverId(null);
+                         }}
+                         style={{ touchAction: draggedMedia ? 'none' : 'auto' }}>
                       <div className="h-24 w-24 relative overflow-hidden rounded-xl border border-white/20 dark:border-white/10 shadow-md cursor-move group-hover:shadow-lg transition-all" onClick={() => setEditingMedia({ type: 'feature', itemId: selectedFeature.id, mediaIndex: i })}>
                         <img src={m.url} alt={m.caption || ''} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300 pointer-events-none" />
                       </div>
@@ -346,8 +462,8 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                   {selectedFeature.states.map(s => (
                     <div key={s.id} className="flex flex-col gap-2 bg-bg/50 backdrop-blur-sm p-3 rounded-xl border border-white/20 dark:border-white/10 shadow-inner focus-within:ring-2 focus-within:ring-accent/50 focus-within:border-accent transition-all">
                       <div className="flex gap-2 items-center">
-                        <input type="text" value={s.name} onChange={e => updateState(selectedFeature.id, s.id, e.target.value)} className="flex-1 p-2 bg-transparent border-none focus:outline-none text-text font-medium" placeholder="State Name" />
-                        <label className="text-gray-500 hover:text-accent p-2 rounded-lg transition-colors cursor-pointer" title="Add Image">
+                        <input type="text" value={s.name} onChange={e => updateState(selectedFeature.id, s.id, e.target.value)} className="flex-1 p-2 bg-transparent border-none focus:outline-none text-text font-medium" placeholder={t('kbStateName' as any)} />
+                        <label className="text-gray-500 hover:text-accent p-2 rounded-lg transition-colors cursor-pointer" title={t('kbAddImage' as any)}>
                           <Icon name="Image" size={18}/>
                           <input type="file" accept="image/*" className="hidden" onChange={e => {
                             const file = e.target.files?.[0];
@@ -367,8 +483,10 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                       {(s.media?.length || 0) > 0 && (
                         <div className="flex gap-3 overflow-x-auto pb-1 mt-1 pt-2 pr-2">
                           {s.media?.map((m, i) => (
-                             <div key={i} className={`relative shrink-0 group rounded-lg transition-all ${dragOverId === `state-media-${s.id}-${i}` ? 'ring-2 ring-accent ring-offset-2 ring-offset-bg scale-[1.02]' : ''}`} 
+                             <div key={i} className={`relative shrink-0 group rounded-lg transition-all ${dragOverId === `state-media-${s.id}-${i}` ? 'ring-2 ring-accent ring-offset-2 ring-offset-bg scale-[1.02]' : ''} ${draggedMedia?.index === i && draggedMedia.stateId === s.id ? 'opacity-50' : ''}`} 
                                  draggable 
+                                 data-state-media-idx={i}
+                                 onContextMenu={(e) => e.preventDefault()}
                                  onDragStart={() => setDraggedMedia({ type: 'state', itemId: selectedFeature.id, stateId: s.id, index: i })} 
                                  onDragEnd={() => { setDraggedMedia(null); setDragOverId(null); }}
                                  onDragOver={(e) => { 
@@ -385,7 +503,53 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                                        reorderStateMedia(selectedFeature.id, s.id, draggedMedia.index, i); 
                                     } 
                                     setDraggedMedia(null); 
-                                 }}>
+                                 }}
+                                 onTouchStart={(e) => {
+                                     e.stopPropagation();
+                                     lastTouchPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                                     touchTimeout.current = setTimeout(() => {
+                                         setDraggedMedia({ type: 'state', itemId: selectedFeature.id, stateId: s.id, index: i });
+                                         if (navigator.vibrate) navigator.vibrate(50);
+                                     }, 300);
+                                 }}
+                                 onTouchMove={(e) => {
+                                     const touch = e.touches[0];
+                                     lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
+                                     if (ghostRef.current) {
+                                         ghostRef.current.style.left = `${touch.clientX}px`;
+                                         ghostRef.current.style.top = `${touch.clientY}px`;
+                                     }
+                                     if (!draggedMedia) {
+                                         if (touchTimeout.current) clearTimeout(touchTimeout.current);
+                                         return;
+                                     }
+                                     const el = document.elementFromPoint(touch.clientX, touch.clientY);
+                                     const targetMedia = el?.closest('[data-state-media-idx]');
+                                     if (targetMedia) {
+                                         const targetIdx = parseInt(targetMedia.getAttribute('data-state-media-idx') || '-1');
+                                         if (targetIdx !== -1 && targetIdx !== i && dragOverId !== `state-media-${s.id}-${targetIdx}`) setDragOverId(`state-media-${s.id}-${targetIdx}`);
+                                     } else {
+                                         if (dragOverId) setDragOverId(null);
+                                     }
+                                 }}
+                                 onTouchEnd={(e) => {
+                                     if (touchTimeout.current) clearTimeout(touchTimeout.current);
+                                     if (draggedMedia) {
+                                         if (e.cancelable) e.preventDefault();
+                                         if (dragOverId && dragOverId.startsWith(`state-media-${s.id}-`)) {
+                                             const targetIdx = parseInt(dragOverId.replace(`state-media-${s.id}-`, ''));
+                                             if (!isNaN(targetIdx) && targetIdx !== i) reorderStateMedia(selectedFeature.id, s.id, i, targetIdx);
+                                         }
+                                         setDraggedMedia(null);
+                                         setDragOverId(null);
+                                     }
+                                 }}
+                                 onTouchCancel={() => {
+                                     if (touchTimeout.current) clearTimeout(touchTimeout.current);
+                                     setDraggedMedia(null);
+                                     setDragOverId(null);
+                                 }}
+                                 style={{ touchAction: draggedMedia ? 'none' : 'auto' }}>
                                <div className="h-16 w-16 relative overflow-hidden rounded-lg border border-white/20 dark:border-white/10 shadow-sm cursor-move group-hover:shadow-md transition-all" onClick={() => setEditingMedia({ type: 'state', itemId: selectedFeature.id, stateId: s.id, mediaIndex: i })}>
                                   <img src={m.url} alt={m.caption || ''} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300 pointer-events-none" />
                                </div>
@@ -398,7 +562,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                       )}
                     </div>
                   ))}
-                  {selectedFeature.states.length === 0 && <div className="p-6 text-center text-sm opacity-50 border-2 border-dashed border-border rounded-xl">{t('kbStates')} (Empty)</div>}
+                  {selectedFeature.states.length === 0 && <div className="p-6 text-center text-sm opacity-50 border-2 border-dashed border-border rounded-xl">{t('kbStates')} ({t('kbEmpty' as any)})</div>}
                 </div>
               </div>
             )}
@@ -406,10 +570,45 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
         ) : (
           <div className="flex h-full items-center justify-center opacity-40 text-lg font-medium flex-col gap-4">
              <Icon name="MousePointerClick" size={48} className="opacity-50" />
-             Select or create a feature
+             {t('kbSelectFeature' as any)}
           </div>
         )}
       </div>
+
+      {/* Touch Drag Ghost */}
+      {(draggedItem || draggedMedia) && (
+        <div 
+          ref={ghostRef}
+          className="fixed pointer-events-none z-[9999] opacity-90 scale-105"
+          style={{
+            left: lastTouchPos.current.x,
+            top: lastTouchPos.current.y,
+            transform: 'translate(-50%, -120%)',
+            willChange: 'left, top'
+          }}
+        >
+          {draggedItem ? (
+            <div className="bg-panel-bg/95 backdrop-blur-xl border border-accent/50 shadow-2xl rounded-xl px-4 py-2 flex items-center gap-2 font-bold text-accent text-sm">
+              <Icon name={draftKey.features.find(f => f.id === draggedItem.id)?.type === 'state' ? 'ListTree' : 'Hash'} size={16} />
+              <span className="truncate max-w-[150px]">
+                {draftKey.features.find(f => f.id === draggedItem.id)?.name || t('kbUnnamedFeature')}
+              </span>
+            </div>
+          ) : draggedMedia ? (
+            <div className="h-24 w-24 rounded-xl border-2 border-accent shadow-2xl overflow-hidden bg-panel-bg/90 backdrop-blur-sm">
+              <img 
+                src={
+                  draggedMedia.type === 'feature' 
+                    ? draftKey.features.find(f => f.id === draggedMedia.itemId)?.media?.[draggedMedia.index]?.url 
+                    : draftKey.features.find(f => f.id === draggedMedia.itemId)?.states.find(s => s.id === draggedMedia.stateId)?.media?.[draggedMedia.index]?.url
+                } 
+                alt=""
+                className="w-full h-full object-cover" 
+              />
+            </div>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 };

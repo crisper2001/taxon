@@ -17,15 +17,15 @@ export const BuilderMetadataTab: React.FC<BuilderMetadataTabProps> = ({ draftKey
       </div>
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-semibold opacity-80">{t('kbTitle')}</span>
-        <input type="text" value={draftKey.title} onChange={e => updateDraftKey(prev => ({...prev, title: e.target.value}))} className="p-3 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-xl focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/50 text-text text-lg font-medium shadow-inner transition-all" />
+        <input type="text" value={draftKey.title} onChange={e => updateDraftKey(prev => ({...prev, title: e.target.value}))} className="input-base text-lg font-medium" />
       </label>
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-semibold opacity-80">{t('kbAuthors')}</span>
-        <input type="text" value={draftKey.authors} onChange={e => updateDraftKey(prev => ({...prev, authors: e.target.value}))} className="p-3 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-xl focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/50 text-text shadow-inner transition-all" />
+        <input type="text" value={draftKey.authors} onChange={e => updateDraftKey(prev => ({...prev, authors: e.target.value}))} className="input-base" />
       </label>
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-semibold opacity-80">{t('kbDescription')}</span>
-        <textarea rows={6} value={draftKey.description} onChange={e => updateDraftKey(prev => ({...prev, description: e.target.value}))} className="p-3 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-xl focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/50 resize-none text-text shadow-inner transition-all" />
+        <textarea rows={6} value={draftKey.description} onChange={e => updateDraftKey(prev => ({...prev, description: e.target.value}))} className="input-base resize-none" />
       </label>
     </div>
   );

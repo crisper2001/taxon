@@ -117,6 +117,11 @@ input[type="search"]::-webkit-search-results-decoration {
   }
 }
 
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+}
+
 /* Mobile Touch Feedback */
 * {
   -webkit-tap-highlight-color: transparent;
@@ -135,4 +140,160 @@ input[type="search"]::-webkit-search-results-decoration {
     opacity: 1 !important;
     transform: none !important;
   }
+}
+
+/* Screen Transitions */
+@keyframes screen-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.98) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-screen-in {
+  animation: screen-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes header-in {
+  0% { opacity: 0; transform: translateY(-10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.animate-header-in {
+  animation: header-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+@layer components {
+  .input-base {
+    @apply p-3 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-xl focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/50 text-text shadow-inner transition-all;
+  }
+  .btn-secondary {
+    @apply text-text hover:bg-hover-bg/80 hover:-translate-y-0.5 bg-panel-bg/50 backdrop-blur-sm border border-white/20 dark:border-white/10 px-3 py-1.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-sm hover:shadow-md;
+  }
+  .btn-danger {
+    @apply text-red-500 hover:bg-red-500/95 hover:backdrop-blur-md hover:text-white hover:-translate-y-0.5 border border-red-500/30 hover:border-white/20 px-3 py-1.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-sm hover:shadow-md hover:shadow-red-500/30;
+  }
+}
+
+/* --- Shared Swiping & Grid Layouts --- */
+@media (min-width: 768px) {
+  .panels-grid-layout {
+    display: grid !important;
+    grid-template-rows: var(--grid-rows);
+    grid-template-columns: var(--grid-cols);
+    padding: 1rem;
+    gap: 0.5rem;
+  }
+  .panels-grid-layout.is-resizing {
+    transition: none;
+  }
+  .panels-grid-layout:not(.is-resizing) {
+    transition: grid-template-rows 300ms ease-in-out, grid-template-columns 300ms ease-in-out;
+  }
+  
+  .builder-mobile-view, .entity-modal-mobile-view {
+    display: flex;
+    width: 100%;
+    height: 100%;
+  }
+  .builder-panel {
+    width: 100%;
+    height: 100%;
+    display: none;
+  }
+  .builder-panel.active {
+    display: flex;
+  }
+  .entity-modal-desktop-right-pane {
+    flex: 1 1 50%;
+    width: 50%;
+    height: 100%;
+    overflow-y: auto;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+  }
+  .entity-modal-panel.is-image {
+    flex: 1 1 50%;
+    width: 50%;
+    height: 100%;
+    overflow-y: auto;
+    padding: 1.5rem;
+  }
+  .entity-modal-panel.is-details, .entity-modal-panel.is-features {
+    flex: none;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    padding: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .panels-grid-layout, .builder-mobile-view, .entity-modal-mobile-view {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+    transform: translateX(calc(var(--mobile-tab-offset) + var(--swipe-offset, 0px)));
+    will-change: transform;
+    touch-action: pan-y;
+  }
+  .panels-grid-layout.is-swiping, .builder-mobile-view.is-swiping, .entity-modal-mobile-view.is-swiping {
+    transition: none;
+  }
+  .panels-grid-layout:not(.is-swiping), .builder-mobile-view:not(.is-swiping), .entity-modal-mobile-view:not(.is-swiping) {
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .panels-grid-layout {
+    contain: none !important;
+  }
+  .panel-wrapper, .builder-panel {
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+    padding: 0.5rem;
+  }
+  .entity-modal-desktop-right-pane {
+    display: contents;
+  }
+  .entity-modal-panel {
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    padding: 1.5rem;
+  }
+}
+
+/* --- Shared SVG Global Gradients --- */
+.text-accent:not([class*="bg-"]) svg[stroke="currentColor"], .text-accent:not([class*="bg-"]) svg *[stroke="currentColor"],
+svg.text-accent:not([class*="bg-"])[stroke="currentColor"], svg.text-accent:not([class*="bg-"]) *[stroke="currentColor"],
+.hover\:text-accent:not([class*="bg-"]):hover svg[stroke="currentColor"], .hover\:text-accent:not([class*="bg-"]):hover svg *[stroke="currentColor"],
+.group:hover .group-hover\:text-accent:not([class*="bg-"]) svg[stroke="currentColor"], .group:hover .group-hover\:text-accent:not([class*="bg-"]) svg *[stroke="currentColor"] {
+  stroke: url(#accent-gradient) !important;
+}
+.text-accent:not([class*="bg-"]) svg[fill="currentColor"], .text-accent:not([class*="bg-"]) svg *[fill="currentColor"],
+svg.text-accent:not([class*="bg-"])[fill="currentColor"], svg.text-accent:not([class*="bg-"]) *[fill="currentColor"],
+.hover\:text-accent:not([class*="bg-"]):hover svg[fill="currentColor"], .hover\:text-accent:not([class*="bg-"]):hover svg *[fill="currentColor"],
+.group:hover .group-hover\:text-accent:not([class*="bg-"]) svg[fill="currentColor"], .group:hover .group-hover\:text-accent:not([class*="bg-"]) svg *[fill="currentColor"] {
+  fill: url(#accent-gradient) !important;
+}
+.text-red-500:not([class*="bg-"]) svg[stroke="currentColor"], .text-red-500:not([class*="bg-"]) svg *[stroke="currentColor"],
+svg.text-red-500:not([class*="bg-"])[stroke="currentColor"], svg.text-red-500:not([class*="bg-"]) *[stroke="currentColor"],
+.hover\:text-red-500:not([class*="bg-"]):hover svg[stroke="currentColor"], .hover\:text-red-500:not([class*="bg-"]):hover svg *[stroke="currentColor"],
+.group:hover .group-hover\:text-red-500:not([class*="bg-"]) svg[stroke="currentColor"], .group:hover .group-hover\:text-red-500:not([class*="bg-"]) svg *[stroke="currentColor"] {
+  stroke: url(#red-gradient) !important;
+}
+.text-red-500:not([class*="bg-"]) svg[fill="currentColor"], .text-red-500:not([class*="bg-"]) svg *[fill="currentColor"],
+svg.text-red-500:not([class*="bg-"])[fill="currentColor"], svg.text-red-500:not([class*="bg-"]) *[fill="currentColor"],
+.hover\:text-red-500:not([class*="bg-"]):hover svg[fill="currentColor"], .hover\:text-red-500:not([class*="bg-"]):hover svg *[fill="currentColor"],
+.group:hover .group-hover\:text-red-500:not([class*="bg-"]) svg[fill="currentColor"], .group:hover .group-hover\:text-red-500:not([class*="bg-"]) svg *[fill="currentColor"] {
+  fill: url(#red-gradient) !important;
 }

@@ -3,6 +3,7 @@ import { Modal } from './Modal';
 import { Icon } from '../Icon';
 import { translations } from '../../constants';
 import Spot from '../Spot';
+import { CustomSelect } from '../common/CustomSelect';
 
 type Language = keyof typeof translations;
 type Theme = 'light' | 'dark';
@@ -49,19 +50,13 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                     </div>
                     <div className="space-y-6">
                         <div>
-                            <label htmlFor="language-select" className="font-bold mb-2 text-base block tracking-tight text-text/90">{t('language')}</label>
-                            <select
-                                id="language-select"
+                            <div className="font-bold mb-2 text-base block tracking-tight text-text/90">{t('language')}</div>
+                            <CustomSelect
                                 value={currentPrefs.lang}
-                                onChange={(e) => onPreferenceChange('lang', e.target.value as Language)}
-                                className="w-full p-3.5 border border-white/20 dark:border-white/10 rounded-2xl bg-bg/80 backdrop-blur-sm shadow-inner focus:ring-4 focus:ring-accent/20 focus:border-accent transition-all outline-none font-semibold cursor-pointer"
-                            >
-                                {availableLanguages.map((langCode) => (
-                                    <option key={langCode} value={langCode}>
-                                        {languageNames[langCode] || langCode}
-                                    </option>
-                                ))}
-                            </select>
+                                onChange={(val) => onPreferenceChange('lang', val as Language)}
+                                options={availableLanguages.map(langCode => ({ value: langCode, label: languageNames[langCode] || langCode }))}
+                                className="input-base w-full font-semibold cursor-pointer"
+                            />
                         </div>
                         <div>
                             <h4 className="font-bold mb-2 text-base block tracking-tight text-text/90">{t('uiTheme')}</h4>
@@ -115,7 +110,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                                 type="password"
                                 value={currentPrefs.geminiApiKey}
                                 onChange={(e) => onPreferenceChange('geminiApiKey', e.target.value)}
-                                className="w-full p-3.5 border border-white/20 dark:border-white/10 rounded-2xl bg-bg/80 backdrop-blur-sm shadow-inner focus:ring-4 focus:ring-accent/20 focus:border-accent transition-all outline-none font-medium"
+                                className="input-base w-full font-medium"
                                 placeholder={t('enterApiKey')}
                             />
                             <p className="text-xs text-gray-500 mt-2">{t('apiKeyNote')}</p>

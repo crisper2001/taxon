@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Panel } from './Panel';
 import type { KeyData, ChosenFeature, FeatureNode } from '../../types';
 import { RenderFeatureNode } from './FeatureNodeRenderer';
-import { Icon } from '../Icon';
+import { useSearchAutoScroll } from '../../hooks/useSearchAutoScroll';
 
 // --- FeaturesPanel ---
 interface FeaturesPanelProps {
@@ -77,36 +77,7 @@ export const FeaturesPanel: React.FC<FeaturesPanelProps> = ({ keyData, chosenFea
     setCurrentMatchIndex(0);
   }, [searchTerm, matchingIds]);
 
-  // Auto-scroll to current match
-  useEffect(() => {
-    if (searchTerm && matchingIds && matchingIds.size > 0) {
-      const timeoutId = setTimeout(() => {
-        if (containerRef.current) {
-          containerRef.current.querySelectorAll('[data-search-active="true"]').forEach(el => el.removeAttribute('data-search-active'));
-          const matches = containerRef.current.querySelectorAll('[data-search-match="true"]');
-          setMatchCount(matches.length);
-          if (matches.length > 0) {
-            let safeIndex = currentMatchIndex;
-            if (safeIndex >= matches.length) safeIndex = 0;
-            if (safeIndex < 0) safeIndex = matches.length - 1;
-            
-            if (safeIndex !== currentMatchIndex) {
-              setCurrentMatchIndex(safeIndex);
-            } else {
-              matches[safeIndex].setAttribute('data-search-active', 'true');
-              matches[safeIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-          }
-        }
-      }, 100);
-      return () => clearTimeout(timeoutId);
-    } else {
-      setMatchCount(0);
-      if (containerRef.current) {
-        containerRef.current.querySelectorAll('[data-search-active="true"]').forEach(el => el.removeAttribute('data-search-active'));
-      }
-    }
-  }, [matchingIds, searchTerm, currentMatchIndex]);
+  useSearchAutoScroll(containerRef, searchTerm, matchingIds, currentMatchIndex, setCurrentMatchIndex, setMatchCount);
 
   return (
     <Panel 

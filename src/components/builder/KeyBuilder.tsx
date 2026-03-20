@@ -2,11 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { Icon } from '../Icon';
 import { ConfirmModal, Modal } from '../modals';
-import Spot from '../Spot';
-import type { DraftFeature, DraftEntity, DraftKeyData, Media } from '../../types';
+import type { DraftKeyData, Media } from '../../types';
 import { BuilderMetadataTab } from './BuilderMetadataTab';
 import { BuilderFeaturesTab } from './BuilderFeaturesTab';
 import { BuilderEntitiesTab } from './BuilderEntitiesTab';
+import { Header } from '../Header';
 
 interface KeyBuilderProps {
   onExit: () => void;
@@ -21,15 +21,13 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
   const appContext = useAppContext();
   const { t, triggerOpenNativeKey, isAiPanelVisible, setAiPanelVisible, openPreferences } = appContext;
   const hideAi = (appContext as any).hideAi;
+  const openAppInfo = (appContext as any).openAppInfo;
   const [activeTab, setActiveTab] = useState<'metadata' | 'features' | 'entities'>('metadata');
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
 
   const getInitialDraft = () => {
     if (initialData) return initialData;
-    const saved = localStorage.getItem('taxon_draft_key');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
-    }
-    return { title: 'New Identification Key', authors: '', description: '', features: [], entities: [] };
+    return { title: t('kbNewIdentKey' as any) || 'New Identification Key', authors: '', description: '', features: [], entities: [] };
   };
 
   const [history, setHistory] = useState<DraftKeyData[]>(() => [getInitialDraft()]);
@@ -52,8 +50,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
 
   useEffect(() => {
     onChange?.(draftKey);
-    localStorage.setItem('taxon_draft_key', JSON.stringify(draftKey));
-    
+
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
@@ -138,14 +135,71 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
   const [collapsedFeatures, setCollapsedFeatures] = useState<Set<string>>(new Set());
   const [collapsedEntities, setCollapsedEntities] = useState<Set<string>>(new Set());
 
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const touchStart = useRef<{ x: number, y: number } | null>(null);
+
+  const tabIndex = activeTab === 'metadata' ? 0 : activeTab === 'features' ? 1 : 2;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+      touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      setIsSwiping(false);
+      setSwipeOffset(0);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+      if (!touchStart.current) return;
+      const currentX = e.touches[0].clientX;
+      const currentY = e.touches[0].clientY;
+      const deltaX = currentX - touchStart.current.x;
+      const deltaY = currentY - touchStart.current.y;
+
+      if (!isSwiping) {
+          if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+              setIsSwiping(true);
+          } else if (Math.abs(deltaY) > 10) {
+              touchStart.current = null;
+              return;
+          }
+      }
+
+      if (isSwiping) {
+          let effectiveDelta = deltaX;
+          if (activeTab === 'metadata' && deltaX > 0) effectiveDelta *= 0.3;
+          if (activeTab === 'entities' && deltaX < 0) effectiveDelta *= 0.3;
+          setSwipeOffset(effectiveDelta);
+      }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+      if (!touchStart.current) {
+          setIsSwiping(false);
+          setSwipeOffset(0);
+          return;
+      }
+      if (isSwiping) {
+          const deltaX = e.changedTouches[0].clientX - touchStart.current.x;
+          if (deltaX < -50) {
+              if (activeTab === 'metadata') setActiveTab('features');
+              else if (activeTab === 'features') setActiveTab('entities');
+          } else if (deltaX > 50) {
+              if (activeTab === 'entities') setActiveTab('features');
+              else if (activeTab === 'features') setActiveTab('metadata');
+          }
+      }
+      setIsSwiping(false);
+      setSwipeOffset(0);
+      touchStart.current = null;
+  };
+
   const processAndSetImage = (file: File, callback: (url: string) => void) => {
     const objectUrl = URL.createObjectURL(file);
     const img = new Image();
-    
+
     img.onload = () => {
       let { width, height } = img;
       const MAX_DIM = 1024;
-      
+
       if (width > MAX_DIM || height > MAX_DIM) {
         const ratio = Math.min(MAX_DIM / width, MAX_DIM / height);
         width = Math.round(width * ratio);
@@ -156,7 +210,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
-      
+
       if (ctx) {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, width, height);
@@ -221,17 +275,17 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
       ...prev,
       features: prev.features.map(f => {
         if (f.id === featureId) {
-           return {
-             ...f,
-             states: f.states.map(s => {
-               if (s.id === stateId && s.media) {
-                 const newMedia = [...s.media];
-                 newMedia[index] = { ...newMedia[index], ...updates };
-                 return { ...s, media: newMedia };
-               }
-               return s;
-             })
-           };
+          return {
+            ...f,
+            states: f.states.map(s => {
+              if (s.id === stateId && s.media) {
+                const newMedia = [...s.media];
+                newMedia[index] = { ...newMedia[index], ...updates };
+                return { ...s, media: newMedia };
+              }
+              return s;
+            })
+          };
         }
         return f;
       })
@@ -239,7 +293,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
   };
 
   const handleCreateNew = () => {
-    setHistory([{ title: 'New Identification Key', authors: '', description: '', features: [], entities: [] }]);
+    setHistory([{ title: t('kbNewIdentKey' as any) || 'New Identification Key', authors: '', description: '', features: [], entities: [] }]);
     setHistoryIndex(0);
     setActiveTab('metadata');
     setSelectedFeatureId(null);
@@ -279,15 +333,15 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
       return {
         ...prev,
         features: newFeatures,
-      entities: prev.entities.map(e => {
-        const newScores = { ...e.scores };
-        const feature = prev.features.find(f => f.id === id);
-        if (feature) {
-          delete newScores[feature.id];
-          feature.states.forEach(s => delete newScores[s.id]);
-        }
-        return { ...e, scores: newScores };
-      })
+        entities: prev.entities.map(e => {
+          const newScores = { ...e.scores };
+          const feature = prev.features.find(f => f.id === id);
+          if (feature) {
+            delete newScores[feature.id];
+            feature.states.forEach(s => delete newScores[s.id]);
+          }
+          return { ...e, scores: newScores };
+        })
       };
     });
     if (selectedFeatureId === id) setSelectedFeatureId(null);
@@ -320,110 +374,180 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
 
   const activeEditingMedia = editingMedia ? (
     editingMedia.type === 'feature' ? draftKey.features.find(f => f.id === editingMedia.itemId)?.media?.[editingMedia.mediaIndex] :
-    editingMedia.type === 'entity' ? draftKey.entities.find(e => e.id === editingMedia.itemId)?.media?.[editingMedia.mediaIndex] :
-    draftKey.features.find(f => f.id === editingMedia.itemId)?.states.find(s => s.id === editingMedia.stateId)?.media?.[editingMedia.mediaIndex]
+      editingMedia.type === 'entity' ? draftKey.entities.find(e => e.id === editingMedia.itemId)?.media?.[editingMedia.mediaIndex] :
+        draftKey.features.find(f => f.id === editingMedia.itemId)?.states.find(s => s.id === editingMedia.stateId)?.media?.[editingMedia.mediaIndex]
   ) : null;
+
+  const builderLeftActions = (
+    <>
+      <button onClick={() => setShowNewKeyModal(true)} title={t('kbNewKey' as any)} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0">
+        <Icon name="FilePlus" size={24} className="opacity-80" />
+      </button>
+      <button onClick={triggerOpenNativeKey} title={t('openNativeKey')} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0">
+        <Icon name="FolderOpen" size={24} className="opacity-80" />
+      </button>
+      <button onClick={exportJson} title={t('exportJson')} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0">
+        <Icon name="Download" size={24} className="opacity-80" />
+      </button>
+      <button onClick={() => onTestKey?.(draftKey)} title={t('kbTestKey' as any)} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0">
+        <Icon name="Play" size={24} className="opacity-80 text-accent" />
+      </button>
+      <button onClick={openPreferences} title={t('preferences')} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0">
+        <Icon name="Settings2" size={24} className="opacity-80" />
+      </button>
+    </>
+  );
+
+  const builderCenterContent = (
+    <div className="absolute left-1/2 -translate-x-1/2 flex items-center z-10">
+      <div className="flex items-center bg-panel-bg/85 backdrop-blur-sm border border-transparent dark:border-white/10 rounded-full shadow-sm overflow-hidden hover:shadow-md hover:border-black/10 dark:hover:border-white/20 transition-all">
+        <button onClick={undo} disabled={historyIndex <= 0} className="p-1.5 px-3 hover:bg-hover-bg/80 disabled:opacity-30 disabled:cursor-not-allowed transition-colors border-r border-black/5 dark:border-white/10 cursor-pointer" title={t('kbUndo')}><Icon name="Undo" size={18} /></button>
+        <button onClick={redo} disabled={historyIndex >= history.length - 1} className="p-1.5 px-3 hover:bg-hover-bg/80 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer" title={t('kbRedo')}><Icon name="Redo" size={18} /></button>
+      </div>
+      <span className={`absolute left-full ml-3 text-xs font-bold text-green-500 dark:text-green-400 flex items-center gap-1 transition-opacity duration-500 whitespace-nowrap ${isSaved ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <Icon name="Check" size={14} /> <span className="hidden md:inline">{t('saved' as any)}</span>
+      </span>
+    </div>
+  );
 
   return (
     <div className="flex flex-col h-full w-full bg-bg">
-      {/* Standalone Application Header */}
-      <div className="flex justify-between items-center px-4 py-2.5 bg-panel-bg/85 backdrop-blur-xl border-b border-white/20 dark:border-white/10 shrink-0 shadow-md z-10">
-        <div className="flex items-center gap-4">
-          <button onClick={onExit} className="p-2 rounded-full hover:bg-hover-bg cursor-pointer transition-colors text-text opacity-80 hover:opacity-100" title={t('back')}><Icon name="ArrowLeft" size={22} /></button>
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl font-bold text-accent tracking-tight">{t('builderMode')}</h2>
-            <span className={`text-xs font-bold text-green-500 dark:text-green-400 flex items-center gap-1 transition-opacity duration-500 ${isSaved ? 'opacity-100' : 'opacity-0'}`}>
-              <Icon name="Check" size={14} /> {t('saved' as any)}
-            </span>
-          </div>
+      {/* Mobile Sidebar */}
+      <div className={`md:hidden fixed top-0 left-0 h-full z-40 w-60 bg-panel-bg/90 backdrop-blur-2xl border-r border-white/20 dark:border-white/10 p-5 flex flex-col gap-5 shadow-2xl transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div onClick={() => { setSidebarOpen(false); onExit(); }} title={t('closeKey' as any)} className="pb-4 pt-2 flex items-center justify-center border-b border-black/5 dark:border-white/5 cursor-pointer hover:opacity-80 transition-opacity">
+          <h2 className="text-2xl font-black flex items-center gap-2 text-accent tracking-tight">
+            <Icon name="Leaf" size={28} /> Taxon
+          </h2>
         </div>
-        <div className="flex gap-3">
-          <div className="hidden md:flex items-center bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-full shadow-inner overflow-hidden mr-2">
-            <button onClick={undo} disabled={historyIndex <= 0} className="p-1.5 px-3 hover:bg-hover-bg/80 disabled:opacity-30 disabled:cursor-not-allowed transition-colors border-r border-white/20 dark:border-white/10" title={t('kbUndo')}><Icon name="Undo" size={16} /></button>
-            <button onClick={redo} disabled={historyIndex >= history.length - 1} className="p-1.5 px-3 hover:bg-hover-bg disabled:opacity-30 disabled:cursor-not-allowed transition-colors" title={t('kbRedo')}><Icon name="Redo" size={16} /></button>
-          </div>
-          <button onClick={() => setShowNewKeyModal(true)} className="hidden sm:flex items-center gap-2 px-3 md:px-4 py-1.5 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-full hover:bg-hover-bg/80 hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold cursor-pointer shadow-sm hover:shadow-md">
-            <Icon name="FilePlus" size={16} /> <span className="hidden md:inline">{t('kbNewKey' as any)}</span>
+        <div className="flex flex-col gap-2 text-sm font-semibold">
+          <button onClick={() => { setSidebarOpen(false); setShowNewKeyModal(true); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 group">
+            <Icon name="FilePlus" className="opacity-80 group-hover:opacity-100" /> {t('kbNewKey' as any)}
           </button>
-          <button onClick={triggerOpenNativeKey} title={t('openNativeKey')} className="flex items-center gap-2 px-3 md:px-4 py-1.5 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-full hover:bg-hover-bg/80 hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold cursor-pointer shadow-sm hover:shadow-md">
-            <Icon name="FileJson" size={16} /> <span className="hidden md:inline">{t('openNativeKey')}</span>
+          <button onClick={() => { setSidebarOpen(false); triggerOpenNativeKey(); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 group">
+            <Icon name="FolderOpen" className="opacity-80 group-hover:opacity-100" /> {t('openNativeKey')}
           </button>
-          <button onClick={exportJson} title={t('exportJson')} className="flex items-center gap-2 px-3 md:px-4 py-1.5 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-full hover:bg-hover-bg/80 hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold cursor-pointer shadow-sm hover:shadow-md">
-            <Icon name="Download" size={16} /> <span className="hidden md:inline">{t('exportJson')}</span>
+          <button onClick={() => { setSidebarOpen(false); exportJson(); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 group">
+            <Icon name="Download" className="opacity-80 group-hover:opacity-100" /> {t('exportJson')}
           </button>
-          <button onClick={() => onTestKey?.(draftKey)} title={t('kbTestKey' as any)} className="flex items-center gap-2 px-3 md:px-4 py-1.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-full hover:bg-accent-hover hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg shadow-accent/30 cursor-pointer">
-            <Icon name="Play" size={16} /> <span className="hidden md:inline">{t('kbTestKey' as any)}</span>
+          <button onClick={() => { setSidebarOpen(false); onTestKey?.(draftKey); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 group">
+            <Icon name="Play" className="opacity-80 group-hover:opacity-100 text-accent" /> {t('kbTestKey' as any)}
           </button>
-          <button onClick={openPreferences} title={t('preferences')} className="p-1.5 ml-1 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 hover:-translate-y-0.5 cursor-pointer shadow-sm hover:shadow-md border border-transparent hover:border-white/20 text-gray-500 hover:text-accent">
-            <Icon name="Settings2" size={20} />
+        </div>
+        <div className="mt-auto flex flex-col gap-2 pt-5 border-t border-black/5 dark:border-white/5 text-sm font-semibold">
+          <button onClick={() => { setSidebarOpen(false); openPreferences(); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer hover:shadow-sm hover:-translate-y-0.5">
+            <Icon name="Settings2" className="opacity-80" /> {t('preferences')}
           </button>
-          {!hideAi && (
-            <button onClick={() => setAiPanelVisible(true)} disabled={isAiPanelVisible} title={isAiPanelVisible ? undefined : t('assistant')} aria-hidden={isAiPanelVisible} className={`p-1.5 ml-1 rounded-full transition-all duration-300 ${isAiPanelVisible ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-90 hover:opacity-100 hover:bg-hover-bg/80 hover:-translate-y-0.5 cursor-pointer shadow-sm border border-transparent hover:border-white/20 hover:shadow-md'}`}>
-              <Spot primaryColor="currentColor" secondaryColor="#f8fafb" mode="head" className="w-5 h-5 text-accent" />
-            </button>
-          )}
+          <button onClick={() => { setSidebarOpen(false); openAppInfo(); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer hover:shadow-sm hover:-translate-y-0.5">
+            <Icon name="Info" className="opacity-80" /> {t('aboutTaxon' as any)}
+          </button>
         </div>
       </div>
-      
-      <div className="flex flex-col md:flex-row grow overflow-hidden p-2 md:p-4 gap-2 md:gap-4">
-        {/* Builder Sidebar Tabs */}
-        <div className="w-full md:w-60 shrink-0 flex flex-row md:flex-col overflow-x-auto gap-2 bg-panel-bg/80 backdrop-blur-xl border border-white/20 dark:border-white/10 p-2 md:p-4 rounded-2xl md:rounded-3xl shadow-lg scrollbar-hide">
-          <h3 className="hidden md:block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">Builder Menu</h3>
-          <button 
-            onClick={() => setActiveTab('metadata')}
-            className={`flex items-center gap-2 md:gap-3 text-left px-3 py-2 md:py-2.5 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer whitespace-nowrap ${activeTab === 'metadata' ? 'bg-accent/95 backdrop-blur-md text-white shadow-lg shadow-accent/30 border border-white/20' : 'hover:bg-hover-bg/80 hover:shadow-sm hover:-translate-y-0.5 text-text border border-transparent hover:border-white/10'}`}
-          >
-            <Icon name="FileText" size={18} className={activeTab === 'metadata' ? 'opacity-100' : 'opacity-70'} />
-            {t('kbMetadata')}
-          </button>
-          <button 
-            onClick={() => setActiveTab('features')}
-            className={`flex items-center justify-between gap-2 md:gap-0 text-left px-3 py-2 md:py-2.5 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer whitespace-nowrap ${activeTab === 'features' ? 'bg-accent/95 backdrop-blur-md text-white shadow-lg shadow-accent/30 border border-white/20' : 'hover:bg-hover-bg/80 hover:shadow-sm hover:-translate-y-0.5 text-text border border-transparent hover:border-white/10'}`}
-          >
-            <div className="flex items-center gap-3"><Icon name="ListTree" size={18} className={activeTab === 'features' ? 'opacity-100' : 'opacity-70'} /> {t('kbFeatures')}</div>
-            <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === 'features' ? 'bg-white/20' : 'bg-bg border border-border'}`}>{draftKey.features.length}</span>
-          </button>
-          <button 
-            onClick={() => setActiveTab('entities')}
-            className={`flex items-center justify-between gap-2 md:gap-0 text-left px-3 py-2 md:py-2.5 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer whitespace-nowrap ${activeTab === 'entities' ? 'bg-accent/95 backdrop-blur-md text-white shadow-lg shadow-accent/30 border border-white/20' : 'hover:bg-hover-bg/80 hover:shadow-sm hover:-translate-y-0.5 text-text border border-transparent hover:border-white/10'}`}
-          >
-            <div className="flex items-center gap-3"><Icon name="List" size={18} className={activeTab === 'entities' ? 'opacity-100' : 'opacity-70'} /> {t('kbEntities')}</div>
-            <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === 'entities' ? 'bg-white/20' : 'bg-bg border border-border'}`}>{draftKey.entities.length}</span>
-          </button>
+
+      {/* Mobile Sidebar Backdrop */}
+      {isSidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 md:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
+      <Header 
+        isSidebarOpen={isSidebarOpen} 
+        setSidebarOpen={setSidebarOpen} 
+        leftActions={builderLeftActions} 
+        centerContent={builderCenterContent} 
+        onLogoClick={onExit} 
+      />
+
+      <div className="flex flex-col grow overflow-hidden">
+        <div className="flex flex-row grow overflow-hidden p-0 md:p-4 gap-0 md:gap-4">
+          {/* Builder Sidebar Tabs (Desktop) */}
+          <div className="hidden md:flex w-60 shrink-0 flex-col overflow-y-auto gap-2 bg-panel-bg/80 backdrop-blur-xl border border-white/20 dark:border-white/10 p-4 rounded-3xl shadow-lg scrollbar-hide">
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">{t('kbBuilderMenu' as any)}</h3>
+            <button
+              onClick={() => setActiveTab('metadata')}
+              className={`flex items-center gap-3 text-left px-3 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer whitespace-nowrap ${activeTab === 'metadata' ? 'bg-accent/95 backdrop-blur-md text-white shadow-lg shadow-accent/30 border border-white/20' : 'hover:bg-hover-bg/80 hover:shadow-sm hover:-translate-y-0.5 text-text border border-transparent hover:border-white/10'}`}
+            >
+              <Icon name="FileText" size={18} className={activeTab === 'metadata' ? 'opacity-100' : 'opacity-70'} />
+              {t('kbMetadata')}
+            </button>
+            <button
+              onClick={() => setActiveTab('features')}
+              className={`flex items-center justify-between text-left px-3 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer whitespace-nowrap ${activeTab === 'features' ? 'bg-accent/95 backdrop-blur-md text-white shadow-lg shadow-accent/30 border border-white/20' : 'hover:bg-hover-bg/80 hover:shadow-sm hover:-translate-y-0.5 text-text border border-transparent hover:border-white/10'}`}
+            >
+              <div className="flex items-center gap-3"><Icon name="ListTree" size={18} className={activeTab === 'features' ? 'opacity-100' : 'opacity-70'} /> {t('kbFeatures')}</div>
+              <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === 'features' ? 'bg-white/20' : 'bg-bg border border-border'}`}>{draftKey.features.length}</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('entities')}
+              className={`flex items-center justify-between text-left px-3 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer whitespace-nowrap ${activeTab === 'entities' ? 'bg-accent/95 backdrop-blur-md text-white shadow-lg shadow-accent/30 border border-white/20' : 'hover:bg-hover-bg/80 hover:shadow-sm hover:-translate-y-0.5 text-text border border-transparent hover:border-white/10'}`}
+            >
+              <div className="flex items-center gap-3"><Icon name="List" size={18} className={activeTab === 'entities' ? 'opacity-100' : 'opacity-70'} /> {t('kbEntities')}</div>
+              <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === 'entities' ? 'bg-white/20' : 'bg-bg border border-border'}`}>{draftKey.entities.length}</span>
+            </button>
+          </div>
+
+          {/* Builder Main Content */}
+        <div 
+          className={`flex grow flex-col md:bg-panel-bg/90 md:backdrop-blur-xl md:border border-white/20 dark:border-white/10 md:rounded-3xl overflow-hidden md:shadow-lg relative`}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div className={`builder-mobile-view ${isSwiping ? 'is-swiping' : ''}`} style={{ '--mobile-tab-offset': `-${tabIndex * 100}%`, '--swipe-offset': `${swipeOffset}px` } as React.CSSProperties}>
+            <div className={`builder-panel ${activeTab === 'metadata' ? 'active' : ''}`}>
+              <div className="w-full h-full flex flex-col overflow-hidden max-md:bg-panel-bg/90 max-md:backdrop-blur-xl max-md:border max-md:border-white/20 dark:max-md:border-white/10 max-md:rounded-3xl max-md:shadow-lg">
+                <BuilderMetadataTab draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any} />
+              </div>
+            </div>
+
+            <div className={`builder-panel ${activeTab === 'features' ? 'active' : ''}`}>
+              <div className="w-full h-full flex flex-col overflow-hidden max-md:bg-panel-bg/90 max-md:backdrop-blur-xl max-md:border max-md:border-white/20 dark:max-md:border-white/10 max-md:rounded-3xl max-md:shadow-lg">
+                <BuilderFeaturesTab
+                  draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
+                  selectedFeatureId={selectedFeatureId} setSelectedFeatureId={setSelectedFeatureId}
+                  collapsedFeatures={collapsedFeatures} toggleFeatureCollapse={toggleFeatureCollapse}
+                  draggedItem={draggedItem} setDraggedItem={setDraggedItem}
+                  dragOverId={dragOverId} setDragOverId={setDragOverId}
+                  draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
+                  setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
+                  processAndSetImage={processAndSetImage}
+                />
+              </div>
+            </div>
+
+            <div className={`builder-panel ${activeTab === 'entities' ? 'active' : ''}`}>
+              <div className="w-full h-full flex flex-col overflow-hidden max-md:bg-panel-bg/90 max-md:backdrop-blur-xl max-md:border max-md:border-white/20 dark:max-md:border-white/10 max-md:rounded-3xl max-md:shadow-lg">
+                <BuilderEntitiesTab
+                  draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
+                  selectedEntityId={selectedEntityId} setSelectedEntityId={setSelectedEntityId}
+                  collapsedEntities={collapsedEntities} toggleEntityCollapse={toggleEntityCollapse}
+                  draggedItem={draggedItem} setDraggedItem={setDraggedItem}
+                  dragOverId={dragOverId} setDragOverId={setDragOverId}
+                  draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
+                  setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
+                  processAndSetImage={processAndSetImage}
+                />
+              </div>
+            </div>
+          </div>
+          </div>
         </div>
+      </div>
 
-        {/* Builder Main Content */}
-        <div className="flex grow flex-col bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl overflow-hidden shadow-lg relative">
-          {activeTab === 'metadata' && (
-            <BuilderMetadataTab draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any} />
-          )}
-
-          {activeTab === 'features' && (
-            <BuilderFeaturesTab 
-              draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
-              selectedFeatureId={selectedFeatureId} setSelectedFeatureId={setSelectedFeatureId}
-              collapsedFeatures={collapsedFeatures} toggleFeatureCollapse={toggleFeatureCollapse}
-              draggedItem={draggedItem} setDraggedItem={setDraggedItem}
-              dragOverId={dragOverId} setDragOverId={setDragOverId}
-              draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
-              setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
-              processAndSetImage={processAndSetImage}
-            />
-          )}
-
-          {activeTab === 'entities' && (
-            <BuilderEntitiesTab
-              draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
-              selectedEntityId={selectedEntityId} setSelectedEntityId={setSelectedEntityId}
-              collapsedEntities={collapsedEntities} toggleEntityCollapse={toggleEntityCollapse}
-              draggedItem={draggedItem} setDraggedItem={setDraggedItem}
-              dragOverId={dragOverId} setDragOverId={setDragOverId}
-              draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
-              setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
-              processAndSetImage={processAndSetImage}
-            />
-          )}
-        </div>
+      {/* Mobile Bottom Bar */}
+      <div className="flex md:hidden items-center justify-around bg-panel-bg/85 backdrop-blur-xl border border-white/20 dark:border-white/10 p-2 shrink-0 z-20 shadow-lg rounded-3xl m-2" style={{ marginBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}>
+        <button onClick={() => setActiveTab('metadata')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 relative ${activeTab === 'metadata' ? 'text-accent bg-accent/10 shadow-inner scale-105' : 'text-gray-500 hover:text-accent hover:bg-hover-bg/50'}`}>
+          <Icon name="FileText" size={22} className={activeTab === 'metadata' ? 'drop-shadow-sm' : ''} />
+          <span className="text-[10px] font-bold text-center leading-none tracking-tight">{t('kbMetadata')}</span>
+        </button>
+        <button onClick={() => setActiveTab('features')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 relative ${activeTab === 'features' ? 'text-accent bg-accent/10 shadow-inner scale-105' : 'text-gray-500 hover:text-accent hover:bg-hover-bg/50'}`}>
+          <Icon name="ListTree" size={22} className={activeTab === 'features' ? 'drop-shadow-sm' : ''} />
+          <span className="text-[10px] font-bold text-center leading-none tracking-tight">{t('kbFeatures')}</span>
+          {draftKey.features.length > 0 && <span className="absolute -top-1 -right-1 bg-accent/95 backdrop-blur-sm border border-white/20 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-md animate-fade-in-up">{draftKey.features.length > 99 ? '99+' : draftKey.features.length}</span>}
+        </button>
+        <button onClick={() => setActiveTab('entities')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 relative ${activeTab === 'entities' ? 'text-accent bg-accent/10 shadow-inner scale-105' : 'text-gray-500 hover:text-accent hover:bg-hover-bg/50'}`}>
+          <Icon name="List" size={22} className={activeTab === 'entities' ? 'drop-shadow-sm' : ''} />
+          <span className="text-[10px] font-bold text-center leading-none tracking-tight">{t('kbEntities')}</span>
+          {draftKey.entities.length > 0 && <span className="absolute -top-1 -right-1 bg-accent/95 backdrop-blur-sm border border-white/20 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-md animate-fade-in-up">{draftKey.entities.length > 99 ? '99+' : draftKey.entities.length}</span>}
+        </button>
       </div>
 
       {/* Media Edit Modal */}
@@ -431,61 +555,61 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
           <div className="bg-panel-bg/95 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-[0_16px_40px_rgba(0,0,0,0.2)] w-full max-w-4xl flex flex-col md:flex-row overflow-hidden max-h-[90vh] animate-fade-in-up">
             <div className="w-full md:w-1/2 bg-black/5 dark:bg-white/5 flex items-center justify-center p-6 relative">
-                <img src={activeEditingMedia.url} alt="Preview" className="max-w-full max-h-full object-contain drop-shadow-md rounded-lg" />
+              <img src={activeEditingMedia.url} alt={t('preview')} className="max-w-full max-h-full object-contain drop-shadow-md rounded-lg" />
             </div>
             <div className="w-full md:w-1/2 p-8 flex flex-col gap-6 overflow-y-auto bg-panel-bg/50">
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-2xl font-bold text-accent">{t('kbEditMedia')}</h3>
-                  <button onClick={() => setEditingMedia(null)} className="p-2 -mr-2 rounded-full hover:bg-hover-bg text-gray-500 hover:text-red-500 transition-colors cursor-pointer"><Icon name="X" size={24}/></button>
-                </div>
-                
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-sm font-semibold opacity-80">{t('kbCaption')}</span>
-                  <textarea rows={4} value={activeEditingMedia.caption || ''} onChange={e => {
-                    if (editingMedia.type === 'feature') updateFeatureMedia(editingMedia.itemId, editingMedia.mediaIndex, { caption: e.target.value });
-                    else if (editingMedia.type === 'entity') updateEntityMedia(editingMedia.itemId, editingMedia.mediaIndex, { caption: e.target.value });
-                    else if (editingMedia.type === 'state') updateStateMedia(editingMedia.itemId, editingMedia.stateId!, editingMedia.mediaIndex, { caption: e.target.value });
-                  }} className="p-3 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-xl focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/50 text-text text-sm resize-none shadow-inner transition-all" />
-                </label>
-                
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-sm font-semibold opacity-80">{t('kbCopyright')}</span>
-                  <input type="text" value={activeEditingMedia.copyright || ''} onChange={e => {
-                    if (editingMedia.type === 'feature') updateFeatureMedia(editingMedia.itemId, editingMedia.mediaIndex, { copyright: e.target.value });
-                    else if (editingMedia.type === 'entity') updateEntityMedia(editingMedia.itemId, editingMedia.mediaIndex, { copyright: e.target.value });
-                    else if (editingMedia.type === 'state') updateStateMedia(editingMedia.itemId, editingMedia.stateId!, editingMedia.mediaIndex, { copyright: e.target.value });
-                  }} className="p-3 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-xl focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/50 text-text text-sm shadow-inner transition-all" />
-                </label>
-                
-                <div className="mt-auto flex flex-col md:flex-row justify-end gap-3 pt-6">
-                  <button onClick={() => setEditingMedia(null)} className="w-full md:w-auto px-6 py-2.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white font-bold rounded-xl hover:bg-accent-hover hover:-translate-y-0.5 transition-all duration-300 shadow-md hover:shadow-lg shadow-accent/30 cursor-pointer">{t('save')}</button>
-                </div>
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-2xl font-bold text-accent">{t('kbEditMedia')}</h3>
+                <button onClick={() => setEditingMedia(null)} className="p-2 -mr-2 rounded-full hover:bg-hover-bg text-gray-500 hover:text-red-500 transition-colors cursor-pointer"><Icon name="X" size={24} /></button>
+              </div>
+
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-semibold opacity-80">{t('kbCaption')}</span>
+                <textarea rows={4} value={activeEditingMedia.caption || ''} className="input-base text-sm resize-none" onChange={e => {
+                  if (editingMedia.type === 'feature') updateFeatureMedia(editingMedia.itemId, editingMedia.mediaIndex, { caption: e.target.value });
+                  else if (editingMedia.type === 'entity') updateEntityMedia(editingMedia.itemId, editingMedia.mediaIndex, { caption: e.target.value });
+                  else if (editingMedia.type === 'state') updateStateMedia(editingMedia.itemId, editingMedia.stateId!, editingMedia.mediaIndex, { caption: e.target.value });
+                }} />
+              </label>
+
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-semibold opacity-80">{t('kbCopyright')}</span>
+                <input type="text" value={activeEditingMedia.copyright || ''} className="input-base text-sm" onChange={e => {
+                  if (editingMedia.type === 'feature') updateFeatureMedia(editingMedia.itemId, editingMedia.mediaIndex, { copyright: e.target.value });
+                  else if (editingMedia.type === 'entity') updateEntityMedia(editingMedia.itemId, editingMedia.mediaIndex, { copyright: e.target.value });
+                  else if (editingMedia.type === 'state') updateStateMedia(editingMedia.itemId, editingMedia.stateId!, editingMedia.mediaIndex, { copyright: e.target.value });
+                }} />
+              </label>
+
+              <div className="mt-auto flex flex-col md:flex-row justify-end gap-3 pt-6">
+                <button onClick={() => setEditingMedia(null)} className="w-full md:w-auto px-6 py-2.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white font-bold rounded-xl hover:bg-accent-hover hover:-translate-y-0.5 transition-all duration-300 shadow-md hover:shadow-lg shadow-accent/30 cursor-pointer">{t('save')}</button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-        <ConfirmModal
-          isOpen={deleteTarget !== null}
-          onClose={() => setDeleteTarget(null)}
-          onConfirm={confirmDelete}
-          title={t('kbDelete')}
-          message={t('kbConfirmDelete' as any)}
-          confirmText={t('kbDelete')}
-          cancelText={t('cancel')}
-          isDestructive={true}
-        />
+      <ConfirmModal
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title={t('kbDelete')}
+        message={t('kbConfirmDelete' as any)}
+        confirmText={t('kbDelete')}
+        cancelText={t('cancel')}
+        isDestructive={true}
+      />
 
-        <Modal isOpen={showNewKeyModal} onClose={() => setShowNewKeyModal(false)} title={t('kbNewKey' as any)}>
-          <div className="p-6 text-text">
-            <p className="mb-6 opacity-90">{t('kbNewKeyPrompt' as any)}</p>
-            <div className="flex flex-col-reverse md:flex-row justify-end gap-3">
-              <button onClick={() => setShowNewKeyModal(false)} className="w-full md:w-auto px-4 py-2 hover:bg-hover-bg/80 hover:-translate-y-0.5 rounded-xl font-medium transition-all duration-300 cursor-pointer">{t('cancel')}</button>
-              <button onClick={() => { exportJson(); handleCreateNew(); }} className="w-full md:w-auto justify-center px-4 py-2 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-xl hover:bg-hover-bg/80 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 shadow-sm font-medium flex items-center gap-2 cursor-pointer"><Icon name="FileJson" size={16}/> {t('exportJson')}</button>
-              <button onClick={handleCreateNew} className="w-full md:w-auto justify-center px-4 py-2 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-xl hover:bg-red-600 hover:-translate-y-0.5 transition-all duration-300 shadow-md hover:shadow-lg shadow-red-500/30 font-bold cursor-pointer">{t('kbDiscardAndCreate' as any)}</button>
-            </div>
+      <Modal isOpen={showNewKeyModal} onClose={() => setShowNewKeyModal(false)} title={t('kbNewKey' as any)}>
+        <div className="p-6 text-text">
+          <p className="mb-6 opacity-90">{t('kbNewKeyPrompt' as any)}</p>
+          <div className="flex flex-col-reverse md:flex-row justify-end gap-3">
+            <button onClick={() => setShowNewKeyModal(false)} className="w-full md:w-auto px-4 py-2 hover:bg-hover-bg/80 hover:-translate-y-0.5 rounded-xl font-medium transition-all duration-300 cursor-pointer">{t('cancel')}</button>
+            <button onClick={() => { exportJson(); handleCreateNew(); }} className="w-full md:w-auto justify-center px-4 py-2 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-xl hover:bg-hover-bg/80 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 shadow-sm font-medium flex items-center gap-2 cursor-pointer"><Icon name="FileJson" size={16} /> {t('exportJson')}</button>
+            <button onClick={handleCreateNew} className="w-full md:w-auto justify-center px-4 py-2 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-xl hover:bg-red-600 hover:-translate-y-0.5 transition-all duration-300 shadow-md hover:shadow-lg shadow-red-500/30 font-bold cursor-pointer">{t('kbDiscardAndCreate' as any)}</button>
           </div>
-        </Modal>
+        </div>
+      </Modal>
     </div>
   );
 };

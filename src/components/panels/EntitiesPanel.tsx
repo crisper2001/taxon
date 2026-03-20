@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Panel } from './Panel';
 import { Icon, type IconName } from '../Icon';
-import type { Entity, Media, EntityNode } from '../../types';
+import type { Media, EntityNode } from '../../types';
+import { useSearchAutoScroll } from '../../hooks/useSearchAutoScroll';
 
 // --- EntitiesPanel ---
 interface EntitiesPanelProps {
@@ -114,36 +115,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({ title, icon, count
     setCurrentMatchIndex(0);
   }, [searchTerm, matchingIds]);
 
-  // Auto-scroll to current match
-  useEffect(() => {
-    if (searchTerm && matchingIds && matchingIds.size > 0) {
-      const timeoutId = setTimeout(() => {
-        if (containerRef.current) {
-          containerRef.current.querySelectorAll('[data-search-active="true"]').forEach(el => el.removeAttribute('data-search-active'));
-          const matches = containerRef.current.querySelectorAll('[data-search-match="true"]');
-          setMatchCount(matches.length);
-          if (matches.length > 0) {
-            let safeIndex = currentMatchIndex;
-            if (safeIndex >= matches.length) safeIndex = 0;
-            if (safeIndex < 0) safeIndex = matches.length - 1;
-            
-            if (safeIndex !== currentMatchIndex) {
-              setCurrentMatchIndex(safeIndex);
-            } else {
-              matches[safeIndex].setAttribute('data-search-active', 'true');
-              matches[safeIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-          }
-        }
-      }, 100);
-      return () => clearTimeout(timeoutId);
-    } else {
-      setMatchCount(0);
-      if (containerRef.current) {
-        containerRef.current.querySelectorAll('[data-search-active="true"]').forEach(el => el.removeAttribute('data-search-active'));
-      }
-    }
-  }, [matchingIds, searchTerm, currentMatchIndex]);
+  useSearchAutoScroll(containerRef, searchTerm, matchingIds, currentMatchIndex, setCurrentMatchIndex, setMatchCount);
 
   const handleToggleNode = (id: string) => {
     setExpandedNodes(prev => {

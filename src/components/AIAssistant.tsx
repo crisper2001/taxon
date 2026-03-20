@@ -212,7 +212,7 @@ const ChatMessageBubble = React.memo<{
                           {sf.states.map(s => <span key={s} className="text-[10px] px-1.5 py-0.5 bg-black/5 dark:bg-white/10 rounded-md font-medium opacity-90">{s}</span>)}
                         </div>
                      )}
-                     {sf.type === 'numeric' && <div className="text-[10px] px-1.5 py-0.5 bg-black/5 dark:bg-white/10 rounded-md font-medium opacity-90 w-fit mt-1">Numeric (Range)</div>}
+                     {sf.type === 'numeric' && <div className="text-[10px] px-1.5 py-0.5 bg-black/5 dark:bg-white/10 rounded-md font-medium opacity-90 w-fit mt-1">{t('kbTypeNumeric' as any)}</div>}
                   </div>
                 )})}
               </div>
@@ -413,22 +413,17 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
     }
   }, [mentionSelectedIndex, mentionState.active]);
 
-  // Clear the history and any attached image blob references when modes switch
+  // Restore consolidated description when switching modes or loading history
   useEffect(() => {
-    rawChatHistory.forEach(msg => {
-      if ((msg as any).imageUrl && (msg as any).imageUrl.startsWith('blob:')) {
-        URL.revokeObjectURL((msg as any).imageUrl);
-      }
-    });
-    setRawChatHistory([]);
-    consolidatedDescription.current = "";
-    if (selectedImage) {
-      URL.revokeObjectURL(selectedImage.url);
-      setSelectedImage(null);
+    const lastValidAiMessage = rawChatHistory.slice().reverse().find(m => m.sender === 'ai' && m.data);
+    if (lastValidAiMessage?.data?.updated_description) {
+      consolidatedDescription.current = lastValidAiMessage.data.updated_description;
+    } else {
+      consolidatedDescription.current = "";
     }
-  }, [appMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [rawChatHistory, appMode]);
 
-  // Effect to reset chat when the key file changes.
+  // Clears the current mode's chat history and revokes any active image blob URLs
   const handleClearHistory = () => {
     rawChatHistory.forEach(msg => {
       if ((msg as any).imageUrl && (msg as any).imageUrl.startsWith('blob:')) {
@@ -1034,7 +1029,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
 
   return (
     <div 
-      className={`panel flex flex-col h-full w-full bg-panel-bg/90 backdrop-blur-xl border-l border-black/10 dark:border-white/10 ${isVisible ? 'shadow-[-8px_0_30px_rgba(0,0,0,0.05)] dark:shadow-[-8px_0_30px_rgba(0,0,0,0.2)] opacity-100' : 'shadow-none opacity-0'} transition-all duration-300 overflow-hidden relative`}
+      className={`panel flex flex-col h-full w-full bg-panel-bg/90 border border-white/20 dark:border-white/10 rounded-2xl md:rounded-3xl transition-all duration-300 overflow-hidden relative ${isVisible ? 'shadow-lg opacity-100 backdrop-blur-xl' : 'shadow-none opacity-0 pointer-events-none'}`}
       onDragOver={handleDragOver}
       onDragEnter={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -1058,7 +1053,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
 
       {rawChatHistory.length === 0 || !isEnabled ? (
         // Unified Welcome Screen when chat is empty
-        <div className="flex flex-col items-center justify-center h-full text-center text-text animate-fade-in p-6 bg-gradient-to-b from-panel-bg to-bg">
+        <div className="flex flex-col items-center justify-center h-full text-center text-text animate-fade-in p-6">
           <div className="flex flex-col items-center max-w-sm">
             <Spot primaryColor="currentColor" secondaryColor="#f8fafb" mode="body" className="w-14 mb-5 text-accent drop-shadow-md" />
             <h3 className="text-3xl font-bold mb-3 tracking-tight  text-accent">{t('assistant')}</h3>
@@ -1067,7 +1062,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
         </div>
       ) : (
         // Standard chat view
-        <div ref={chatHistoryRef} onClick={handleEntityClick} className="panel-content grow p-4 overflow-y-auto space-y-5 bg-gradient-to-b from-panel-bg/50 to-transparent">
+        <div ref={chatHistoryRef} onClick={handleEntityClick} className="panel-content grow p-4 overflow-y-auto space-y-5">
             {(() => {
               const lastUserIndex = chatHistory.map(m => m.sender).lastIndexOf('user');
               return chatHistory.map((msg, index) => {
@@ -1109,7 +1104,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
             )}
           </div>
       )}
-      <form onSubmit={handleSubmit} className="p-3 pt-1 relative flex flex-col bg-panel-bg shrink-0">
+      <form onSubmit={handleSubmit} className="p-3 pt-1 relative flex flex-col shrink-0">
         {mentionState.active && mentionOptions.length > 0 && (
           <div className="absolute bottom-full left-3 right-3 bg-panel-bg border border-border rounded-xl shadow-lg mb-2 max-h-48 overflow-y-auto z-10 flex flex-col py-1 animate-fade-in-up">
             {mentionOptions.map((opt, idx) => (
@@ -1126,14 +1121,14 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
             ))}
           </div>
         )}
-        <div className={`relative flex items-end w-full border border-white/20 dark:border-white/10 rounded-3xl bg-bg/80 backdrop-blur-md shadow-inner transition-all focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20 ${(!isEnabled || isThinking || !geminiApiKey) ? 'opacity-60 grayscale-[30%]' : ''}`}>
-          <div className="pl-1.5 pb-1.5 shrink-0 flex items-center justify-center">
+        <div className={`relative flex items-center w-full border border-white/20 dark:border-white/10 rounded-3xl bg-bg/80 backdrop-blur-md shadow-inner transition-all focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20 ${(!isEnabled || isThinking || !geminiApiKey) ? 'opacity-60 grayscale-[30%]' : ''}`}>
+          <div className="pl-1.5 shrink-0 flex items-center justify-center">
             <input type="file" ref={imageInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
             <button type="button" onClick={() => imageInputRef.current?.click()} disabled={!isEnabled || isThinking || !geminiApiKey} className="w-9 h-9 text-gray-500 hover:text-accent rounded-full flex items-center justify-center transition-colors cursor-pointer disabled:cursor-not-allowed disabled:hover:text-gray-500 hover:bg-hover-bg" title={t('uploadImage')}>
               <Icon name="Image" size={20} />
             </button>
           </div>
-          <div className="relative w-full overflow-hidden flex flex-col justify-end">
+          <div className="relative w-full overflow-hidden flex flex-col justify-center">
             {selectedImage && (
               <div className="pt-3 px-2 pb-1">
                 <div className="relative inline-block">
@@ -1147,7 +1142,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
             <div className="relative w-full">
               <div 
                 ref={backdropRef}
-                className="absolute inset-0 w-full h-full p-3 text-[15px] pointer-events-none whitespace-pre-wrap break-words overflow-y-auto font-sans text-text leading-relaxed"
+                className="absolute inset-0 w-full h-full pt-3 pb-2 px-3 text-[15px] pointer-events-none whitespace-pre-wrap break-words overflow-y-auto font-sans text-text leading-relaxed"
                 style={{ maxHeight: '120px' }}
                 aria-hidden="true"
               >
@@ -1168,13 +1163,13 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
                 }}
                 placeholder={placeholder}
                 disabled={!isEnabled || isThinking || !geminiApiKey}
-                className="w-full p-3 text-[15px] bg-transparent resize-none overflow-y-auto focus:outline-none z-10 font-sans placeholder-transparent leading-relaxed"
+                className="w-full pt-3 pb-2 px-3 text-[15px] bg-transparent resize-none overflow-y-auto focus:outline-none z-10 font-sans placeholder-transparent leading-relaxed"
                 style={{ maxHeight: '120px', color: 'inherit', WebkitTextFillColor: 'transparent', caretColor: 'currentColor' }}
                 spellCheck="false"
               />
             </div>
           </div>
-          <div className="pr-1.5 pb-1.5 shrink-0 flex items-center justify-center">
+          <div className="pr-1.5 shrink-0 flex items-center justify-center">
             <button type="submit" disabled={!isEnabled || isThinking || (!userInput.trim() && !selectedImage) || !geminiApiKey} className="w-9 h-9 bg-accent text-white rounded-full flex items-center justify-center disabled:bg-gray-400 disabled:scale-95 transition-all duration-200 hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-bg focus:ring-accent cursor-pointer disabled:cursor-not-allowed shadow-md">
               <Icon name="ArrowUp" size={20} />
             </button>

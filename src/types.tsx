@@ -125,7 +125,8 @@ export type ModalState =
   | { type: 'keyInfo' }
   | { type: 'preferences' }
   | { type: 'lightbox'; media: Media[]; startIndex: number }
-  | { type: 'confirmClear' };
+  | { type: 'confirmClear' }
+  | { type: 'appInfo' };
 
 export interface GeminiFeatureMatch {
   id: string;

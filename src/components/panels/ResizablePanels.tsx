@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Icon, type IconName } from '../Icon';
+import { useAppContext } from '../../context/AppContext';
 
 interface ResizablePanelsProps {
     children: React.ReactNode[];
@@ -10,6 +11,7 @@ const MIN_PANEL_SIZE = 250;
 const RESIZER_SIZE = 5; // The size of the resizer bar in pixels.
 
 export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bottomBarItems }) => {
+    const { t } = useAppContext();
     const [mobileTab, setMobileTab] = useState(0);
     const [layout, setLayout] = useState(() => {
         const savedLayout = localStorage.getItem('panelsLayout');
@@ -23,7 +25,7 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
                 // Ignore parse errors and fall back to default
             }
         }
-        return { rows: `3fr ${RESIZER_SIZE}px 2fr`, cols: `1fr ${RESIZER_SIZE}px 2fr` };
+        return { rows: `60fr ${RESIZER_SIZE}px 40fr`, cols: `33.333fr ${RESIZER_SIZE}px 66.667fr` };
     });
     const containerRef = useRef<HTMLDivElement>(null);
     const resizingType = useRef<null | 'v' | 'h'>(null);
@@ -86,9 +88,10 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
         e.preventDefault();
         resizingType.current = type;
         setIsResizing(true);
-        const rect = containerRef.current!.getBoundingClientRect();
-        if (type === 'v') dragOffset.current = e.clientX - (rect.left + containerRef.current!.firstElementChild!.clientWidth);
-        else dragOffset.current = e.clientY - (rect.top + containerRef.current!.firstElementChild!.clientHeight);
+        const firstChild = containerRef.current!.firstElementChild!;
+        const firstRect = firstChild.getBoundingClientRect();
+        if (type === 'v') dragOffset.current = e.clientX - firstRect.right;
+        else dragOffset.current = e.clientY - firstRect.bottom;
     };
 
     const handleMouseUp = useCallback(() => {
@@ -102,15 +105,22 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
         requestAnimationFrame(() => {
             if (!resizingType.current || !containerRef.current) return;
             const rect = containerRef.current.getBoundingClientRect();
+            const FIXED_SPACE = 53; // 32px padding + 16px gap + 5px resizer
 
             if (resizingType.current === 'v') {
-                let newFirstColWidth = e.clientX - rect.left - dragOffset.current;
-                newFirstColWidth = Math.max(MIN_PANEL_SIZE, Math.min(newFirstColWidth, rect.width - MIN_PANEL_SIZE - RESIZER_SIZE));
-                setLayout(prev => ({ ...prev, cols: `${newFirstColWidth}px ${RESIZER_SIZE}px 1fr` }));
+                const freeWidth = Math.max(1, rect.width - FIXED_SPACE);
+                let newWidth = e.clientX - dragOffset.current - (rect.left + 16);
+                newWidth = Math.max(MIN_PANEL_SIZE, Math.min(newWidth, freeWidth - MIN_PANEL_SIZE));
+                const firstFr = (newWidth / freeWidth) * 100;
+                const secondFr = 100 - firstFr;
+                setLayout(prev => ({ ...prev, cols: `${firstFr}fr ${RESIZER_SIZE}px ${secondFr}fr` }));
             } else { // 'h'
-                let newFirstRowHeight = e.clientY - rect.top - dragOffset.current;
-                newFirstRowHeight = Math.max(MIN_PANEL_SIZE, Math.min(newFirstRowHeight, rect.height - MIN_PANEL_SIZE - RESIZER_SIZE));
-                setLayout(prev => ({ ...prev, rows: `${newFirstRowHeight}px ${RESIZER_SIZE}px 1fr` }));
+                const freeHeight = Math.max(1, rect.height - FIXED_SPACE);
+                let newHeight = e.clientY - dragOffset.current - (rect.top + 16);
+                newHeight = Math.max(MIN_PANEL_SIZE, Math.min(newHeight, freeHeight - MIN_PANEL_SIZE));
+                const firstFr = (newHeight / freeHeight) * 100;
+                const secondFr = 100 - firstFr;
+                setLayout(prev => ({ ...prev, rows: `${firstFr}fr ${RESIZER_SIZE}px ${secondFr}fr` }));
             }
         });
     }, []);
@@ -138,40 +148,16 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
 
     return (
         <div className="flex flex-col grow min-h-0 h-full w-full overflow-x-hidden">
-            <style>{`
-                @media (min-width: 768px) {
-                    .panels-grid-layout {
-                        display: grid !important;
-                        grid-template-rows: ${layout.rows};
-                        grid-template-columns: ${layout.cols};
-                        padding: 1rem;
-                        gap: 0.5rem;
-                    }
-                }
-                @media (max-width: 767px) {
-                    .panels-grid-layout {
-                        display: flex;
-                        flex-direction: row;
-                        width: 100%;
-                        height: 100%;
-                        transform: translateX(calc(-${mobileTab * 100}% + ${swipeOffset}px));
-                        transition: ${isSwiping ? 'none' : 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)'};
-                        will-change: transform;
-                        contain: none !important;
-                        touch-action: pan-y;
-                    }
-                    .panel-wrapper {
-                        flex: 0 0 100%;
-                        width: 100%;
-                        height: 100%;
-                        padding: 0.5rem;
-                    }
-                }
-            `}</style>
             <div
                 ref={containerRef}
-                className={`panels-grid-layout grow min-h-0 md:overflow-hidden ${isResizing ? `select-none ${resizingType.current === 'v' ? 'cursor-col-resize' : 'cursor-row-resize'}` : ''}`}
-                style={{ contain: 'strict' }}
+                className={`panels-grid-layout grow min-h-0 md:overflow-hidden ${isResizing ? `select-none is-resizing ${resizingType.current === 'v' ? 'cursor-col-resize' : 'cursor-row-resize'}` : ''} ${isSwiping ? 'is-swiping' : ''}`}
+                style={{ 
+                  contain: 'strict',
+                  '--grid-rows': layout.rows,
+                  '--grid-cols': layout.cols,
+                  '--mobile-tab-offset': `-${mobileTab * 100}%`,
+                  '--swipe-offset': `${swipeOffset}px`
+                } as React.CSSProperties}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
@@ -179,20 +165,20 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
                 <div style={{ gridArea: '1 / 1 / 2 / 2' }} className="panel-wrapper min-h-0 min-w-0 h-full">{children[0]}</div>
                 <div 
                     onMouseDown={(e) => handleMouseDown(e, 'v')} 
-                    onDoubleClick={() => setLayout(prev => ({ ...prev, cols: `1fr ${RESIZER_SIZE}px 2fr` }))} 
+                    onDoubleClick={() => setLayout(prev => ({ ...prev, cols: `33.333fr ${RESIZER_SIZE}px 66.667fr` }))} 
                     style={{ gridArea: '1 / 2 / 4 / 3' }} 
                     className={`cursor-col-resize items-center justify-center group hidden md:flex`}
-                    title="Double-click to reset width"
+                    title={t('doubleClickToReset' as any)}
                 >
                     <div className={`w-1 h-full rounded-full transition-all duration-300 ${isResizing && resizingType.current === 'v' ? 'bg-accent shadow-md shadow-accent/50 scale-x-150' : 'bg-transparent group-hover:bg-accent/50 group-hover:scale-x-150'}`}></div>
                 </div>
                 <div style={{ gridArea: '1 / 3 / 2 / 4' }} className="panel-wrapper min-h-0 min-w-0 h-full">{children[1]}</div>
                 <div 
                     onMouseDown={(e) => handleMouseDown(e, 'h')} 
-                    onDoubleClick={() => setLayout(prev => ({ ...prev, rows: `3fr ${RESIZER_SIZE}px 2fr` }))} 
+                    onDoubleClick={() => setLayout(prev => ({ ...prev, rows: `60fr ${RESIZER_SIZE}px 40fr` }))} 
                     style={{ gridArea: '2 / 1 / 3 / 4' }} 
                     className={`cursor-row-resize items-center justify-center group hidden md:flex`}
-                    title="Double-click to reset height"
+                    title={t('doubleClickToReset' as any)}
                 >
                     <div className={`h-1 w-full rounded-full transition-all duration-300 ${isResizing && resizingType.current === 'h' ? 'bg-accent shadow-md shadow-accent/50 scale-y-150' : 'bg-transparent group-hover:bg-accent/50 group-hover:scale-y-150'}`}></div>
                 </div>
@@ -203,8 +189,8 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
             {/* Mobile Bottom Bar */}
             {bottomBarItems && (
                 <div 
-                    className="flex md:hidden items-center justify-around bg-panel-bg/85 backdrop-blur-xl border-t border-white/20 dark:border-white/10 p-2 shrink-0 z-20 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]"
-                    style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}
+                    className="flex md:hidden items-center justify-around bg-panel-bg/85 backdrop-blur-xl border border-white/20 dark:border-white/10 p-2 shrink-0 z-20 shadow-lg rounded-3xl m-2"
+                    style={{ marginBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}
                 >
                     {bottomBarItems.map((item, index) => (
                         <button 

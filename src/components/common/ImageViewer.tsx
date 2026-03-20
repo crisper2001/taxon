@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Icon } from '../Icon';
+import { useAppContext } from '../../context/AppContext';
 import type { Media } from '../../types';
 
 interface ImageViewerProps {
@@ -11,6 +12,7 @@ interface ImageViewerProps {
 }
 
 export const ImageViewer: React.FC<ImageViewerProps> = ({ media, altText, noImageText, onImageClick, className = '' }) => {
+  const { t } = useAppContext();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
@@ -139,7 +141,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ media, altText, noImag
       {media.length > 1 && (
         <div className="w-full overflow-x-auto mt-auto pb-2 shrink-0">
           <div className="flex gap-2 justify-center w-max mx-auto">
-            {media.map((m, i) => <img key={i} src={m.url} alt={`Thumbnail ${i + 1}`} onClick={() => setCurrentImageIndex(i)} className={`w-12 h-12 object-cover rounded-xl cursor-pointer border-2 transition-all duration-300 shrink-0 ${i === currentImageIndex ? 'border-accent scale-105 shadow-md' : 'border-transparent opacity-60 hover:opacity-100 hover:border-white/50'}`} />)}
+            {media.map((m, i) => <img key={i} src={m.url} alt={`${t('thumbnail' as any)} ${i + 1}`} onClick={() => setCurrentImageIndex(i)} className={`w-12 h-12 object-cover rounded-xl cursor-pointer border-2 transition-all duration-300 shrink-0 ${i === currentImageIndex ? 'border-accent scale-105 shadow-md' : 'border-transparent opacity-60 hover:opacity-100 hover:border-white/50'}`} />)}
           </div>
         </div>
       )}

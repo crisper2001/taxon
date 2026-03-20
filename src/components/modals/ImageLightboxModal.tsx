@@ -17,12 +17,18 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
   const [currentIndex, setCurrentIndex] = useState(startIndex);
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const pinchRef = useRef({ distance: 0, originScale: 1 });
+  const panRef = useRef({ active: false, start: { x: 0, y: 0 }, originPos: { x: 0, y: 0 } });
   const touchStart = useRef<{ x: number, y: number } | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setIsRendered(true);
       setCurrentIndex(startIndex); // Reset index when opening
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
       const timer = setTimeout(() => setIsVisible(true), 10);
       return () => clearTimeout(timer);
     } else {
@@ -31,6 +37,11 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
       return () => clearTimeout(timer);
     }
   }, [isOpen, startIndex]);
+
+  useEffect(() => {
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+  }, [currentIndex]);
 
   const handleNext = useCallback(() => {
     if (media) {
@@ -58,39 +69,75 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
   }, [isOpen, handleNext, handlePrev, onClose]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (media && media.length > 1) {
-      touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      pinchRef.current = { distance: dist, originScale: scale };
       setIsSwiping(false);
-      setSwipeOffset(0);
+      return;
+    }
+
+    if (e.touches.length === 1) {
+      if (scale > 1) {
+        panRef.current = { active: true, start: { x: e.touches[0].clientX, y: e.touches[0].clientY }, originPos: position };
+      } else if (media && media.length > 1) {
+        touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        setIsSwiping(false);
+        setSwipeOffset(0);
+      }
     }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!touchStart.current || !media || media.length <= 1) return;
-    const currentX = e.touches[0].clientX;
-    const currentY = e.touches[0].clientY;
-    const deltaX = currentX - touchStart.current.x;
-    const deltaY = currentY - touchStart.current.y;
-
-    if (!isSwiping) {
-      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
-        setIsSwiping(true);
-      } else if (Math.abs(deltaY) > 10) {
-        touchStart.current = null;
-        return;
-      }
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      const ratio = dist / pinchRef.current.distance;
+      const newScale = Math.min(Math.max(1, pinchRef.current.originScale * ratio), 5);
+      setScale(newScale);
+      if (newScale === 1) setPosition({ x: 0, y: 0 });
+      return;
     }
 
-    if (isSwiping) {
-      let effectiveDelta = deltaX;
-      // Add rubber-band resistance if trying to swipe past boundaries
-      if (currentIndex === 0 && deltaX > 0) effectiveDelta *= 0.3;
-      if (currentIndex === media.length - 1 && deltaX < 0) effectiveDelta *= 0.3;
-      setSwipeOffset(effectiveDelta);
+    if (e.touches.length === 1) {
+      if (scale > 1 && panRef.current.active) {
+        const dx = e.touches[0].clientX - panRef.current.start.x;
+        const dy = e.touches[0].clientY - panRef.current.start.y;
+        setPosition({
+          x: panRef.current.originPos.x + dx,
+          y: panRef.current.originPos.y + dy
+        });
+        return;
+      }
+
+      if (scale === 1 && touchStart.current && media && media.length > 1) {
+        const currentX = e.touches[0].clientX;
+        const currentY = e.touches[0].clientY;
+        const deltaX = currentX - touchStart.current.x;
+        const deltaY = currentY - touchStart.current.y;
+
+        if (!isSwiping) {
+          if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+            setIsSwiping(true);
+          } else if (Math.abs(deltaY) > 10) {
+            touchStart.current = null;
+            return;
+          }
+        }
+
+        if (isSwiping) {
+          let effectiveDelta = deltaX;
+          // Add rubber-band resistance if trying to swipe past boundaries
+          if (currentIndex === 0 && deltaX > 0) effectiveDelta *= 0.3;
+          if (currentIndex === media.length - 1 && deltaX < 0) effectiveDelta *= 0.3;
+          setSwipeOffset(effectiveDelta);
+        }
+      }
     }
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
+    panRef.current.active = false;
+    if (scale > 1) return;
+
     if (!touchStart.current || !media || media.length <= 1) {
       setIsSwiping(false);
       setSwipeOffset(0);
@@ -106,10 +153,48 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
     touchStart.current = null;
   };
 
+  const handleWheel = (e: React.WheelEvent) => {
+    const delta = e.deltaY < 0 ? 0.25 : -0.25;
+    const newScale = Math.min(Math.max(1, scale + delta), 5);
+    setScale(newScale);
+    if (newScale === 1) setPosition({ x: 0, y: 0 });
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (scale > 1) {
+      e.preventDefault();
+      panRef.current = { active: true, start: { x: e.clientX, y: e.clientY }, originPos: position };
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (panRef.current.active && scale > 1) {
+      const dx = e.clientX - panRef.current.start.x;
+      const dy = e.clientY - panRef.current.start.y;
+      setPosition({
+        x: panRef.current.originPos.x + dx,
+        y: panRef.current.originPos.y + dy
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    panRef.current.active = false;
+  };
+
+  const handleDoubleClick = () => {
+    if (scale > 1) {
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
+    } else {
+      setScale(2.5);
+    }
+  };
+
   if (!isRendered || !media || media.length === 0) return null;
 
   return (
-    <div onClick={onClose} className={`fixed inset-0 bg-black/80 backdrop-blur-2xl z-50 flex flex-col items-center justify-center p-4 transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+    <div onClick={onClose} className={`fixed inset-0 bg-black/80 backdrop-blur-2xl z-[70] flex flex-col items-center justify-center p-4 transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
       <button onClick={onClose} className="absolute top-6 right-6 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full p-2.5 transition-all duration-300 z-20 backdrop-blur-md cursor-pointer border border-white/10 shadow-lg hover:shadow-xl hover:-translate-y-0.5">
         <Icon name="X" size={28} />
       </button>
@@ -124,7 +209,7 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          style={{ touchAction: 'pan-y' }}
+          style={{ touchAction: 'none' }}
         >
           <div 
             className="flex h-full w-full"
@@ -135,14 +220,30 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
             }}
           >
             {media.map((m, index) => (
-              <div key={index} className="flex-none w-full h-full flex flex-col items-center justify-center py-24 relative">
-                <img
-                  src={m.url}
-                  alt={m.caption || t('fullScaleView')}
-                  loading={Math.abs(currentIndex - index) <= 1 ? "eager" : "lazy"}
-                  className={`max-w-[90vw] max-h-full object-contain rounded-2xl shadow-2xl transition-all duration-300 ${isVisible ? (currentIndex === index ? 'scale-100 opacity-100' : 'scale-95 opacity-40') : 'scale-95 opacity-0'}`}
-                />
-                {(m.caption || m.copyright) && (
+              <div key={index} className="flex-none w-full h-full flex flex-col items-center justify-center py-24 relative overflow-hidden">
+                <div
+                  className={`flex items-center justify-center transition-opacity duration-300 w-full h-full ${isVisible ? (currentIndex === index ? 'opacity-100' : 'opacity-40') : 'opacity-0'}`}
+                  style={currentIndex === index ? {
+                    transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                    transition: panRef.current.active ? 'none' : 'transform 0.1s ease-out',
+                    cursor: scale > 1 ? (panRef.current.active ? 'grabbing' : 'grab') : 'zoom-in'
+                  } : { transform: 'scale(0.95)' }}
+                  onWheel={currentIndex === index ? handleWheel : undefined}
+                  onMouseDown={currentIndex === index ? handleMouseDown : undefined}
+                  onMouseMove={currentIndex === index ? handleMouseMove : undefined}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                  onDoubleClick={currentIndex === index ? handleDoubleClick : undefined}
+                >
+                  <img
+                    src={m.url}
+                    alt={m.caption || t('fullScaleView')}
+                    loading={Math.abs(currentIndex - index) <= 1 ? "eager" : "lazy"}
+                    className="max-w-[90vw] max-h-full object-contain rounded-2xl shadow-2xl pointer-events-none"
+                    draggable={false}
+                  />
+                </div>
+                {(m.caption || m.copyright) && scale === 1 && (
                   <div className={`absolute bottom-24 text-white text-center mt-4 p-2 bg-black/40 rounded-lg max-w-[80vw] transition-opacity duration-300 ${isVisible && currentIndex === index ? 'opacity-100' : 'opacity-0'}`}>
                     {m.caption && <p className="font-semibold">{m.caption}</p>}
                     {m.copyright && <p className="text-sm opacity-80">{m.copyright}</p>}
@@ -165,7 +266,7 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
                 src={m.url}
                 onClick={() => setCurrentIndex(i)}
                 className={`w-16 h-16 object-cover rounded-xl cursor-pointer border-2 transition-all ${i === currentIndex ? 'border-accent scale-105 shadow-md' : 'border-transparent hover:border-white/50 opacity-60 hover:opacity-100'}`}
-                alt={`Thumbnail ${i + 1}`}
+                alt={`${t('thumbnail' as any)} ${i + 1}`}
               />
             )}
           </div>

@@ -314,62 +314,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
     <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} size="lg">
       <div className="flex flex-col h-[75vh] bg-bg/80 backdrop-blur-sm rounded-b-3xl overflow-hidden relative">
         <div className="flex md:contents flex-col grow min-h-0 overflow-hidden relative" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
-           <style>{`
-                @media (max-width: 767px) {
-                    .entity-modal-mobile-view {
-                        display: flex;
-                        flex-direction: row;
-                        width: 100%;
-                        height: 100%;
-                        transform: translateX(calc(-${tabIndex * 100}% + ${swipeOffset}px));
-                        transition: ${isSwiping ? 'none' : 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)'};
-                        will-change: transform;
-                        touch-action: pan-y;
-                    }
-                    .entity-modal-desktop-right-pane {
-                        display: contents;
-                    }
-                    .entity-modal-panel {
-                        flex: 0 0 100%;
-                        width: 100%;
-                        height: 100%;
-                        overflow-y: auto;
-                        padding: 1.5rem;
-                    }
-                }
-                @media (min-width: 768px) {
-                    .entity-modal-mobile-view {
-                        display: flex;
-                        flex-direction: row;
-                        width: 100%;
-                        height: 100%;
-                    }
-                    .entity-modal-desktop-right-pane {
-                        flex: 1 1 50%;
-                        width: 50%;
-                        height: 100%;
-                        overflow-y: auto;
-                        padding: 1.5rem;
-                        display: flex;
-                        flex-direction: column;
-                    }
-                    .entity-modal-panel.is-image {
-                        flex: 1 1 50%;
-                        width: 50%;
-                        height: 100%;
-                        overflow-y: auto;
-                        padding: 1.5rem;
-                    }
-                    .entity-modal-panel.is-details, .entity-modal-panel.is-features {
-                        flex: none;
-                        width: 100%;
-                        height: auto;
-                        overflow: visible;
-                        padding: 0;
-                    }
-                }
-           `}</style>
-           <div className="entity-modal-mobile-view grow">
+           <div className={`entity-modal-mobile-view grow ${isSwiping ? 'is-swiping' : ''}`} style={{ '--mobile-tab-offset': `-${tabIndex * 100}%`, '--swipe-offset': `${swipeOffset}px` } as React.CSSProperties}>
               <ImageViewer
                 media={media}
                 altText={entity.name}
@@ -457,7 +402,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
         </div>
 
         {/* Mobile Bottom Bar for EntityModal */}
-        <div className="flex md:hidden items-center justify-around bg-panel-bg/85 backdrop-blur-xl border-t border-white/20 dark:border-white/10 p-2 shrink-0 z-20 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] w-full">
+        <div className="flex md:hidden items-center justify-around bg-panel-bg/85 backdrop-blur-xl border border-white/20 dark:border-white/10 p-2 shrink-0 z-20 shadow-lg rounded-3xl m-2 mb-3">
             <button onClick={() => setMobileTab('image')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 ${mobileTab === 'image' ? 'text-accent bg-accent/10 shadow-inner scale-105' : 'text-gray-500 hover:text-accent hover:bg-hover-bg/50'}`}>
               <Icon name="Image" size={22} />
               <span className="text-[10px] font-bold text-center leading-none tracking-tight">{t('preview')}</span>
