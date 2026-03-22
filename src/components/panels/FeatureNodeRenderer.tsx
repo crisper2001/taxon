@@ -30,14 +30,21 @@ const FeatureGroupNode: React.FC<RenderFeatureNodeProps> = ({
   const isDimmed = isSearching && !isMatch;
 
   const isExpanded = expandedNodes.has(node.id);
+  const media = keyData.featureMedia.get(node.id);
+  const hasMedia = media && media.length > 0;
+
   return (
     <div className={`feature-node relative transition-opacity duration-200`}>
-      <div data-search-match={isMatch ? "true" : undefined} onClick={() => onToggleNode(node.id)} className={`feature-node-header flex items-center gap-1 cursor-pointer p-1.5 select-none hover:bg-hover-bg/80 rounded-xl transition-all duration-300 hover:shadow-sm ${isDimmed ? 'opacity-30' : ''} ${isMatch ? 'bg-accent/20 shadow-inner' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}>
+      <div data-search-match={isMatch ? "true" : undefined} onClick={() => onToggleNode(node.id)} className={`feature-node-header group flex items-center gap-3 cursor-pointer p-1.5 select-none hover:bg-hover-bg/80 rounded-xl transition-all duration-300 hover:shadow-sm ${isDimmed ? 'opacity-30' : ''} ${isMatch ? 'bg-accent/20 shadow-inner' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}>
         <Icon name="ChevronRight" className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-        <span>{node.name}</span>
+        {hasMedia && <img src={media![0].url} alt={node.name} loading="lazy" onClick={(e) => { e.stopPropagation(); onImageClick(node.id); }} className="w-24 h-24 object-cover rounded-lg shadow-sm cursor-pointer shrink-0" />}
+        <span className="grow">{node.name}</span>
+        <button onClick={(e) => { e.stopPropagation(); onImageClick(node.id); }} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 p-1 text-gray-400 hover:text-accent rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-all shrink-0 cursor-pointer" title={t('kbMetadata')}>
+          <Icon name="Info" size={16} />
+        </button>
       </div>
       {isExpanded && (
-        <div className="feature-node-children pl-4">
+        <div className="feature-node-children pl-8">
           {node.children.map(child => <RenderFeatureNode key={child.id} {...{ node: child, keyData, chosenFeatures, onFeatureChange, onImageClick, t, expandedNodes, onToggleNode, matchingIds }} />)}
         </div>
       )}
@@ -56,7 +63,7 @@ const FeatureLeafNode = React.memo<RenderFeatureNodeProps>(({
   const hasMedia = media && media.length > 0;
 
   return (
-    <div data-search-match={isMatch ? "true" : undefined} className={`feature-item relative pl-4 py-1.5 pr-2 flex items-center gap-3 hover:bg-hover-bg/80 rounded-xl transition-all duration-300 hover:shadow-sm ${isDimmed ? 'opacity-30' : ''} ${isMatch ? 'bg-accent/20 shadow-inner' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}>
+    <div data-search-match={isMatch ? "true" : undefined} className={`feature-item group relative pl-8 py-1.5 pr-2 flex items-center gap-3 hover:bg-hover-bg/80 rounded-xl transition-all duration-300 hover:shadow-sm ${isDimmed ? 'opacity-30' : ''} ${isMatch ? 'bg-accent/20 shadow-inner' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}>
       {hasMedia && <img src={media![0].url} alt={node.name} loading="lazy" onClick={() => onImageClick(node.id)} className="w-24 h-24 object-cover rounded-lg shadow-sm cursor-pointer shrink-0" />}
       {node.type === 'state' ? (
         <label className="flex items-center gap-2 cursor-pointer grow">
@@ -79,6 +86,9 @@ const FeatureLeafNode = React.memo<RenderFeatureNodeProps>(({
           </div>
         </>
       )}
+      <button onClick={(e) => { e.stopPropagation(); onImageClick(node.id); }} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 p-1 text-gray-400 hover:text-accent rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-all shrink-0 cursor-pointer" title={t('kbMetadata')}>
+        <Icon name="Info" size={16} />
+      </button>
     </div>
   );
 }, (prev, next) => {

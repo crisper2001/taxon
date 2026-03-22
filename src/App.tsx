@@ -4,7 +4,7 @@ import { LucidKeyParser } from './services/LucidKeyParserService';
 import { FeaturesPanel, EntitiesPanel, ChosenFeaturesPanel } from './components/panels';
 import { AIAssistant } from './components/AIAssistant';
 import { ResizablePanels } from './components/panels/ResizablePanels';
-import { EntityModal, PreferencesModal, KeyInfoModal, FeatureImageModal, ImageLightboxModal, ConfirmModal } from './components/modals';
+import { EntityModal, PreferencesModal, KeyInfoModal, FeatureModal, ImageLightboxModal, ConfirmModal } from './components/modals';
 import { AppInfoModal } from './components/modals/AppInfoModal';
 import { translations } from './constants';
 import { useKeyFiltering } from './hooks/useKeyFiltering';
@@ -552,7 +552,7 @@ const App: React.FC = () => {
       />
       <PreferencesModal isOpen={modalState.type === 'preferences' || underlyingModalState?.type === 'preferences'} onClose={() => setModalState({ type: 'none' })} currentPrefs={{ lang, theme, geminiApiKey, showToasts, hideAi }} onPreferenceChange={handlePreferenceChange} t={t} availableLanguages={Object.keys(translations) as Language[]} onClearData={() => { setUnderlyingModalState(modalState); setModalState({ type: 'confirmClearData' as any }); }} />
       <KeyInfoModal isOpen={modalState.type === 'keyInfo' || underlyingModalState?.type === 'keyInfo'} onClose={() => setModalState({ type: 'none' })} keyData={keyData} t={t} />
-      <FeatureImageModal isOpen={modalState.type === 'featureImage' || underlyingModalState?.type === 'featureImage'} onClose={handleModalClose} featureId={(activeOrUnderlying as any).featureId} keyData={keyData} t={t} onImageClick={handleOpenLightbox} />
+      <FeatureModal isOpen={modalState.type === 'feature' || underlyingModalState?.type === 'feature'} onClose={handleModalClose} featureId={(activeOrUnderlying as any).featureId} keyData={keyData} t={t} onImageClick={handleOpenLightbox} />
       <ImageLightboxModal isOpen={modalState.type === 'lightbox'} onClose={handleModalClose} media={(modalState as any).media} startIndex={(modalState as any).startIndex ?? 0} />
       <AppInfoModal isOpen={modalState.type === 'appInfo' || underlyingModalState?.type === 'appInfo'} onClose={handleModalClose} t={t} />
 
@@ -662,7 +662,7 @@ const App: React.FC = () => {
                       { id: 'discarded', icon: 'ListX', label: t('entitiesDiscarded'), count: discardedEntityIds.size }
                     ]}
                   >
-                    <FeaturesPanel keyData={keyData} chosenFeatures={chosenFeatures} onFeatureChange={updateFeature} onImageClick={(id) => setModalState({ type: 'featureImage', featureId: id })} t={t} />
+                    <FeaturesPanel keyData={keyData} chosenFeatures={chosenFeatures} onFeatureChange={updateFeature} onImageClick={(id) => setModalState({ type: 'feature', featureId: id })} t={t} />
                     <EntitiesPanel
                       title={t('entitiesRemaining')}
                       icon="List"
@@ -674,7 +674,7 @@ const App: React.FC = () => {
                       t={t}
                       expandedNodes={expandedRemainingNodes}
                       setExpandedNodes={setExpandedRemainingNodes} />
-                    <ChosenFeaturesPanel chosenFeatures={chosenFeatures} keyData={keyData} onFeatureChange={updateFeature} onImageClick={(id) => setModalState({ type: 'featureImage', featureId: id })} t={t} />
+                    <ChosenFeaturesPanel chosenFeatures={chosenFeatures} keyData={keyData} onFeatureChange={updateFeature} onImageClick={(id) => setModalState({ type: 'feature', featureId: id })} t={t} />
                     <EntitiesPanel
                       title={t('entitiesDiscarded')}
                       directMatches={new Set()}

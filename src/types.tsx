@@ -126,7 +126,7 @@ export interface DraftKeyData {
 export type ModalState = 
   | { type: 'none' }
   | { type: 'entity'; entityId: string }
-  | { type: 'featureImage'; featureId: string }
+  | { type: 'feature'; featureId: string }
   | { type: 'keyInfo' }
   | { type: 'preferences' }
   | { type: 'lightbox'; media: Media[]; startIndex: number }

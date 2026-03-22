@@ -193,41 +193,47 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
   }
 
   const getIconForChar = (char: any): React.ReactElement => {
-    let iconName: IconName = 'Check';
-    let iconClass = 'text-gray-400';
-    let style: React.CSSProperties = {};
-
     if (char.type === 'numeric') {
-      iconName = 'ArrowUpDown';
-      iconClass = 'text-gray-500';
+      return (
+        <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 bg-gray-500/10 text-gray-500">
+          <Icon name="ArrowUpDown" size={14} />
+        </div>
+      );
     } else if (char.score) {
       if (SCORE_VALUE_MAP[char.score]) {
         const badgeTextKey = SCORE_VALUE_MAP[char.score];
+        let bgClass = '';
+        let inner = <Icon name="Check" size={14} />;
         switch (badgeTextKey) {
-          case 'scoreCommon': iconClass = 'text-blue-500'; break;
-          case 'scoreRare': iconClass = 'text-green-500'; break;
-          case 'scoreUncertain': return <span className="text-text font-bold text-[15px] w-[14px] h-[14px] flex items-center justify-center">?</span>;
-          case 'scoreCommonMisinterpret': iconClass = 'text-red-500'; break;
-          case 'scoreRareMisinterpret': iconClass = 'text-yellow-500'; break;
-          default: iconName = 'CircleQuestionMark'; iconClass = 'text-gray-400';
+          case 'scoreCommon': bgClass = 'bg-blue-500/10 text-blue-500'; break;
+          case 'scoreRare': bgClass = 'bg-green-500/10 text-green-500'; break;
+          case 'scoreUncertain': bgClass = 'bg-gray-500/10 text-text'; inner = <span className="font-bold text-[15px] leading-none">?</span>; break;
+          case 'scoreCommonMisinterpret': bgClass = 'bg-red-500/10 text-red-500'; break;
+          case 'scoreRareMisinterpret': bgClass = 'bg-yellow-500/10 text-yellow-500'; break;
+          default: bgClass = 'bg-gray-500/10 text-gray-500'; inner = <Icon name="CircleQuestionMark" size={14} />;
         }
+        return <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${bgClass}`}>{inner}</div>;
       } else {
-        if (char.scoreColor) {
-           style = { color: char.scoreColor };
-           iconClass = '';
-        } else {
-           iconClass = 'text-accent';
-        }
+        let inner = <Icon name="Check" size={14} style={char.scoreColor ? { color: char.scoreColor } : {}} />;
         if (char.scoreIcon === 'question') {
-           return <span className={`text-[15px] w-[14px] h-[14px] flex items-center justify-center font-bold ${iconClass}`} style={style}>?</span>;
+           inner = <span className="font-bold text-[14px] leading-none" style={char.scoreColor ? { color: char.scoreColor } : {}}>?</span>;
         }
         if (char.scoreIcon === 'exclamation') {
-           return <span className={`text-[15px] w-[14px] h-[14px] flex items-center justify-center font-bold ${iconClass}`} style={style}>!</span>;
+           inner = <span className="font-bold text-[14px] leading-none" style={char.scoreColor ? { color: char.scoreColor } : {}}>!</span>;
         }
-        iconName = 'Check';
+        return (
+          <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 border border-border" style={{ backgroundColor: `color-mix(in srgb, ${char.scoreColor || 'var(--color-accent)'} 15%, transparent)` }}>
+            {inner}
+          </div>
+        );
       }
     }
-    return <Icon name={iconName} size={14} className={iconClass} style={style} />;
+    
+    return (
+      <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 bg-gray-500/10 text-gray-500">
+        <Icon name="Check" size={14} />
+      </div>
+    );
   };
 
   const handleCopy = () => {

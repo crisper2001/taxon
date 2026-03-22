@@ -10,7 +10,7 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 
 ### UC2: Manual Specimen Identification
 * **Actor:** User
-* **Description:** The user browses available characteristics (features and states) in the "Features" panel and selects the ones that match their specimen (including specific numeric values or states).
+* **Description:** The user browses available characteristics (features and states) in the "Features" panel and selects the ones that match their specimen (including specific numeric values or states). The user can click the info icon or thumbnail of any feature or state to open a detailed modal containing its image gallery, description, and metadata (such as feature type, physical units, or scoring ranges).
 
 ### UC3: Automatic Filtering of Entities
 * **Actor:** User
@@ -90,7 +90,7 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **FR4.1:** The application must provide a dedicated Welcome Screen allowing users to branch into either "Identify" or "Create" modes before loading the main interface.
 * **FR4.2:** The main layout must consist of dynamically resizable floating panels supporting Features, Chosen Features, Remaining Entities, Discarded Entities, and the AI Assistant panel (which can be hidden via user preferences). The application headers and bottom navigation bars must also employ a cohesive "floating island" design rather than strictly adhering to screen edges.
 * **FR4.3:** The system must display entities in toggleable "List" and "Grid" views.
-* **FR4.4:** The application must present modal overlays for Entity details, Feature image views, general Key Information, an Image Lightbox viewer (which must support zooming, panning, and viewing images uploaded within the AI chat), and confirmation dialogs for destructive actions. The Entity details modal must display descriptions and characteristics in distinct visually elevated sections, feature a recursive collapsible tree structure, provide global "Expand All" and "Collapse All" controls, and offer a "Back to Top" scrolling button.
+* **FR4.4:** The application must present modal overlays for Entity details, Feature details (displaying image galleries, Markdown descriptions, and metadata such as type, units, and associated states), general Key Information, an Image Lightbox viewer (which must support zooming, panning, and viewing images uploaded within the AI chat), and confirmation dialogs for destructive actions. The Entity details modal must display descriptions and characteristics in distinct visually elevated sections, feature a recursive collapsible tree structure, provide global "Expand All" and "Collapse All" controls, and offer a "Back to Top" scrolling button.
 * **FR4.5:** Entity feature scores must be visually represented with badges indicating probability/interpretations (e.g., Common, Rare, Uncertain, Interval, Misinterpreted).
 * **FR4.6:** The system must display stacking visual toast notifications when features are selected or cleared, dynamically showing the count of discarded or restored entities alongside the total number of remaining entities. These toasts must act independently and fade out based on their initial appearance time.
 * **FR4.7:** The application must be fully responsive for mobile devices, dynamically transforming the desktop multi-pane grid layout into horizontally swipeable tab views anchored by a persistent bottom navigation bar.
