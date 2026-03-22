@@ -162,6 +162,21 @@ const App: React.FC = () => {
     metaThemeColor.setAttribute('content', theme === 'light' ? '#f8f9fa' : '#1a1a1a');
   }, [theme]);
 
+  // Failsafe to guarantee the global drag state is reset when a file is dropped
+  // anywhere on the window, even if a child component stops the event propagation.
+  useEffect(() => {
+    const handleWindowDrop = () => {
+      dragCounter.current = 0;
+      setIsGlobalDragging(false);
+    };
+    window.addEventListener('drop', handleWindowDrop, true);
+    window.addEventListener('dragend', handleWindowDrop, true);
+    return () => {
+      window.removeEventListener('drop', handleWindowDrop, true);
+      window.removeEventListener('dragend', handleWindowDrop, true);
+    };
+  }, []);
+
   useEffect(() => {
     setAiPanelVisible(false);
   }, [appMode]);
@@ -312,16 +327,26 @@ const App: React.FC = () => {
   const handleGlobalDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
     if (e.dataTransfer.types.includes('Files')) {
-      dragCounter.current += 1;
-      setIsGlobalDragging(true);
+      const isImageDrag = Array.from(e.dataTransfer.items).some(item => item.type.startsWith('image/'));
+      // Don't show the global key drop overlay if the user is dragging images
+      if (!isImageDrag) {
+        dragCounter.current += 1;
+        setIsGlobalDragging(true);
+      }
     }
   };
 
   const handleGlobalDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
-    dragCounter.current -= 1;
-    if (dragCounter.current === 0) {
-      setIsGlobalDragging(false);
+    if (e.dataTransfer.types.includes('Files')) {
+      const isImageDrag = Array.from(e.dataTransfer.items).some(item => item.type.startsWith('image/'));
+      if (!isImageDrag) {
+        dragCounter.current -= 1;
+        if (dragCounter.current <= 0) {
+          dragCounter.current = 0;
+          setIsGlobalDragging(false);
+        }
+      }
     }
   };
 
@@ -519,7 +544,12 @@ const App: React.FC = () => {
         onClose={handleModalClose}
         onConfirm={executeReset}
         title={t('clearFeatures')}
-        message={t('confirmClear')}
+        message={
+          <div className="flex items-start gap-3 text-red-500 bg-red-500/10 p-4 rounded-xl border border-red-500/20">
+            <Icon name="TriangleAlert" size={24} className="shrink-0 mt-0.5" />
+            <p className="text-sm font-medium leading-relaxed">{t('confirmClear')}</p>
+          </div>
+        }
         confirmText={t('clearFeatures')}
         cancelText={t('cancel')}
         isDestructive={true}
@@ -641,7 +671,7 @@ const App: React.FC = () => {
                 <Icon name="CircleAlert" size={40} />
                 <span className="text-lg font-bold tracking-tight">{statusText}</span>
               </div>
-              <button onClick={() => { setError(null); setIsHome(true); }} className="mt-8 px-6 py-2.5 bg-panel-bg border border-white/20 dark:border-white/10 rounded-xl hover:bg-hover-bg/80 hover:-translate-y-0.5 transition-all duration-300 font-bold text-text shadow-sm hover:shadow-md cursor-pointer">{t('back')}</button>
+              <button onClick={() => { setError(null); setIsHome(true); }} className="mt-8 px-6 py-2.5 bg-panel-bg border border-white/20 dark:border-white/10 rounded-xl hover:bg-hover-bg/80 transition-all duration-300 font-bold text-text shadow-sm hover:shadow-md cursor-pointer">{t('back')}</button>
             </div>
           ) : (
             <div className={`absolute inset-0 z-50 flex items-center justify-center w-full bg-bg transition-all duration-500 ease-in-out ${isHome ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>

@@ -83,12 +83,12 @@ const ChatMessageBubble = React.memo<{
   appMode: 'identify' | 'build';
 }>(({ msg, index, keyData, t, isLatestAi, isLatestUser, onRegenerate, onEditSubmit, onVersionChange, isThinking, onImageClick, appMode }) => {
   const [isCopied, setIsCopied] = useState(false);
-  
+
   // Truncate AI messages if they exceed 500 characters
   const isLong = msg.sender === 'ai' && msg.content.length > 500;
   const [isExpanded, setIsExpanded] = useState(!isLong);
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
-  
+
   const [addedFeatures, setAddedFeatures] = useState<Set<number>>(new Set());
   const [addedEntities, setAddedEntities] = useState<Set<number>>(new Set());
   const [addedAll, setAddedAll] = useState(false);
@@ -147,7 +147,7 @@ const ChatMessageBubble = React.memo<{
   return (
     <div className={`chat-message flex flex-col animate-fade-in-up duration-300 ease-out space-y-1 mb-2 ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
       <div className={`msg-content flex flex-col max-w-[92%] p-3.5 rounded-3xl border transition-all ${msg.sender === 'user' ? 'bg-accent/95 backdrop-blur-md text-white rounded-br-sm border-white/20 shadow-md shadow-accent/20' : 'bg-header-bg/90 backdrop-blur-md rounded-bl-sm border-white/20 dark:border-white/10 shadow-sm'}`}>
-        
+
         {/* Text Content */}
         {msg.imageUrl && (
           <div className="mb-2">
@@ -183,38 +183,39 @@ const ChatMessageBubble = React.memo<{
                 )}
               </div>
             )}
-            
+
             {appMode === 'build' && msg.data?.suggested_features && msg.data.suggested_features.length > 0 && (
               <div className="mt-3 flex flex-col gap-2 w-full">
                 <h4 className="text-[11px] font-bold opacity-80 uppercase tracking-wider">{t('aiSuggestedFeatures' as any)}</h4>
                 {msg.data.suggested_features.map((sf, idx) => {
                   const isAdded = addedFeatures.has(idx) || addedAll;
                   return (
-                  <div key={idx} className={`bg-bg p-2.5 rounded-xl border border-black/5 dark:border-white/5 shadow-sm flex flex-col gap-1.5 animate-fade-in-up transition-opacity ${isAdded ? 'opacity-60' : ''}`}>
-                     <div className="flex justify-between items-start gap-2">
+                    <div key={idx} className={`bg-bg p-2.5 rounded-xl border border-black/5 dark:border-white/5 shadow-sm flex flex-col gap-1.5 animate-fade-in-up transition-opacity ${isAdded ? 'opacity-60' : ''}`}>
+                      <div className="flex justify-between items-start gap-2">
                         <span className="font-bold text-sm text-accent leading-tight">{sf.name}</span>
-                        <button 
+                        <button
                           onClick={() => {
                             if (!isAdded) {
                               window.dispatchEvent(new CustomEvent('add-draft-feature', { detail: sf }));
                               setAddedFeatures(prev => new Set(prev).add(idx));
                             }
-                          }} 
+                          }}
                           disabled={isAdded}
                           className={`shrink-0 text-[11px] px-2 py-1 rounded-md transition-colors font-semibold shadow-sm flex items-center gap-1 ${isAdded ? 'bg-green-500/20 text-green-600 dark:text-green-400 cursor-default shadow-none' : 'bg-accent text-white hover:bg-accent-hover cursor-pointer'}`}
                         >
                           <Icon name={isAdded ? "Check" : "Plus"} size={12} /> {isAdded ? (t('addedItem' as any) || 'Added') : t('addToKey' as any)}
                         </button>
-                     </div>
-                     {sf.description && <span className="text-xs opacity-75 leading-snug">{sf.description}</span>}
-                     {sf.type === 'state' && sf.states && (
+                      </div>
+                      {sf.description && <span className="text-xs opacity-75 leading-snug">{sf.description}</span>}
+                      {sf.type === 'state' && sf.states && (
                         <div className="flex flex-wrap gap-1 mt-1">
                           {sf.states.map(s => <span key={s} className="text-[10px] px-1.5 py-0.5 bg-black/5 dark:bg-white/10 rounded-md font-medium opacity-90">{s}</span>)}
                         </div>
-                     )}
-                     {sf.type === 'numeric' && <div className="text-[10px] px-1.5 py-0.5 bg-black/5 dark:bg-white/10 rounded-md font-medium opacity-90 w-fit mt-1">{t('kbTypeNumeric' as any)}</div>}
-                  </div>
-                )})}
+                      )}
+                      {sf.type === 'numeric' && <div className="text-[10px] px-1.5 py-0.5 bg-black/5 dark:bg-white/10 rounded-md font-medium opacity-90 w-fit mt-1">{t('kbTypeNumeric' as any)}</div>}
+                    </div>
+                  )
+                })}
               </div>
             )}
 
@@ -224,37 +225,38 @@ const ChatMessageBubble = React.memo<{
                 {msg.data.suggested_entities.map((se, idx) => {
                   const isAdded = addedEntities.has(idx) || addedAll;
                   return (
-                  <div key={idx} className={`bg-bg p-2.5 rounded-xl border border-black/5 dark:border-white/5 shadow-sm flex flex-col gap-1.5 animate-fade-in-up transition-opacity ${isAdded ? 'opacity-60' : ''}`}>
-                     <div className="flex justify-between items-start gap-2">
+                    <div key={idx} className={`bg-bg p-2.5 rounded-xl border border-black/5 dark:border-white/5 shadow-sm flex flex-col gap-1.5 animate-fade-in-up transition-opacity ${isAdded ? 'opacity-60' : ''}`}>
+                      <div className="flex justify-between items-start gap-2">
                         <span className="font-bold text-sm text-accent leading-tight">{se.name}</span>
-                        <button 
+                        <button
                           onClick={() => {
                             if (!isAdded) {
                               window.dispatchEvent(new CustomEvent('add-draft-entity', { detail: se }));
                               setAddedEntities(prev => new Set(prev).add(idx));
                             }
-                          }} 
+                          }}
                           disabled={isAdded}
                           className={`shrink-0 text-[11px] px-2 py-1 rounded-md transition-colors font-semibold shadow-sm flex items-center gap-1 ${isAdded ? 'bg-green-500/20 text-green-600 dark:text-green-400 cursor-default shadow-none' : 'bg-accent text-white hover:bg-accent-hover cursor-pointer'}`}
                         >
                           <Icon name={isAdded ? "Check" : "Plus"} size={12} /> {isAdded ? (t('addedItem' as any) || 'Added') : t('addToKey' as any)}
                         </button>
-                     </div>
-                     {se.description && <span className="text-xs opacity-75 leading-snug">{se.description}</span>}
-                  </div>
-                )})}
+                      </div>
+                      {se.description && <span className="text-xs opacity-75 leading-snug">{se.description}</span>}
+                    </div>
+                  )
+                })}
               </div>
             )}
 
             {hasSuggestions && (
               <div className="mt-4 flex justify-end">
-                <button 
+                <button
                   onClick={() => {
                     if (!addedAll) {
                       window.dispatchEvent(new CustomEvent('add-all-draft-items', { detail: { features: msg.data?.suggested_features, entities: msg.data?.suggested_entities } }));
                       setAddedAll(true);
                     }
-                  }} 
+                  }}
                   disabled={addedAll}
                   className={`text-xs px-3 py-1.5 rounded-lg transition-colors shadow-sm font-bold flex items-center gap-1.5 ${addedAll ? 'bg-green-500/20 text-green-600 dark:text-green-400 cursor-default shadow-none' : 'bg-accent text-white hover:bg-accent-hover cursor-pointer'}`}
                 >
@@ -277,10 +279,10 @@ const ChatMessageBubble = React.memo<{
         {/* Action Bar */}
         {msg.sender === 'user' && isLatestUser && !isEditing && onEditSubmit && (
           <div className="mt-1 flex justify-end">
-            <button 
-              onClick={() => setIsEditing(true)} 
+            <button
+              onClick={() => setIsEditing(true)}
               disabled={isThinking}
-              title={t('edit')} 
+              title={t('edit')}
               className="flex items-center gap-1 text-xs opacity-60 hover:opacity-100 transition-all cursor-pointer focus:outline-none disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <Icon name="Pencil" className="w-3.5 h-3.5" />
@@ -292,29 +294,29 @@ const ChatMessageBubble = React.memo<{
           <div className="mt-2 flex items-center justify-between">
             <div>
               {msg.versions && msg.versions.length > 1 && (
-                 <div className="flex items-center gap-2 text-xs text-text opacity-70 bg-bg px-2 py-1 rounded-md border border-border shadow-sm">
-                    <button 
-                      onClick={() => onVersionChange && onVersionChange(index, msg.currentVersionIndex! - 1)}
-                      disabled={msg.currentVersionIndex === 0 || isThinking}
-                      className="hover:text-accent disabled:opacity-30 cursor-pointer flex items-center justify-center transition-colors"
-                      title={t('previousVersion')}
-                    ><Icon name="ChevronLeft" size={14} /></button>
-                    <span className="font-medium select-none min-w-[2rem] text-center">{msg.currentVersionIndex! + 1} / {msg.versions.length}</span>
-                    <button 
-                      onClick={() => onVersionChange && onVersionChange(index, msg.currentVersionIndex! + 1)}
-                      disabled={msg.currentVersionIndex === msg.versions.length - 1 || isThinking}
-                      className="hover:text-accent disabled:opacity-30 cursor-pointer flex items-center justify-center transition-colors"
-                      title={t('nextVersion')}
-                    ><Icon name="ChevronRight" size={14} /></button>
-                 </div>
+                <div className="flex items-center gap-2 text-xs text-text opacity-70 bg-bg px-2 py-1 rounded-md border border-border shadow-sm">
+                  <button
+                    onClick={() => onVersionChange && onVersionChange(index, msg.currentVersionIndex! - 1)}
+                    disabled={msg.currentVersionIndex === 0 || isThinking}
+                    className="hover:text-accent disabled:opacity-30 cursor-pointer flex items-center justify-center transition-colors"
+                    title={t('previousVersion')}
+                  ><Icon name="ChevronLeft" size={14} /></button>
+                  <span className="font-medium select-none min-w-[2rem] text-center">{msg.currentVersionIndex! + 1} / {msg.versions.length}</span>
+                  <button
+                    onClick={() => onVersionChange && onVersionChange(index, msg.currentVersionIndex! + 1)}
+                    disabled={msg.currentVersionIndex === msg.versions.length - 1 || isThinking}
+                    className="hover:text-accent disabled:opacity-30 cursor-pointer flex items-center justify-center transition-colors"
+                    title={t('nextVersion')}
+                  ><Icon name="ChevronRight" size={14} /></button>
+                </div>
               )}
             </div>
             <div className="flex gap-3">
               {isLatestAi && onRegenerate && (
-                <button 
-                  onClick={onRegenerate} 
+                <button
+                  onClick={onRegenerate}
                   disabled={isThinking}
-                  title={t('regenerate')} 
+                  title={t('regenerate')}
                   className="flex items-center gap-1 text-xs opacity-60 hover:opacity-100 hover:text-accent transition-all cursor-pointer focus:outline-none disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <Icon name="RefreshCw" className={`w-3.5 h-3.5 ${isThinking ? 'animate-spin' : ''}`} />
@@ -330,7 +332,7 @@ const ChatMessageBubble = React.memo<{
       {/* Togglable Features & Entities Considered (Separated from main bubble) */}
       {hasConsideredData && (
         <div className={`flex flex-col max-w-[90%] w-full ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
-          <button 
+          <button
             onClick={() => setIsDetailsExpanded(!isDetailsExpanded)}
             className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-accent transition-colors py-1.5 px-3 rounded-xl border border-border hover:bg-hover-bg focus:outline-none bg-panel-bg shadow-sm mt-1"
           >
@@ -355,13 +357,13 @@ const ChatMessageBubble = React.memo<{
   );
 }, (prev, next) => {
   return prev.msg === next.msg &&
-         prev.index === next.index &&
-         prev.keyData === next.keyData &&
-         prev.t === next.t &&
-         prev.isLatestAi === next.isLatestAi &&
-         prev.isLatestUser === next.isLatestUser &&
-         prev.isThinking === next.isThinking &&
-         prev.appMode === next.appMode;
+    prev.index === next.index &&
+    prev.keyData === next.keyData &&
+    prev.t === next.t &&
+    prev.isLatestAi === next.isLatestAi &&
+    prev.isLatestUser === next.isLatestUser &&
+    prev.isThinking === next.isThinking &&
+    prev.appMode === next.appMode;
 });
 
 export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, keyData, onEntityClick, onImageClick, t, lang, geminiApiKey, chatHistory: rawChatHistory, setChatHistory: setRawChatHistory, appMode, getCurrentDraft }) => {
@@ -393,19 +395,13 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
 
   const mentionOptions = useMemo(() => {
     if (!mentionState.active || appMode === 'build' || !keyData) return [];
-    
+
     const search = mentionState.search.toLowerCase();
-    const entities = Array.from(keyData.allEntities.values()).map(e => ({ type: 'entity' as const, id: e.id, name: e.name }));
-    const features = Array.from(keyData.allFeatures.values()).map(f => {
-      const name = f.parentName ? `${f.parentName}: ${f.name}` : f.name;
-      return { type: 'feature' as const, id: f.id, name };
-    });
-    
-    const all = [...entities, ...features];
-    if (!search) return all.slice(0, 30);
-    
-    return all.filter(item => item.name.toLowerCase().includes(search)).slice(0, 30);
-  }, [mentionState.active, mentionState.search, keyData, appMode]);
+
+    if (!search) return allMentionableItems.slice(0, 30);
+
+    return allMentionableItems.filter(item => item.name.toLowerCase().includes(search)).slice(0, 30);
+  }, [mentionState.active, mentionState.search, allMentionableItems]);
 
   useEffect(() => {
     if (mentionState.active && mentionRefs.current[mentionSelectedIndex]) {
@@ -444,7 +440,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
     }
     const objectUrl = URL.createObjectURL(file);
     const img = new Image();
-    
+
     const fallbackReader = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -457,7 +453,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
     img.onload = () => {
       let { width, height } = img;
       const MAX_DIM = 1024;
-      
+
       if (width > MAX_DIM || height > MAX_DIM) {
         const ratio = Math.min(MAX_DIM / width, MAX_DIM / height);
         width = Math.round(width * ratio);
@@ -468,7 +464,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
-      
+
       if (ctx) {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, width, height);
@@ -514,6 +510,13 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setIsDragging(false);
+  };
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (!isEnabled || isThinking || !geminiApiKey) return;
     if (e.dataTransfer.types.includes('Files')) {
       setIsDragging(true);
@@ -529,12 +532,12 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     if (!isEnabled || isThinking || !geminiApiKey) return;
 
     const file = e.dataTransfer.files?.[0];
     if (!file || !file.type.startsWith('image/')) return;
-    
+
     processAndSetImage(file);
   };
 
@@ -602,9 +605,9 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
         default:
           content = '';
       }
-      return { 
-        sender: 'ai', 
-        content, 
+      return {
+        sender: 'ai',
+        content,
         data: msg.data,
         versions: msg.versions,
         currentVersionIndex: msg.currentVersionIndex
@@ -651,7 +654,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
     const newVal = `${before}@${item.name} ${after}`;
     setUserInput(newVal);
     setMentionState({ active: false, search: '', startIndex: -1 });
-    
+
     setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.focus();
@@ -700,7 +703,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
     const fullSearchContext = (consolidatedDescription.current + " " + text).toLowerCase();
     const relevantFeatures = currentImage || !keyData ? (keyData?.featureListForAI || []) : keyData.featureListForAI.filter(f => {
       if (previousFeatureIds.includes(f.id)) return true; // keep previously used features context
-      
+
       // Include CJK full-width punctuation in the split (e.g., 、 。 ！ ？ 「 」 【 】)
       const words = f.description.toLowerCase().split(/[\s:\-,()。、！？「」【】]+/);
       return words.some(word => {
@@ -789,8 +792,8 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
       .filter(msg => msg.content || msg.data || (msg as any).imageUrl) // Filter out pure error or loading states
       .map(msg => ({
         role: (msg.sender === 'user' ? 'user' : 'model') as 'user' | 'model',
-        parts: [{ 
-          text: msg.sender === 'user' 
+        parts: [{
+          text: msg.sender === 'user'
             ? [msg.content, (msg as any).imageUrl ? '[Image Attached]' : ''].filter(Boolean).join(' ')
             : JSON.stringify(msg.data) // Pass the AI's previous JSON responses back to it
         }]
@@ -835,9 +838,9 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
             return newHistory;
           });
         } else {
-          const aiMessage: RawChatMessage = { 
-            sender: 'ai', 
-            aiType: 'response', 
+          const aiMessage: RawChatMessage = {
+            sender: 'ai',
+            aiType: 'response',
             data: response,
             versions: [{ aiType: 'response', data: response }],
             currentVersionIndex: 0
@@ -848,7 +851,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : t('aiError');
       setError(errorMessage);
-      
+
       if (regenerateAiIndex !== undefined && regenerateAiIndex !== -1) {
         setRawChatHistory(prev => {
           const newHistory = [...prev];
@@ -867,12 +870,12 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
           return newHistory;
         });
       } else {
-        setRawChatHistory(prev => [...prev, { 
-          sender: 'ai', 
-          aiType: 'error', 
+        setRawChatHistory(prev => [...prev, {
+          sender: 'ai',
+          aiType: 'error',
           errorText: errorMessage,
           versions: [{ aiType: 'error', errorText: errorMessage }],
-          currentVersionIndex: 0 
+          currentVersionIndex: 0
         }]);
       }
       setIsThinking(false);
@@ -886,7 +889,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
 
     const lastUserMsg = rawChatHistory[lastUserMsgIndex];
     const historyForPrompt = rawChatHistory.slice(0, lastUserMsgIndex + 1);
-    
+
     const lastValidAiMessage = historyForPrompt.slice().reverse().find(m => m.sender === 'ai' && m.data);
     consolidatedDescription.current = lastValidAiMessage?.data?.updated_description || "";
 
@@ -897,7 +900,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
     if (isThinking || (appMode === 'identify' && !keyData)) return;
 
     const newHistory = rawChatHistory.slice(0, index); // exclude the message itself
-    
+
     const lastAiMessage = newHistory.slice().reverse().find(m => m.sender === 'ai' && m.data);
     consolidatedDescription.current = lastAiMessage?.data?.updated_description || "";
 
@@ -921,15 +924,15 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
           errorText: version.errorText,
           currentVersionIndex: newVersionIndex
         };
-        
+
         if (index === newHistory.length - 1) {
-           const prevData = version.data;
-           if (prevData?.updated_description) {
-              consolidatedDescription.current = prevData.updated_description;
-           } else {
-              const lastValid = newHistory.slice(0, index).reverse().find(m => m.sender === 'ai' && m.data);
-              consolidatedDescription.current = lastValid?.data?.updated_description || "";
-           }
+          const prevData = version.data;
+          if (prevData?.updated_description) {
+            consolidatedDescription.current = prevData.updated_description;
+          } else {
+            const lastValid = newHistory.slice(0, index).reverse().find(m => m.sender === 'ai' && m.data);
+            consolidatedDescription.current = lastValid?.data?.updated_description || "";
+          }
         }
       }
       return newHistory;
@@ -1028,10 +1031,10 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
 
 
   return (
-    <div 
+    <div
       className={`panel flex flex-col h-full w-full bg-panel-bg/90 border border-white/20 dark:border-white/10 rounded-2xl md:rounded-3xl transition-all duration-300 overflow-hidden relative ${isVisible ? 'shadow-lg opacity-100 backdrop-blur-xl' : 'shadow-none opacity-0 pointer-events-none'}`}
       onDragOver={handleDragOver}
-      onDragEnter={handleDragOver}
+      onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
@@ -1041,7 +1044,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
           <h3 className="text-xl font-bold">{t('dropImageHere')}</h3>
         </div>
       )}
-      
+
       <div className="panel-header flex items-center justify-between p-3.5 border-b border-black/5 dark:border-white/5 bg-header-bg/85 backdrop-blur-md shadow-sm shrink-0 z-10">
         <button onClick={() => setIsConfirmClearOpen(true)} disabled={rawChatHistory.length === 0} title={t('clearHistory')} className="p-1.5 rounded-full hover:bg-hover-bg cursor-pointer transition-colors disabled:opacity-30 disabled:cursor-not-allowed"><Icon name="Trash2" size={18} /></button>
         <div className="panel-title font-bold flex items-center gap-2 text-accent text-lg tracking-tight">
@@ -1063,46 +1066,46 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
       ) : (
         // Standard chat view
         <div ref={chatHistoryRef} onClick={handleEntityClick} className="panel-content grow p-4 overflow-y-auto space-y-5">
-            {(() => {
-              const lastUserIndex = chatHistory.map(m => m.sender).lastIndexOf('user');
-              return chatHistory.map((msg, index) => {
-                const isLatestAi = msg.sender === 'ai' && index === chatHistory.length - 1;
-                const isLatestUser = msg.sender === 'user' && index === lastUserIndex;
-                return (
-                  <ChatMessageBubble 
-                    key={index} 
-                    msg={msg} 
-                    index={index}
-                    keyData={keyData} 
-                    t={t} 
-                    isLatestAi={isLatestAi}
-                    isLatestUser={isLatestUser}
-                    onRegenerate={handleRegenerate}
-                    onEditSubmit={handleEditSubmit}
-                    onVersionChange={handleVersionChange}
-                    isThinking={isThinking}
-                    onImageClick={onImageClick}
-                    appMode={appMode}
-                  />
-                );
-              });
-            })()}
-            {isThinking && chatHistory.length > 0 && chatHistory[chatHistory.length - 1].sender === 'user' && (
-              <div className="chat-message flex animate-fade-in-up duration-300 ease-out justify-start mb-2">
-                <div className="msg-content w-3/4 p-4 rounded-3xl shadow-sm bg-header-bg/90 backdrop-blur-md rounded-bl-sm border border-white/20 dark:border-white/10">
-                  <div className="flex items-center gap-2 mb-3 text-accent opacity-70">
-                    <Icon name="LoaderCircle" className="animate-spin w-4 h-4" />
-                    <span className="text-xs font-medium uppercase tracking-wider">{t('aiAnalyzing')}</span>
-                  </div>
-                  <div className="space-y-2 animate-pulse">
-                    <div className="h-3 bg-border rounded w-full"></div>
-                    <div className="h-3 bg-border rounded w-5/6"></div>
-                    <div className="h-3 bg-border rounded w-4/6"></div>
-                  </div>
+          {(() => {
+            const lastUserIndex = chatHistory.map(m => m.sender).lastIndexOf('user');
+            return chatHistory.map((msg, index) => {
+              const isLatestAi = msg.sender === 'ai' && index === chatHistory.length - 1;
+              const isLatestUser = msg.sender === 'user' && index === lastUserIndex;
+              return (
+                <ChatMessageBubble
+                  key={index}
+                  msg={msg}
+                  index={index}
+                  keyData={keyData}
+                  t={t}
+                  isLatestAi={isLatestAi}
+                  isLatestUser={isLatestUser}
+                  onRegenerate={handleRegenerate}
+                  onEditSubmit={handleEditSubmit}
+                  onVersionChange={handleVersionChange}
+                  isThinking={isThinking}
+                  onImageClick={onImageClick}
+                  appMode={appMode}
+                />
+              );
+            });
+          })()}
+          {isThinking && chatHistory.length > 0 && chatHistory[chatHistory.length - 1].sender === 'user' && (
+            <div className="chat-message flex animate-fade-in-up duration-300 ease-out justify-start mb-2">
+              <div className="msg-content w-3/4 p-4 rounded-3xl shadow-sm bg-header-bg/90 backdrop-blur-md rounded-bl-sm border border-white/20 dark:border-white/10">
+                <div className="flex items-center gap-2 mb-3 text-accent opacity-70">
+                  <Icon name="LoaderCircle" className="animate-spin w-4 h-4" />
+                  <span className="text-xs font-medium uppercase tracking-wider">{t('aiAnalyzing')}</span>
+                </div>
+                <div className="space-y-2 animate-pulse">
+                  <div className="h-3 bg-border rounded w-full"></div>
+                  <div className="h-3 bg-border rounded w-5/6"></div>
+                  <div className="h-3 bg-border rounded w-4/6"></div>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+        </div>
       )}
       <form onSubmit={handleSubmit} className="p-3 pt-1 relative flex flex-col shrink-0">
         {mentionState.active && mentionOptions.length > 0 && (
@@ -1140,7 +1143,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
               </div>
             )}
             <div className="relative w-full">
-              <div 
+              <div
                 ref={backdropRef}
                 className="absolute inset-0 w-full h-full pt-3 pb-2 px-3 text-[15px] pointer-events-none whitespace-pre-wrap break-words overflow-y-auto font-sans text-text leading-relaxed"
                 style={{ maxHeight: '120px' }}
@@ -1185,7 +1188,12 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
         onClose={() => setIsConfirmClearOpen(false)}
         onConfirm={handleClearHistory}
         title={t('clearHistory')}
-        message={t('confirmClearHistory')}
+        message={
+          <div className="flex items-start gap-3 text-red-500 bg-red-500/10 p-4 rounded-xl border border-red-500/20">
+            <Icon name="TriangleAlert" size={24} className="shrink-0 mt-0.5" />
+            <p className="text-sm font-medium leading-relaxed">{t('confirmClearHistory')}</p>
+          </div>
+        }
         confirmText={t('clearHistory')}
         cancelText={t('cancel')}
         isDestructive={true}

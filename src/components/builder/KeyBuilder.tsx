@@ -6,6 +6,7 @@ import type { DraftKeyData, Media } from '../../types';
 import { BuilderMetadataTab } from './BuilderMetadataTab';
 import { BuilderFeaturesTab } from './BuilderFeaturesTab';
 import { BuilderEntitiesTab } from './BuilderEntitiesTab';
+import { BuilderScoringTab } from './BuilderScoringTab';
 import { Header } from '../Header';
 
 interface KeyBuilderProps {
@@ -22,11 +23,16 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
   const { t, triggerOpenNativeKey, isAiPanelVisible, setAiPanelVisible, openPreferences } = appContext;
   const hideAi = (appContext as any).hideAi;
   const openAppInfo = (appContext as any).openAppInfo;
-  const [activeTab, setActiveTab] = useState<'metadata' | 'features' | 'entities'>('metadata');
+  const [activeTab, setActiveTab] = useState<'features' | 'entities' | 'scoring'>('features');
+  const [showMetadataModal, setShowMetadataModal] = useState(false);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
 
   const getInitialDraft = () => {
     if (initialData) return initialData;
+    const saved = localStorage.getItem('draftKeyData');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
     return { title: t('kbNewIdentKey' as any) || 'New Identification Key', authors: '', description: '', features: [], entities: [] };
   };
 
@@ -40,7 +46,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
     if (initialData) {
       setHistory([initialData]);
       setHistoryIndex(0);
-      setActiveTab('metadata');
+      setActiveTab('features');
       setSelectedFeatureId(null);
       setSelectedEntityId(null);
     }
@@ -50,6 +56,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
 
   useEffect(() => {
     onChange?.(draftKey);
+    localStorage.setItem('draftKeyData', JSON.stringify(draftKey));
 
     if (isFirstRender.current) {
       isFirstRender.current = false;
@@ -71,6 +78,14 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
     setHistoryIndex(prev => Math.min(prev + 1, 49));
   };
 
+  const getDefaultStateValues = (t: any) => [
+    { id: '1', name: t('kbScoreCommon') || 'Common' },
+    { id: '2', name: t('kbScoreRare') || 'Rare' },
+    { id: '3', name: t('scoreUncertain') || 'Uncertain' },
+    { id: '4', name: t('scoreCommonMisinterpret') || 'Common (misinterpreted)' },
+    { id: '5', name: t('scoreRareMisinterpret') || 'Rare (misinterpreted)' }
+  ];
+
   useEffect(() => {
     const handleAddFeature = (e: any) => {
       const f = e.detail;
@@ -79,7 +94,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
         ...prev,
         features: [
           ...prev.features,
-          { id, name: f.name, description: f.description, type: f.type, states: f.type === 'state' && f.states ? f.states.map((s: string) => ({ id: generateId(), name: s })) : [] }
+          { id, name: f.name, description: f.description, type: f.type, states: f.type === 'state' && f.states ? f.states.map((s: string) => ({ id: generateId(), name: s, values: getDefaultStateValues(t) })) : [] }
         ]
       }));
     };
@@ -101,7 +116,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
           name: f.name,
           description: f.description,
           type: f.type,
-          states: f.type === 'state' && f.states ? f.states.map((s: string) => ({ id: generateId(), name: s })) : []
+          states: f.type === 'state' && f.states ? f.states.map((s: string) => ({ id: generateId(), name: s, values: getDefaultStateValues(t) })) : []
         }));
         const newEntities = entities.map((ent: any) => ({
           id: generateId(),
@@ -120,7 +135,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
       window.removeEventListener('add-draft-entity', handleAddEntity);
       window.removeEventListener('add-all-draft-items', handleAddAllItems);
     };
-  }, [draftKey]);
+  }, [draftKey, t]);
 
   const undo = () => { if (historyIndex > 0) setHistoryIndex(prev => prev - 1); };
   const redo = () => { if (historyIndex < history.length - 1) setHistoryIndex(prev => prev + 1); };
@@ -129,9 +144,9 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [draggedMedia, setDraggedMedia] = useState<{ type: 'feature' | 'entity' | 'state', itemId: string, stateId?: string, index: number } | null>(null);
   const [editingMedia, setEditingMedia] = useState<{ type: 'feature' | 'entity' | 'state', itemId: string, stateId?: string, mediaIndex: number } | null>(null);
-  const [draggedItem, setDraggedItem] = useState<{ type: 'feature' | 'entity', id: string } | null>(null);
+  const [draggedItem, setDraggedItem] = useState<{ type: 'feature' | 'entity' | 'state', id: string, parentId?: string } | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<{ type: 'feature' | 'state' | 'entity', id: string, parentId?: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'feature' | 'state' | 'entity' | 'featureMedia' | 'stateMedia' | 'entityMedia', id: string, parentId?: string, mediaIndex?: number } | null>(null);
   const [collapsedFeatures, setCollapsedFeatures] = useState<Set<string>>(new Set());
   const [collapsedEntities, setCollapsedEntities] = useState<Set<string>>(new Set());
 
@@ -139,7 +154,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
   const [isSwiping, setIsSwiping] = useState(false);
   const touchStart = useRef<{ x: number, y: number } | null>(null);
 
-  const tabIndex = activeTab === 'metadata' ? 0 : activeTab === 'features' ? 1 : 2;
+  const tabIndex = activeTab === 'features' ? 0 : activeTab === 'entities' ? 1 : 2;
 
   const handleTouchStart = (e: React.TouchEvent) => {
       touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -165,8 +180,8 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
 
       if (isSwiping) {
           let effectiveDelta = deltaX;
-          if (activeTab === 'metadata' && deltaX > 0) effectiveDelta *= 0.3;
-          if (activeTab === 'entities' && deltaX < 0) effectiveDelta *= 0.3;
+          if (activeTab === 'features' && deltaX > 0) effectiveDelta *= 0.3;
+          if (activeTab === 'scoring' && deltaX < 0) effectiveDelta *= 0.3;
           setSwipeOffset(effectiveDelta);
       }
   };
@@ -180,11 +195,11 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
       if (isSwiping) {
           const deltaX = e.changedTouches[0].clientX - touchStart.current.x;
           if (deltaX < -50) {
-              if (activeTab === 'metadata') setActiveTab('features');
-              else if (activeTab === 'features') setActiveTab('entities');
+              if (activeTab === 'features') setActiveTab('entities');
+              else if (activeTab === 'entities') setActiveTab('scoring');
           } else if (deltaX > 50) {
-              if (activeTab === 'entities') setActiveTab('features');
-              else if (activeTab === 'features') setActiveTab('metadata');
+              if (activeTab === 'scoring') setActiveTab('entities');
+              else if (activeTab === 'entities') setActiveTab('features');
           }
       }
       setIsSwiping(false);
@@ -295,7 +310,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
   const handleCreateNew = () => {
     setHistory([{ title: t('kbNewIdentKey' as any) || 'New Identification Key', authors: '', description: '', features: [], entities: [] }]);
     setHistoryIndex(0);
-    setActiveTab('metadata');
+    setActiveTab('features');
     setSelectedFeatureId(null);
     setSelectedEntityId(null);
     setShowNewKeyModal(false);
@@ -324,7 +339,33 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
     if (deleteTarget.type === 'feature') deleteFeature(deleteTarget.id);
     else if (deleteTarget.type === 'state') deleteState(deleteTarget.parentId!, deleteTarget.id);
     else if (deleteTarget.type === 'entity') deleteEntity(deleteTarget.id);
+    else if (deleteTarget.type === 'featureMedia') deleteFeatureMedia(deleteTarget.id, deleteTarget.mediaIndex!);
+    else if (deleteTarget.type === 'stateMedia') deleteStateMedia(deleteTarget.parentId!, deleteTarget.id, deleteTarget.mediaIndex!);
+    else if (deleteTarget.type === 'entityMedia') deleteEntityMedia(deleteTarget.id, deleteTarget.mediaIndex!);
     setDeleteTarget(null);
+  };
+
+  const deleteFeatureMedia = (featureId: string, index: number) => {
+    updateDraftKey(prev => ({
+      ...prev,
+      features: prev.features.map(f => f.id === featureId && f.media ? { ...f, media: f.media.filter((_, i) => i !== index) } : f)
+    }));
+  };
+
+  const deleteStateMedia = (featureId: string, stateId: string, index: number) => {
+    updateDraftKey(prev => ({
+      ...prev,
+      features: prev.features.map(f => f.id === featureId ? {
+        ...f, states: f.states.map(s => s.id === stateId && s.media ? { ...s, media: s.media.filter((_, i) => i !== index) } : s)
+      } : f)
+    }));
+  };
+
+  const deleteEntityMedia = (entityId: string, index: number) => {
+    updateDraftKey(prev => ({
+      ...prev,
+      entities: prev.entities.map(e => e.id === entityId && e.media ? { ...e, media: e.media.filter((_, i) => i !== index) } : e)
+    }));
   };
 
   const deleteFeature = (id: string) => {
@@ -392,19 +433,39 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
       <button onClick={() => onTestKey?.(draftKey)} title={t('kbTestKey' as any)} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0">
         <Icon name="Play" size={24} className="opacity-80 text-accent" />
       </button>
+      <button onClick={() => setShowMetadataModal(true)} title={t('kbMetadata')} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0">
+        <Icon name="Info" size={24} className="opacity-80" />
+      </button>
       <button onClick={openPreferences} title={t('preferences')} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0">
         <Icon name="Settings2" size={24} className="opacity-80" />
+      </button>
+      <div className="w-px h-6 bg-border mx-1 opacity-50" />
+      <button onClick={undo} disabled={historyIndex <= 0} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0 disabled:opacity-30 disabled:cursor-not-allowed" title={t('kbUndo')}>
+        <Icon name="Undo" size={24} className="opacity-80" />
+      </button>
+      <button onClick={redo} disabled={historyIndex >= history.length - 1} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0 disabled:opacity-30 disabled:cursor-not-allowed" title={t('kbRedo')}>
+        <Icon name="Redo" size={24} className="opacity-80" />
       </button>
     </>
   );
 
   const builderCenterContent = (
-    <div className="absolute left-1/2 -translate-x-1/2 flex items-center z-10">
-      <div className="flex items-center bg-panel-bg/85 backdrop-blur-sm border border-transparent dark:border-white/10 rounded-full shadow-sm overflow-hidden hover:shadow-md hover:border-black/10 dark:hover:border-white/20 transition-all">
-        <button onClick={undo} disabled={historyIndex <= 0} className="p-1.5 px-3 hover:bg-hover-bg/80 disabled:opacity-30 disabled:cursor-not-allowed transition-colors border-r border-black/5 dark:border-white/10 cursor-pointer" title={t('kbUndo')}><Icon name="Undo" size={18} /></button>
-        <button onClick={redo} disabled={historyIndex >= history.length - 1} className="p-1.5 px-3 hover:bg-hover-bg/80 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer" title={t('kbRedo')}><Icon name="Redo" size={18} /></button>
+    <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
+      <div className="hidden md:flex items-center gap-2">
+        <button
+          onClick={() => setActiveTab('features')}
+          className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-all duration-300 cursor-pointer shadow-sm border shrink-0 font-bold text-sm ${['features', 'entities'].includes(activeTab) ? 'bg-accent/10 text-accent border-accent/20' : 'opacity-90 hover:opacity-100 hover:bg-hover-bg/80 border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md text-text'}`}
+        >
+          <Icon name="ListTree" size={18} /> {t('kbFeatures')} &amp; {t('kbEntities')}
+        </button>
+        <button
+          onClick={() => setActiveTab('scoring')}
+          className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-all duration-300 cursor-pointer shadow-sm border shrink-0 font-bold text-sm ${activeTab === 'scoring' ? 'bg-accent/10 text-accent border-accent/20' : 'opacity-90 hover:opacity-100 hover:bg-hover-bg/80 border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md text-text'}`}
+        >
+          <Icon name="Target" size={18} /> {t('kbScoring')}
+        </button>
       </div>
-      <span className={`absolute left-full ml-3 text-xs font-bold text-green-500 dark:text-green-400 flex items-center gap-1 transition-opacity duration-500 whitespace-nowrap ${isSaved ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+      <span className={`absolute left-full ml-3 text-xs font-bold text-green-500 dark:text-green-400 flex items-center gap-1 transition-opacity duration-500 whitespace-nowrap pointer-events-none ${isSaved ? 'opacity-100' : 'opacity-0'}`}>
         <Icon name="Check" size={14} /> <span className="hidden md:inline">{t('saved' as any)}</span>
       </span>
     </div>
@@ -420,24 +481,24 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
           </h2>
         </div>
         <div className="flex flex-col gap-2 text-sm font-semibold">
-          <button onClick={() => { setSidebarOpen(false); setShowNewKeyModal(true); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 group">
+          <button onClick={() => { setSidebarOpen(false); setShowNewKeyModal(true); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md group">
             <Icon name="FilePlus" className="opacity-80 group-hover:opacity-100" /> {t('kbNewKey' as any)}
           </button>
-          <button onClick={() => { setSidebarOpen(false); triggerOpenNativeKey(); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 group">
+          <button onClick={() => { setSidebarOpen(false); triggerOpenNativeKey(); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md group">
             <Icon name="FolderOpen" className="opacity-80 group-hover:opacity-100" /> {t('openNativeKey')}
           </button>
-          <button onClick={() => { setSidebarOpen(false); exportJson(); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 group">
+          <button onClick={() => { setSidebarOpen(false); exportJson(); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md group">
             <Icon name="Download" className="opacity-80 group-hover:opacity-100" /> {t('exportJson')}
           </button>
-          <button onClick={() => { setSidebarOpen(false); onTestKey?.(draftKey); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 group">
+          <button onClick={() => { setSidebarOpen(false); onTestKey?.(draftKey); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md group">
             <Icon name="Play" className="opacity-80 group-hover:opacity-100 text-accent" /> {t('kbTestKey' as any)}
           </button>
         </div>
         <div className="mt-auto flex flex-col gap-2 pt-5 border-t border-black/5 dark:border-white/5 text-sm font-semibold">
-          <button onClick={() => { setSidebarOpen(false); openPreferences(); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer hover:shadow-sm hover:-translate-y-0.5">
+          <button onClick={() => { setSidebarOpen(false); openPreferences(); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer hover:shadow-sm">
             <Icon name="Settings2" className="opacity-80" /> {t('preferences')}
           </button>
-          <button onClick={() => { setSidebarOpen(false); openAppInfo(); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer hover:shadow-sm hover:-translate-y-0.5">
+          <button onClick={() => { setSidebarOpen(false); openAppInfo(); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer hover:shadow-sm">
             <Icon name="Info" className="opacity-80" /> {t('aboutTaxon' as any)}
           </button>
         </div>
@@ -458,48 +519,49 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
 
       <div className="flex flex-col grow overflow-hidden">
         <div className="flex flex-row grow overflow-hidden p-0 md:p-4 gap-0 md:gap-4">
-          {/* Builder Sidebar Tabs (Desktop) */}
-          <div className="hidden md:flex w-60 shrink-0 flex-col overflow-y-auto gap-2 bg-panel-bg/80 backdrop-blur-xl border border-white/20 dark:border-white/10 p-4 rounded-3xl shadow-lg scrollbar-hide">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">{t('kbBuilderMenu' as any)}</h3>
-            <button
-              onClick={() => setActiveTab('metadata')}
-              className={`flex items-center gap-3 text-left px-3 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer whitespace-nowrap ${activeTab === 'metadata' ? 'bg-accent/95 backdrop-blur-md text-white shadow-lg shadow-accent/30 border border-white/20' : 'hover:bg-hover-bg/80 hover:shadow-sm hover:-translate-y-0.5 text-text border border-transparent hover:border-white/10'}`}
-            >
-              <Icon name="FileText" size={18} className={activeTab === 'metadata' ? 'opacity-100' : 'opacity-70'} />
-              {t('kbMetadata')}
-            </button>
-            <button
-              onClick={() => setActiveTab('features')}
-              className={`flex items-center justify-between text-left px-3 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer whitespace-nowrap ${activeTab === 'features' ? 'bg-accent/95 backdrop-blur-md text-white shadow-lg shadow-accent/30 border border-white/20' : 'hover:bg-hover-bg/80 hover:shadow-sm hover:-translate-y-0.5 text-text border border-transparent hover:border-white/10'}`}
-            >
-              <div className="flex items-center gap-3"><Icon name="ListTree" size={18} className={activeTab === 'features' ? 'opacity-100' : 'opacity-70'} /> {t('kbFeatures')}</div>
-              <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === 'features' ? 'bg-white/20' : 'bg-bg border border-border'}`}>{draftKey.features.length}</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('entities')}
-              className={`flex items-center justify-between text-left px-3 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer whitespace-nowrap ${activeTab === 'entities' ? 'bg-accent/95 backdrop-blur-md text-white shadow-lg shadow-accent/30 border border-white/20' : 'hover:bg-hover-bg/80 hover:shadow-sm hover:-translate-y-0.5 text-text border border-transparent hover:border-white/10'}`}
-            >
-              <div className="flex items-center gap-3"><Icon name="List" size={18} className={activeTab === 'entities' ? 'opacity-100' : 'opacity-70'} /> {t('kbEntities')}</div>
-              <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === 'entities' ? 'bg-white/20' : 'bg-bg border border-border'}`}>{draftKey.entities.length}</span>
-            </button>
-          </div>
 
           {/* Builder Main Content */}
         <div 
-          className={`flex grow flex-col md:bg-panel-bg/90 md:backdrop-blur-xl md:border border-white/20 dark:border-white/10 md:rounded-3xl overflow-hidden md:shadow-lg relative`}
+          className="flex grow flex-col relative min-w-0 min-h-0"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
           <div className={`builder-mobile-view ${isSwiping ? 'is-swiping' : ''}`} style={{ '--mobile-tab-offset': `-${tabIndex * 100}%`, '--swipe-offset': `${swipeOffset}px` } as React.CSSProperties}>
-            <div className={`builder-panel ${activeTab === 'metadata' ? 'active' : ''}`}>
-              <div className="w-full h-full flex flex-col overflow-hidden max-md:bg-panel-bg/90 max-md:backdrop-blur-xl max-md:border max-md:border-white/20 dark:max-md:border-white/10 max-md:rounded-3xl max-md:shadow-lg">
-                <BuilderMetadataTab draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any} />
+
+            {/* Desktop Combined Features & Entities */}
+            <div className={`max-md:!hidden builder-panel ${['features', 'entities'].includes(activeTab) ? 'active' : ''}`}>
+              <div className="w-full h-full flex flex-row gap-4">
+                <div className="w-1/2 h-full flex flex-col bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg overflow-hidden">
+                <BuilderFeaturesTab
+                  draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
+                  selectedFeatureId={selectedFeatureId} setSelectedFeatureId={setSelectedFeatureId}
+                  collapsedFeatures={collapsedFeatures} toggleFeatureCollapse={toggleFeatureCollapse}
+                  draggedItem={draggedItem} setDraggedItem={setDraggedItem}
+                  dragOverId={dragOverId} setDragOverId={setDragOverId}
+                  draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
+                  setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
+                  processAndSetImage={processAndSetImage}
+                />
+                </div>
+                <div className="w-1/2 h-full flex flex-col bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg overflow-hidden">
+                <BuilderEntitiesTab
+                  draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
+                  selectedEntityId={selectedEntityId} setSelectedEntityId={setSelectedEntityId}
+                  collapsedEntities={collapsedEntities} toggleEntityCollapse={toggleEntityCollapse}
+                  draggedItem={draggedItem} setDraggedItem={setDraggedItem}
+                  dragOverId={dragOverId} setDragOverId={setDragOverId}
+                  draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
+                  setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
+                  processAndSetImage={processAndSetImage}
+                />
+                </div>
               </div>
             </div>
 
-            <div className={`builder-panel ${activeTab === 'features' ? 'active' : ''}`}>
-              <div className="w-full h-full flex flex-col overflow-hidden max-md:bg-panel-bg/90 max-md:backdrop-blur-xl max-md:border max-md:border-white/20 dark:max-md:border-white/10 max-md:rounded-3xl max-md:shadow-lg">
+            {/* Mobile Separated Features */}
+            <div className={`md:!hidden builder-panel ${activeTab === 'features' ? 'active' : ''}`}>
+              <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg">
                 <BuilderFeaturesTab
                   draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
                   selectedFeatureId={selectedFeatureId} setSelectedFeatureId={setSelectedFeatureId}
@@ -513,8 +575,9 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
               </div>
             </div>
 
-            <div className={`builder-panel ${activeTab === 'entities' ? 'active' : ''}`}>
-              <div className="w-full h-full flex flex-col overflow-hidden max-md:bg-panel-bg/90 max-md:backdrop-blur-xl max-md:border max-md:border-white/20 dark:max-md:border-white/10 max-md:rounded-3xl max-md:shadow-lg">
+            {/* Mobile Separated Entities */}
+            <div className={`md:!hidden builder-panel ${activeTab === 'entities' ? 'active' : ''}`}>
+              <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg">
                 <BuilderEntitiesTab
                   draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
                   selectedEntityId={selectedEntityId} setSelectedEntityId={setSelectedEntityId}
@@ -527,6 +590,12 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
                 />
               </div>
             </div>
+
+            <div className={`builder-panel ${activeTab === 'scoring' ? 'active' : ''} min-w-0`}>
+              <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg min-w-0">
+                <BuilderScoringTab draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any} />
+              </div>
+            </div>
           </div>
           </div>
         </div>
@@ -534,8 +603,8 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
 
       {/* Mobile Bottom Bar */}
       <div className="flex md:hidden items-center justify-around bg-panel-bg/85 backdrop-blur-xl border border-white/20 dark:border-white/10 p-2 shrink-0 z-20 shadow-lg rounded-3xl m-2" style={{ marginBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}>
-        <button onClick={() => setActiveTab('metadata')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 relative ${activeTab === 'metadata' ? 'text-accent bg-accent/10 shadow-inner scale-105' : 'text-gray-500 hover:text-accent hover:bg-hover-bg/50'}`}>
-          <Icon name="FileText" size={22} className={activeTab === 'metadata' ? 'drop-shadow-sm' : ''} />
+        <button onClick={() => setShowMetadataModal(true)} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 relative text-gray-500 hover:text-accent hover:bg-hover-bg/50`}>
+          <Icon name="Info" size={22} />
           <span className="text-[10px] font-bold text-center leading-none tracking-tight">{t('kbMetadata')}</span>
         </button>
         <button onClick={() => setActiveTab('features')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 relative ${activeTab === 'features' ? 'text-accent bg-accent/10 shadow-inner scale-105' : 'text-gray-500 hover:text-accent hover:bg-hover-bg/50'}`}>
@@ -547,6 +616,10 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
           <Icon name="List" size={22} className={activeTab === 'entities' ? 'drop-shadow-sm' : ''} />
           <span className="text-[10px] font-bold text-center leading-none tracking-tight">{t('kbEntities')}</span>
           {draftKey.entities.length > 0 && <span className="absolute -top-1 -right-1 bg-accent/95 backdrop-blur-sm border border-white/20 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-md animate-fade-in-up">{draftKey.entities.length > 99 ? '99+' : draftKey.entities.length}</span>}
+        </button>
+        <button onClick={() => setActiveTab('scoring')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 relative ${activeTab === 'scoring' ? 'text-accent bg-accent/10 shadow-inner scale-105' : 'text-gray-500 hover:text-accent hover:bg-hover-bg/50'}`}>
+          <Icon name="Target" size={22} className={activeTab === 'scoring' ? 'drop-shadow-sm' : ''} />
+          <span className="text-[10px] font-bold text-center leading-none tracking-tight">{t('kbScoring')}</span>
         </button>
       </div>
 
@@ -582,7 +655,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
               </label>
 
               <div className="mt-auto flex flex-col md:flex-row justify-end gap-3 pt-6">
-                <button onClick={() => setEditingMedia(null)} className="w-full md:w-auto px-6 py-2.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white font-bold rounded-xl hover:bg-accent-hover hover:-translate-y-0.5 transition-all duration-300 shadow-md hover:shadow-lg shadow-accent/30 cursor-pointer">{t('save')}</button>
+                <button onClick={() => setEditingMedia(null)} className="w-full md:w-auto px-6 py-2.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white font-bold rounded-xl hover:bg-accent-hover transition-all duration-300 shadow-md hover:shadow-lg shadow-accent/30 cursor-pointer">{t('save')}</button>
               </div>
             </div>
           </div>
@@ -594,21 +667,33 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
         onClose={() => setDeleteTarget(null)}
         onConfirm={confirmDelete}
         title={t('kbDelete')}
-        message={t('kbConfirmDelete' as any)}
+        message={
+          <div className="flex items-start gap-3 text-red-500 bg-red-500/10 p-4 rounded-xl border border-red-500/20">
+            <Icon name="TriangleAlert" size={24} className="shrink-0 mt-0.5" />
+            <p className="text-sm font-medium leading-relaxed">{t('kbConfirmDelete' as any)}</p>
+          </div>
+        }
         confirmText={t('kbDelete')}
         cancelText={t('cancel')}
         isDestructive={true}
       />
 
       <Modal isOpen={showNewKeyModal} onClose={() => setShowNewKeyModal(false)} title={t('kbNewKey' as any)}>
-        <div className="p-6 text-text">
-          <p className="mb-6 opacity-90">{t('kbNewKeyPrompt' as any)}</p>
-          <div className="flex flex-col-reverse md:flex-row justify-end gap-3">
-            <button onClick={() => setShowNewKeyModal(false)} className="w-full md:w-auto px-4 py-2 hover:bg-hover-bg/80 hover:-translate-y-0.5 rounded-xl font-medium transition-all duration-300 cursor-pointer">{t('cancel')}</button>
-            <button onClick={() => { exportJson(); handleCreateNew(); }} className="w-full md:w-auto justify-center px-4 py-2 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-xl hover:bg-hover-bg/80 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 shadow-sm font-medium flex items-center gap-2 cursor-pointer"><Icon name="FileJson" size={16} /> {t('exportJson')}</button>
-            <button onClick={handleCreateNew} className="w-full md:w-auto justify-center px-4 py-2 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-xl hover:bg-red-600 hover:-translate-y-0.5 transition-all duration-300 shadow-md hover:shadow-lg shadow-red-500/30 font-bold cursor-pointer">{t('kbDiscardAndCreate' as any)}</button>
+        <div className="p-7 text-text">
+          <div className="flex items-start gap-3 text-yellow-500 bg-yellow-500/10 p-4 rounded-xl border border-yellow-500/20 mb-8">
+            <Icon name="TriangleAlert" size={24} className="shrink-0 mt-0.5" />
+            <p className="text-sm font-medium leading-relaxed">{t('kbNewKeyPrompt' as any)}</p>
+          </div>
+          <div className="flex flex-col-reverse md:flex-row justify-end gap-3 mt-2">
+            <button onClick={() => setShowNewKeyModal(false)} className="w-full md:w-auto px-5 py-2.5 hover:bg-hover-bg/80 rounded-xl font-bold text-gray-500 transition-all duration-300 cursor-pointer">{t('cancel')}</button>
+            <button onClick={() => { exportJson(); handleCreateNew(); }} className="w-full md:w-auto justify-center px-5 py-2.5 bg-panel-bg border border-white/20 dark:border-white/10 rounded-xl hover:bg-hover-bg/80 hover:shadow-md transition-all duration-300 shadow-sm font-bold flex items-center gap-2 cursor-pointer"><Icon name="FileJson" size={16} /> {t('exportJson')}</button>
+            <button onClick={handleCreateNew} className="w-full md:w-auto justify-center px-5 py-2.5 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-xl hover:bg-red-600 transition-all duration-300 shadow-md hover:shadow-lg shadow-red-500/30 font-bold cursor-pointer">{t('kbDiscardAndCreate' as any)}</button>
           </div>
         </div>
+      </Modal>
+
+      <Modal isOpen={showMetadataModal} onClose={() => setShowMetadataModal(false)} title={t('kbMetadata')}>
+        <BuilderMetadataTab draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any} />
       </Modal>
     </div>
   );

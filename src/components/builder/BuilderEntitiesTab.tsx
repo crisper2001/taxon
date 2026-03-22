@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { Icon } from '../Icon';
 import type { DraftKeyData, DraftEntity } from '../../types';
 import { CustomSelect } from '../common/CustomSelect';
+import { MarkdownInput } from '../common/MarkdownInput';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 const reorderArray = <T,>(arr: T[], from: number, to: number): T[] => {
@@ -19,20 +20,22 @@ interface BuilderEntitiesTabProps {
   setSelectedEntityId: (id: string | null) => void;
   collapsedEntities: Set<string>;
   toggleEntityCollapse: (id: string) => void;
-  draggedItem: { type: 'feature' | 'entity', id: string } | null;
-  setDraggedItem: (item: { type: 'feature' | 'entity', id: string } | null) => void;
+  draggedItem: { type: 'feature' | 'entity' | 'state', id: string, parentId?: string } | null;
+  setDraggedItem: (item: { type: 'feature' | 'entity' | 'state', id: string, parentId?: string } | null) => void;
   dragOverId: string | null;
   setDragOverId: (id: string | null) => void;
   draggedMedia: { type: 'feature' | 'entity' | 'state', itemId: string, stateId?: string, index: number } | null;
   setDraggedMedia: (media: { type: 'feature' | 'entity' | 'state', itemId: string, stateId?: string, index: number } | null) => void;
   setEditingMedia: (media: { type: 'feature' | 'entity' | 'state', itemId: string, stateId?: string, mediaIndex: number } | null) => void;
-  setDeleteTarget: (target: { type: 'feature' | 'state' | 'entity', id: string, parentId?: string } | null) => void;
+  setDeleteTarget: (target: { type: 'feature' | 'state' | 'entity' | 'featureMedia' | 'stateMedia' | 'entityMedia', id: string, parentId?: string, mediaIndex?: number } | null) => void;
   processAndSetImage: (file: File, callback: (url: string) => void) => void;
+  layoutMode?: 'list' | 'edit' | 'both';
 }
 
 export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
   draftKey, updateDraftKey, t, selectedEntityId, setSelectedEntityId, collapsedEntities, toggleEntityCollapse,
-  draggedItem, setDraggedItem, dragOverId, setDragOverId, draggedMedia, setDraggedMedia, setEditingMedia, setDeleteTarget, processAndSetImage
+  draggedItem, setDraggedItem, dragOverId, setDragOverId, draggedMedia, setDraggedMedia, setEditingMedia, setDeleteTarget, processAndSetImage,
+  layoutMode = 'both'
 }) => {
   const touchTimeout = useRef<NodeJS.Timeout | null>(null);
   const ghostRef = useRef<HTMLDivElement>(null);
@@ -78,24 +81,6 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
         entities: [...prev.entities, newEntity]
       };
     });
-  };
-
-  const setScore = (entityId: string, itemId: string, value: any) => {
-    updateDraftKey(prev => ({
-      ...prev,
-      entities: prev.entities.map(e => {
-        if (e.id === entityId) {
-          const newScores = { ...e.scores };
-          if (value === null || value === false || value === '') {
-            delete newScores[itemId];
-          } else {
-            newScores[itemId] = value;
-          }
-          return { ...e, scores: newScores };
-        }
-        return e;
-      })
-    }));
   };
 
   const reorderEntityMedia = (entityId: string, from: number, to: number) => {
@@ -217,32 +202,34 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
                         setDraggedItem(null);
                         setDragOverId(null);
                     }}
-                    className={`rounded-lg transition-all relative group/item flex items-center ${dragOverId === e.id ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-10' : ''} ${draggedItem?.id === e.id ? 'opacity-50' : ''}`}
-                    style={{ paddingLeft: `${1.5 + depth * 1.5}rem`, paddingRight: '0.75rem', touchAction: draggedItem ? 'none' : 'auto' }}
+                    onClick={() => setSelectedEntityId(e.id)}
+                    className={`rounded-xl transition-all relative group/item flex items-center gap-2 py-2 pr-2 border cursor-pointer ${selectedEntityId === e.id ? 'bg-accent/95 backdrop-blur-md text-white shadow-md shadow-accent/30 border-white/20 z-10' : 'hover:bg-hover-bg/80 hover:shadow-sm text-text border-transparent hover:border-white/10 dark:hover:border-white/5'} ${dragOverId === e.id ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${draggedItem?.id === e.id ? 'opacity-50' : ''}`}
+                    style={{ paddingLeft: `calc(${1.5 + depth * 1.5}rem + 0.5rem)`, touchAction: draggedItem ? 'none' : 'auto' }}
                 >
-                    {depth > 0 && (
-                        <div className="absolute top-1/2 -translate-y-1/2 border-t-2 border-border/50 pointer-events-none transition-colors group-hover/item:border-accent/50" 
-                             style={{ left: `calc(${1.5 + (depth - 1) * 1.5}rem - 0.625rem)`, width: '1.5rem' }}></div>
-                    )}
-                    
                     {children.length > 0 && (
                         <button 
                             onClick={(ev) => { ev.stopPropagation(); toggleEntityCollapse(e.id); }} 
-                            className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-black/10 dark:hover:bg-white/10 text-gray-500 cursor-pointer absolute z-20 transition-colors"
+                            className={`w-5 h-5 flex items-center justify-center rounded-md cursor-pointer absolute z-20 transition-colors ${selectedEntityId === e.id ? 'text-white/80 hover:text-white hover:bg-white/20' : 'text-gray-500 hover:bg-black/10 dark:hover:bg-white/10'}`}
                             style={{ left: `calc(${1.5 + depth * 1.5}rem - 1.25rem)` }}
                         >
                             <Icon name="ChevronDown" size={14} className={`transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`} />
                         </button>
                     )}
 
-                    <button onClick={() => setSelectedEntityId(e.id)} className={`w-full flex items-center gap-2 text-left py-2 px-2 rounded-xl text-sm font-medium transition-all duration-300 cursor-pointer relative z-10 ${selectedEntityId === e.id ? 'bg-accent/95 backdrop-blur-md text-white shadow-md shadow-accent/30 border border-white/20' : 'hover:bg-hover-bg/80 hover:shadow-sm hover:-translate-y-0.5 text-text border border-transparent hover:border-white/10 dark:hover:border-white/5'}`}>
-                        <Icon name="Leaf" size={14} className={`shrink-0 ${selectedEntityId === e.id ? 'opacity-100' : 'opacity-60'}`} />
-                        <span className="truncate">{e.name || t('kbUnnamedEntity' as any)}</span>
-                    </button>
+                    <Icon name="Leaf" size={14} className={`shrink-0 ${selectedEntityId === e.id ? 'opacity-100' : 'opacity-60'}`} />
+                    <span className="truncate flex-1 text-sm font-medium">{e.name || t('kbUnnamedEntity' as any)}</span>
+                    
+                    <div className="opacity-0 group-hover/item:opacity-100 flex items-center gap-0.5 transition-opacity z-20 shrink-0">
+                        <button onClick={(ev) => { ev.stopPropagation(); duplicateEntity(e.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedEntityId === e.id ? 'text-white/70 hover:text-white hover:bg-white/20' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbDuplicate')}>
+                            <Icon name="Copy" size={14} />
+                        </button>
+                        <button onClick={(ev) => { ev.stopPropagation(); setDeleteTarget({ type: 'entity', id: e.id }); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedEntityId === e.id ? 'text-white/70 hover:text-white hover:bg-red-500/80' : 'text-red-400 hover:text-red-500 hover:bg-red-500/10'}`} title={t('kbDelete')}>
+                            <Icon name="Trash2" size={14} />
+                        </button>
+                    </div>
                 </div>
                 {children.length > 0 && !isCollapsed && (
                     <div className="relative">
-                        <div className="absolute top-0 bottom-0 border-l-2 border-border/50 pointer-events-none" style={{ left: `calc(${1.5 + depth * 1.5}rem - 0.625rem)` }}></div>
                         {children.map(c => renderNode(c.id, depth + 1))}
                     </div>
                 )}
@@ -253,11 +240,18 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
   };
 
   return (
-    <div className="flex flex-col md:flex-row w-full h-full animate-fade-in">
-      <div className="w-full md:w-1/3 h-[40%] md:h-full md:min-w-[280px] border-b md:border-b-0 md:border-r border-white/10 dark:border-white/5 flex flex-col bg-panel-bg/50 backdrop-blur-sm z-10 shadow-[4px_0_24px_-4px_rgba(0,0,0,0.1)] shrink-0">
+    <div className={`flex flex-col ${layoutMode === 'both' ? 'md:flex-row' : ''} w-full h-full animate-fade-in`}>
+      {layoutMode !== 'edit' && (
+      <div className={`w-full ${layoutMode === 'both' ? 'h-[40%] md:h-full md:w-2/5 md:min-w-[220px] border-b md:border-b-0 md:border-r shadow-[4px_0_24px_-4px_rgba(0,0,0,0.1)]' : 'h-full flex-1'} border-white/10 dark:border-white/5 flex flex-col bg-panel-bg/50 backdrop-blur-sm z-10 shrink-0`}>
         <div className="p-4 border-b border-white/10 dark:border-white/5 flex justify-between items-center bg-header-bg/85 backdrop-blur-md shadow-sm rounded-tl-3xl">
-          <div className="flex items-center gap-2 font-bold text-text"><Icon name="List" size={18} className="opacity-70"/> {t('kbEntities')}</div>
-          <button onClick={addEntity} className="px-3 py-1.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-lg hover:bg-accent-hover hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg shadow-accent/30 flex items-center gap-1 cursor-pointer" title={t('kbAddEntity')}><Icon name="Plus" size={14} /> {t('kbAdd' as any)}</button>
+          <div className="flex items-center gap-2 font-bold text-text">
+            <Icon name="List" size={18} className="opacity-70"/> 
+            {t('kbEntities')}
+            <span className="bg-accent text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-sm shrink-0">
+              {draftKey.entities.length}
+            </span>
+          </div>
+          <button onClick={addEntity} className="px-3 py-1.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-lg hover:bg-accent-hover transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg shadow-accent/30 flex items-center gap-1 cursor-pointer" title={t('kbAddEntity')}><Icon name="Plus" size={14} /> {t('kbAdd' as any)}</button>
         </div>
         <div 
           className={`overflow-y-auto flex-1 p-3 space-y-0.5 rounded-b-xl transition-colors ${dragOverId === 'root-entity' ? 'bg-accent/5 ring-2 ring-inset ring-accent' : ''}`}
@@ -280,7 +274,9 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
           {draftKey.entities.length === 0 && <div className="p-6 text-center text-sm opacity-50 border-2 border-dashed border-border rounded-xl mt-2">{t('kbEntities')} ({t('kbEmpty' as any)})</div>}
         </div>
       </div>
-      <div className="flex-1 p-8 overflow-y-auto bg-bg/50">
+      )}
+      {layoutMode !== 'list' && (
+      <div className="flex-1 p-8 overflow-y-auto bg-bg/50 relative">
         {selectedEntity ? (
           <div className="max-w-2xl flex flex-col gap-6 animate-fade-in-up">
             <div className="flex justify-between items-start">
@@ -288,9 +284,9 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
                 <Icon name="Leaf" size={24} className="text-accent" />
                 <h3 className="text-2xl font-bold text-accent">{selectedEntity.name || t('kbUnnamedEntity' as any)}</h3>
               </div>
-              <div className="flex gap-2">
-                <button onClick={() => duplicateEntity(selectedEntity.id)} className="btn-secondary"><Icon name="Copy" size={16}/> {t('kbDuplicate')}</button>
-                <button onClick={() => setDeleteTarget({ type: 'entity', id: selectedEntity.id })} className="btn-danger"><Icon name="Trash2" size={16}/> {t('kbDelete')}</button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button onClick={() => duplicateEntity(selectedEntity.id)} className="p-2 text-gray-500 hover:text-accent hover:bg-panel-bg rounded-xl shadow-sm border border-transparent hover:border-border transition-all cursor-pointer" title={t('kbDuplicate')}><Icon name="Copy" size={18}/></button>
+                <button onClick={() => setDeleteTarget({ type: 'entity', id: selectedEntity.id })} className="p-2 text-red-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl shadow-sm border border-transparent hover:border-red-500/20 transition-all cursor-pointer" title={t('kbDelete')}><Icon name="Trash2" size={18}/></button>
               </div>
             </div>
             
@@ -299,26 +295,52 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
               <input type="text" value={selectedEntity.name} onChange={e => updateEntity(selectedEntity.id, { name: e.target.value })} className="input-base text-xl font-bold" />
             </label>
 
-            <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-semibold opacity-80">{t('kbDescription')}</span>
-              <textarea value={selectedEntity.description || ''} onChange={e => updateEntity(selectedEntity.id, { description: e.target.value })} className="input-base text-sm" rows={2} />
-            </label>
+            <MarkdownInput label={t('kbDescription')} value={selectedEntity.description || ''} onChange={val => updateEntity(selectedEntity.id, { description: val })} rows={3} />
 
             <div className="flex flex-col gap-1.5 mt-2">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-semibold opacity-80">{t('kbImages' as any) || 'Images'}</span>
-                <label className="text-accent hover:bg-accent/10 hover:-translate-y-0.5 px-3 py-1.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-1 cursor-pointer border border-transparent hover:border-accent/30 hover:shadow-sm">
-                  <Icon name="Plus" size={14}/> {t('kbAddImage' as any)}
-                  <input type="file" accept="image/*" className="hidden" onChange={e => {
-                    const file = e.target.files?.[0];
-                    if (file) processAndSetImage(file, url => updateEntity(selectedEntity.id, { media: [...(selectedEntity.media || []), { url }] }));
-                    e.target.value = '';
-                  }} />
-                </label>
-              </div>
-              {(selectedEntity.media?.length || 0) > 0 && (
-                <div className="flex gap-3 overflow-x-auto pb-2 pt-2 pr-2">
-                  {selectedEntity.media?.map((m, i) => (
+              <span className="text-sm font-semibold opacity-80">{t('kbImages' as any) || 'Images'}</span>
+              <div 
+                className={`flex gap-3 overflow-x-auto pb-2 pt-2 px-2 -mx-2 rounded-xl transition-all min-h-[116px] ${dragOverId === 'entity-images' ? 'bg-accent/10 ring-2 ring-accent ring-inset' : ''}`}
+                onDragEnter={(e) => {
+                  if (e.dataTransfer.types.includes('Files')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+                }}
+                onDragOver={(e) => {
+                  if (e.dataTransfer.types.includes('Files')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (dragOverId !== 'entity-images') setDragOverId('entity-images');
+                  }
+                }}
+                onDragLeave={(e) => {
+                  e.stopPropagation();
+                  if (dragOverId === 'entity-images') setDragOverId(null);
+                }}
+                onDrop={(e) => {
+                  if (dragOverId === 'entity-images') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDragOverId(null);
+                    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+                    if (files.length > 0) {
+                      let count = 0;
+                      const newUrls: string[] = [];
+                      files.forEach(file => {
+                        processAndSetImage(file, url => {
+                          newUrls.push(url);
+                          count++;
+                          if (count === files.length) {
+                            updateEntity(selectedEntity.id, { media: [...(selectedEntity.media || []), ...newUrls.map(u => ({ url: u }))] });
+                          }
+                        });
+                      });
+                    }
+                  }
+                }}
+              >
+                {selectedEntity.media?.map((m, i) => (
                     <div key={i} className={`relative shrink-0 group rounded-xl transition-all ${dragOverId === `entity-media-${i}` ? 'ring-2 ring-accent ring-offset-2 ring-offset-bg scale-[1.02]' : ''} ${draggedMedia?.index === i && draggedMedia.itemId === selectedEntity.id ? 'opacity-50' : ''}`}
                          draggable
                          data-entity-media-idx={i}
@@ -390,71 +412,31 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
                         <img src={m.url} alt={m.caption || ''} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300 pointer-events-none" />
                       </div>
                       <button onClick={() => {
-                        const newMedia = [...selectedEntity.media!];
-                        newMedia.splice(i, 1);
-                        updateEntity(selectedEntity.id, { media: newMedia });
+                        setDeleteTarget({ type: 'entityMedia', id: selectedEntity.id, mediaIndex: i });
                       }} className="absolute -top-2 -right-2 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-full p-1 hover:bg-red-600 transition-all opacity-0 group-hover:opacity-100 shadow-md hover:shadow-lg cursor-pointer z-10"><Icon name="X" size={12}/></button>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-4 mt-4 border border-white/20 dark:border-white/10 p-6 rounded-3xl bg-panel-bg/50 backdrop-blur-sm shadow-md">
-              <h4 className="text-lg font-bold text-text mb-1 border-b border-black/5 dark:border-white/5 pb-3 flex items-center gap-2"><Icon name="Target" size={20} className="text-accent" /> {t('kbScoring')}</h4>
-              {draftKey.features.length === 0 ? <div className="p-6 text-center text-sm opacity-50 border-2 border-dashed border-border rounded-xl">{t('kbNoFeaturesToScore' as any)}</div> : null}
-              
-              <div className="grid grid-cols-1 gap-4">
-                {draftKey.features.map(f => (
-                  <div key={f.id} className="p-5 bg-bg/50 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-2xl flex flex-col gap-4 shadow-inner hover:shadow-md hover:bg-bg/80 transition-all duration-300">
-                    <span className="font-bold text-base text-accent flex items-center gap-2"><Icon name={f.type === 'state' ? 'ListTree' : 'Hash'} size={16} className="opacity-70" /> {f.name}</span>
-                    {f.type === 'state' ? (
-                      <div className="grid grid-cols-2 gap-3 pl-6">
-                        {f.states.map(s => {
-                          const scoreVal = selectedEntity.scores[s.id] as string;
-                          return (
-                            <label key={s.id} className="flex items-center justify-between gap-2 text-sm opacity-90 hover:opacity-100 font-medium group bg-panel-bg/80 backdrop-blur-sm p-1.5 px-3 rounded-xl border border-white/20 dark:border-white/10 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:border-accent/50 transition-all duration-300">
-                              <span className="truncate" title={s.name}>{s.name}</span>
-                              <CustomSelect 
-                                value={scoreVal || ''} 
-                                onChange={val => setScore(selectedEntity.id, s.id, val || null)} 
-                                options={[
-                                  { value: '', label: t('kbScoreAbsent') },
-                                  { value: '1', label: t('kbScoreCommon') },
-                                  { value: '2', label: t('kbScoreRare') },
-                                  { value: '3', label: t('scoreUncertain') },
-                                  { value: '4', label: t('scoreCommonMisinterpret') },
-                                  { value: '5', label: t('scoreRareMisinterpret') }
-                                ]}
-                                className="bg-bg border border-white/10 dark:border-white/5 rounded-lg text-xs p-1.5 focus:outline-none focus:border-accent min-w-[100px] cursor-pointer shadow-inner"
-                              />
-                            </label>
-                          );
-                        })}
-                        {f.states.length === 0 && <span className="text-sm opacity-50 italic">{t('kbNoStatesDefined' as any)}</span>}
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-6 pl-6">
-                        <label className="flex items-center gap-3 text-sm font-medium">
-                            <span className="opacity-70 w-8">{t('kbMin' as any)}:</span>
-                            <input type="number" value={(selectedEntity.scores[f.id] as any)?.min ?? ''} onChange={e => {
-                                const val = parseFloat(e.target.value);
-                                const currentMax = (selectedEntity.scores[f.id] as any)?.max ?? val;
-                                setScore(selectedEntity.id, f.id, isNaN(val) ? null : { min: val, max: currentMax });
-                            }} onKeyDown={(e) => { if (e.key.length === 1 && !/^[0-9.,]$/.test(e.key)) e.preventDefault(); }} className="w-24 p-2 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-lg focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/50 shadow-inner transition-all" />
-                        </label>
-                        <label className="flex items-center gap-3 text-sm font-medium">
-                            <span className="opacity-70 w-8">{t('kbMax' as any)}:</span>
-                            <input type="number" value={(selectedEntity.scores[f.id] as any)?.max ?? ''} onChange={e => {
-                                const val = parseFloat(e.target.value);
-                                const currentMin = (selectedEntity.scores[f.id] as any)?.min ?? val;
-                                setScore(selectedEntity.id, f.id, isNaN(val) ? null : { min: currentMin, max: val });
-                            }} onKeyDown={(e) => { if (e.key.length === 1 && !/^[0-9.,]$/.test(e.key)) e.preventDefault(); }} className="w-24 p-2 bg-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-lg focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/50 shadow-inner transition-all" />
-                        </label>
-                      </div>
-                    )}
-                  </div>
                 ))}
+                <label className="w-24 h-24 shrink-0 flex flex-col items-center justify-center border-2 border-dashed border-border hover:border-accent hover:bg-accent/5 rounded-xl cursor-pointer transition-colors text-gray-400 hover:text-accent group">
+                  <Icon name="Plus" size={24} className="mb-1 group-hover:scale-110 transition-transform" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider">{t('kbAdd' as any)}</span>
+                  <input type="file" accept="image/*" multiple className="hidden" onChange={e => {
+                    const files = Array.from(e.target.files || []);
+                    if (files.length > 0) {
+                      let count = 0;
+                      const newUrls: string[] = [];
+                      files.forEach(file => {
+                        processAndSetImage(file, url => {
+                          newUrls.push(url);
+                          count++;
+                          if (count === files.length) {
+                            updateEntity(selectedEntity.id, { media: [...(selectedEntity.media || []), ...newUrls.map(u => ({ url: u }))] });
+                          }
+                        });
+                      });
+                    }
+                    e.target.value = '';
+                  }} />
+                </label>
               </div>
             </div>
 
@@ -466,6 +448,7 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
           </div>
         )}
       </div>
+      )}
 
       {/* Touch Drag Ghost */}
       {(draggedItem || draggedMedia) && (

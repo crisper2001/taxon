@@ -84,7 +84,7 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **FR3.18:** The system must encode user-uploaded images as base64 and structure them as inline data within the Gemini API payload.
 * **FR3.19:** The system must automatically process, resize (max 1024x1024 pixels), and compress uploaded images to JPEG via an HTML Canvas before transmission to optimize token usage and bandwidth.
 * **FR3.20:** The system must support drag-and-drop, clipboard paste, and manual file selection for uploading images to the AI assistant.
-* **FR3.21:** The system must dynamically select a vision-optimized AI model when an image is attached, and provide an automatic fallback to a lighter model (with a visual warning indicator in the chat) if the primary model request fails.
+* **FR3.21:** The system must dynamically select a vision-optimized AI model when an image is attached, and provide an automatic fallback to a lighter model if the primary model request fails.
 
 ### 2.4. User Interface & Display
 * **FR4.1:** The application must provide a dedicated Welcome Screen allowing users to branch into either "Identify" or "Create" modes before loading the main interface.
@@ -115,15 +115,16 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 
 ### 2.8. Key Builder (Authoring Mode)
 * **FR8.1:** The system must provide a dedicated UI mode for building and editing keys.
-* **FR8.2:** The system must allow users to add, edit, duplicate, and safely delete (via a confirmation modal) entities and features/states.
-* **FR8.3:** The system must allow users to establish parent-child hierarchical relationships for entities and features via visual drag-and-drop interaction (supporting both desktop mouse events and mobile long-press touch gestures with custom visual ghost elements that track finger position), featuring visual depth indicators and collapsible groups.
+* **FR8.2:** The system must allow users to add, edit, duplicate, and safely delete (via a confirmation modal) entities, features, and individual states. It must also safely intercept and confirm destructive operations, such as switching a populated categorical feature to a numeric type.
+* **FR8.3:** The system must allow users to establish parent-child hierarchical relationships for entities and features, and move individual states between different categorical features, via visual drag-and-drop interaction (supporting both desktop mouse events and mobile long-press touch gestures with custom visual ghost elements that track finger position), featuring visual depth indicators and collapsible groups.
 * **FR8.4:** The system must allow users to assign all supported score types (e.g., Common, Rare, Uncertain, Misinterpreted) connecting entities to features and states.
 * **FR8.5:** The system must maintain an internal history stack to support Undo and Redo operations.
 * **FR8.6:** The system must allow users to attach, preview (via lightbox modal), and reorder (via drag-and-drop) local images for entities, features, and states, capturing caption and copyright metadata. Attached images must be automatically processed and compressed (max 1024x1024 pixels) to optimize builder payload sizes.
-* **FR8.7:** The system must allow adding Markdown-formatted descriptions to entities and features.
+* **FR8.7:** The system must allow adding Markdown-formatted descriptions to entities, features, and states.
 * **FR8.8:** The system must support resuming work by natively loading previously exported custom `.json` keys directly into the builder.
 * **FR8.9:** The system must support exporting the constructed key data into a custom JSON format.
-* **FR8.10:** The system must preserve the active draft key in-memory while navigating the application (e.g., returning to the Main Menu), but will discard it upon browser refresh to match the strict session-based privacy behavior of the Identify mode.
+* **FR8.10:** The system must preserve the active draft key locally (via `localStorage`) to prevent accidental data loss across browser refreshes, while still allowing the user to seamlessly navigate between the builder and the Main Menu.
 * **FR8.11:** The system must provide a "Test Key" function that instantly loads the working draft into the Identification Engine for real-time testing without requiring file exports.
 * **FR8.12:** The system must integrate the AI Assistant within the Builder Mode to provide and directly ingest taxonomic feature and entity suggestions based on user domain descriptions. The AI context must dynamically include the draft's existing features and entities to prevent the assistant from suggesting duplicates.
 * **FR8.13:** The system must provide a safe "New Key" workflow that prompts the user to export their current draft before wiping the active builder state.
+* **FR8.14:** The system must provide a dedicated, horizontally-scrollable Scoring Matrix interface that plots entities against features/states. The matrix must support interactive crosshair highlighting for row/column tracking, allow setting numeric range bounds (`min`/`max`) via modals, and support left-click (quick cycle) and right-click (dropdown selection) interactions for categorical state assignments.

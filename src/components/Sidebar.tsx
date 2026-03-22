@@ -25,17 +25,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
       {/* Key Management Actions */}
       <div className="flex flex-col gap-2 text-sm font-semibold">
-        <button onClick={triggerImport} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 group">
+        <button onClick={triggerImport} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md group">
           <Icon name="FolderOpen" className="opacity-80 group-hover:opacity-100" /> {t('openNativeKey')}
         </button>
       </div>
 
       {/* Settings & Info (Pushed to bottom) */}
       <div className="mt-auto flex flex-col gap-2 pt-5 border-t border-black/5 dark:border-white/5 text-sm font-semibold">
-        <button onClick={openPreferences} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer hover:shadow-sm hover:-translate-y-0.5">
+        <button onClick={openPreferences} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer hover:shadow-sm">
           <Icon name="Settings2" className="opacity-80" /> {t('preferences')}
         </button>
-        <button onClick={openAppInfo} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer hover:shadow-sm hover:-translate-y-0.5">
+        <button onClick={openAppInfo} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer hover:shadow-sm">
           <Icon name="Info" className="opacity-80" /> {t('aboutTaxon' as any)}
         </button>
       </div>

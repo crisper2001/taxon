@@ -99,6 +99,8 @@ export interface DraftFeature {
   type: 'numeric' | 'state';
   states: DraftState[];
   media?: Media[];
+  base_unit?: string;
+  unit_prefix?: string;
 }
 
 export interface DraftEntity {

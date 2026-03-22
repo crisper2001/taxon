@@ -3,7 +3,7 @@ import { Icon } from '../Icon';
 
 interface Option {
   value: string;
-  label: string;
+  label: React.ReactNode;
 }
 
 interface CustomSelectProps {
@@ -11,9 +11,13 @@ interface CustomSelectProps {
   options: Option[];
   onChange: (value: string) => void;
   className?: string;
+  hideChevron?: boolean;
+  customTrigger?: React.ReactNode;
+  onTriggerClick?: (e: React.MouseEvent<HTMLButtonElement>, toggleOpen: () => void) => void;
+  onTriggerContextMenu?: (e: React.MouseEvent<HTMLButtonElement>, toggleOpen: () => void) => void;
 }
 
-export const CustomSelect: React.FC<CustomSelectProps> = ({ value, options, onChange, className = '' }) => {
+export const CustomSelect: React.FC<CustomSelectProps> = ({ value, options, onChange, className = '', hideChevron = false, customTrigger, onTriggerClick, onTriggerContextMenu }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -38,25 +42,38 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({ value, options, onCh
   }, []);
 
   return (
-    <div className="relative inline-block w-full" ref={containerRef}>
+    <div className={`relative inline-block ${hideChevron ? 'w-auto' : 'w-full'}`} ref={containerRef}>
       <button
         type="button"
-        className={`flex items-center justify-between text-left ${className}`}
+        className={`flex items-center ${hideChevron && !customTrigger ? 'justify-center' : 'justify-between text-left'} ${className}`}
         onClick={(e) => {
           e.preventDefault();
+        if (onTriggerClick) {
+          onTriggerClick(e, () => setIsOpen(!isOpen));
+        } else {
           setIsOpen(!isOpen);
+        }
+      }}
+      onContextMenu={(e) => {
+        if (onTriggerContextMenu) {
+          onTriggerContextMenu(e, () => setIsOpen(!isOpen));
+        }
         }}
       >
-        <span className="truncate pr-2">{selectedOption ? selectedOption.label : ''}</span>
-        <Icon name="ChevronDown" size={16} className={`shrink-0 transition-transform duration-300 opacity-70 ${isOpen ? 'rotate-180' : ''}`} />
+        {customTrigger ? customTrigger : (
+          <>
+            <span className={`truncate flex items-center justify-center ${hideChevron ? '' : 'pr-2'}`}>{selectedOption ? selectedOption.label : ''}</span>
+            {!hideChevron && <Icon name="ChevronDown" size={16} className={`shrink-0 transition-transform duration-300 opacity-70 ${isOpen ? 'rotate-180' : ''}`} />}
+          </>
+        )}
       </button>
       
-      <div className={`absolute z-[100] w-full mt-2 bg-panel-bg/95 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl shadow-2xl max-h-60 overflow-y-auto left-0 py-1.5 transition-all duration-300 origin-top ${isOpen ? 'opacity-100 scale-y-100 pointer-events-auto' : 'opacity-0 scale-y-95 pointer-events-none'}`}>
+      <div className={`absolute z-[100] min-w-max w-full bg-panel-bg/95 backdrop-blur-xl border rounded-2xl shadow-2xl ${hideChevron ? 'left-1/2 -translate-x-1/2' : 'left-0'} transition-all duration-300 origin-top ${isOpen ? 'mt-2 border-white/20 dark:border-white/10 py-1.5 max-h-96 overflow-y-auto opacity-100 scale-y-100 pointer-events-auto' : 'mt-0 border-transparent py-0 max-h-0 overflow-hidden opacity-0 scale-y-95 pointer-events-none'}`}>
         {options.map(option => (
           <button
             key={option.value}
             type="button"
-            className={`w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-hover-bg/80 ${option.value === value ? 'text-accent font-bold bg-accent/5' : 'text-text font-medium'}`}
+            className={`w-full flex justify-start items-center text-left px-4 py-2.5 text-sm transition-colors hover:bg-hover-bg/80 ${option.value === value ? 'text-accent font-bold bg-accent/5' : 'text-text font-medium'}`}
             onClick={(e) => {
               e.preventDefault();
               onChange(option.value);

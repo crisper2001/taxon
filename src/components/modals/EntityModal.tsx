@@ -31,7 +31,7 @@ const RenderFeatureGroup: React.FC<{
           <div key={subgroup.path} className="mb-2 pl-2">
             <button 
               onClick={() => toggleGroup(subgroup.path)} 
-              className="w-full text-left font-bold text-gray-500 flex items-center mb-1.5 text-sm bg-panel-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 hover:bg-hover-bg/80 transition-all py-2 px-3 rounded-xl shadow-sm hover:shadow-md hover:-translate-y-0.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent/50 gap-2"
+              className="w-full text-left font-bold text-gray-500 flex items-center mb-1.5 text-sm bg-panel-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 hover:bg-hover-bg/80 transition-all py-2 px-3 rounded-xl shadow-sm hover:shadow-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent/50 gap-2"
             >
               <span className="shrink-0 flex items-center justify-center">
                 <Icon name="ChevronRight" size={16} className={`transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`} />
@@ -152,46 +152,73 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
 
   const SCORE_VALUE_MAP: Record<ScoreType, keyof typeof translations['en']> = { '0': 'scoreUncertain', '1': 'scoreCommon', '2': 'scoreRare', '3': 'scoreUncertain', '4': 'scoreCommonMisinterpret', '5': 'scoreRareMisinterpret' };
 
-  const getBadge = (char: { type: string, score?: ScoreType }) => {
+  const getBadge = (char: { type: string, score?: ScoreType, scoreName?: string, scoreColor?: string, scoreIcon?: string }) => {
     let badgeClass = 'bg-gray-400 text-white';
     let badgeTextKey: keyof typeof translations['en'] = 'scoreUncertain';
+    let badgeText = '';
 
     if (char.type === 'numeric') {
       badgeClass = 'bg-gray-500 text-white';
       badgeTextKey = 'scoreInterval';
-    } else if (char.score && SCORE_VALUE_MAP[char.score]) {
-      badgeTextKey = SCORE_VALUE_MAP[char.score];
-      switch (badgeTextKey) {
-        case 'scoreCommon': badgeClass = 'bg-blue-500 text-white'; break;
-        case 'scoreRare': badgeClass = 'bg-green-500 text-white'; break;
-        case 'scoreUncertain': badgeClass = 'bg-black text-white'; break;
-        case 'scoreCommonMisinterpret': badgeClass = 'bg-red-500 text-white'; break;
-        case 'scoreRareMisinterpret': badgeClass = 'bg-yellow-400 text-black'; break;
+      badgeText = t(badgeTextKey);
+    } else if (char.score) {
+      if (SCORE_VALUE_MAP[char.score]) {
+        badgeTextKey = SCORE_VALUE_MAP[char.score];
+        switch (badgeTextKey) {
+          case 'scoreCommon': badgeClass = 'bg-blue-500 text-white'; break;
+          case 'scoreRare': badgeClass = 'bg-green-500 text-white'; break;
+          case 'scoreUncertain': badgeClass = 'bg-black text-white'; break;
+          case 'scoreCommonMisinterpret': badgeClass = 'bg-red-500 text-white'; break;
+          case 'scoreRareMisinterpret': badgeClass = 'bg-yellow-400 text-black'; break;
+        }
+        badgeText = t(badgeTextKey);
+      } else {
+        badgeClass = char.scoreColor ? 'text-white' : 'bg-accent text-white';
+        badgeText = char.scoreName || char.score;
       }
+    } else {
+      badgeText = t(badgeTextKey);
     }
-    const badgeText = t(badgeTextKey);
-    return <span className={`char-badge text-[11px] px-2.5 py-1 rounded-full font-bold shrink-0 whitespace-nowrap shadow-sm uppercase tracking-wider ${badgeClass}`}>{badgeText}</span>;
+    const style = char.scoreColor && char.score && !SCORE_VALUE_MAP[char.score] ? { backgroundColor: char.scoreColor } : {};
+    return <span className={`char-badge text-[11px] px-2.5 py-1 rounded-full font-bold shrink-0 whitespace-nowrap shadow-sm uppercase tracking-wider ${badgeClass}`} style={style}>{badgeText}</span>;
   }
 
-  const getIconForChar = (char: Characteristic): React.ReactElement => {
+  const getIconForChar = (char: any): React.ReactElement => {
     let iconName: IconName = 'Check';
     let iconClass = 'text-gray-400';
+    let style: React.CSSProperties = {};
 
     if (char.type === 'numeric') {
       iconName = 'ArrowUpDown';
       iconClass = 'text-gray-500';
-    } else if (char.score && SCORE_VALUE_MAP[char.score]) {
-      const badgeTextKey = SCORE_VALUE_MAP[char.score];
-      switch (badgeTextKey) {
-        case 'scoreCommon': iconClass = 'text-blue-500'; break;
-        case 'scoreRare': iconClass = 'text-green-500'; break;
-        case 'scoreUncertain': return <span className="text-black text-lg w-[14px] h-[14px] flex items-center justify-center">?</span>;
-        case 'scoreCommonMisinterpret': iconClass = 'text-red-500'; break;
-        case 'scoreRareMisinterpret': iconClass = 'text-yellow-500'; break;
-        default: iconName = 'CircleQuestionMark'; iconClass = 'text-gray-400';
+    } else if (char.score) {
+      if (SCORE_VALUE_MAP[char.score]) {
+        const badgeTextKey = SCORE_VALUE_MAP[char.score];
+        switch (badgeTextKey) {
+          case 'scoreCommon': iconClass = 'text-blue-500'; break;
+          case 'scoreRare': iconClass = 'text-green-500'; break;
+          case 'scoreUncertain': return <span className="text-text font-bold text-[15px] w-[14px] h-[14px] flex items-center justify-center">?</span>;
+          case 'scoreCommonMisinterpret': iconClass = 'text-red-500'; break;
+          case 'scoreRareMisinterpret': iconClass = 'text-yellow-500'; break;
+          default: iconName = 'CircleQuestionMark'; iconClass = 'text-gray-400';
+        }
+      } else {
+        if (char.scoreColor) {
+           style = { color: char.scoreColor };
+           iconClass = '';
+        } else {
+           iconClass = 'text-accent';
+        }
+        if (char.scoreIcon === 'question') {
+           return <span className={`text-[15px] w-[14px] h-[14px] flex items-center justify-center font-bold ${iconClass}`} style={style}>?</span>;
+        }
+        if (char.scoreIcon === 'exclamation') {
+           return <span className={`text-[15px] w-[14px] h-[14px] flex items-center justify-center font-bold ${iconClass}`} style={style}>!</span>;
+        }
+        iconName = 'Check';
       }
     }
-    return <Icon name={iconName} size={14} className={iconClass} />;
+    return <Icon name={iconName} size={14} className={iconClass} style={style} />;
   };
 
   const handleCopy = () => {
@@ -419,7 +446,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
 
         <button
           onClick={scrollToTop}
-          className={`absolute md:bottom-6 bottom-20 right-8 p-3 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-full shadow-lg shadow-accent/30 hover:bg-accent-hover transition-all duration-300 z-10 hover:-translate-y-0.5 ${showBackToTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 pointer-events-none'}`}
+          className={`absolute md:bottom-6 bottom-20 right-8 p-3 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-full shadow-lg shadow-accent/30 hover:bg-accent-hover transition-all duration-300 z-10 ${showBackToTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 pointer-events-none'}`}
         >
           <Icon name="ArrowUp" size={20} />
         </button>

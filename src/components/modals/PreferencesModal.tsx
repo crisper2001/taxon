@@ -34,7 +34,7 @@ interface PreferencesModalProps {
 export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onClose, currentPrefs, onPreferenceChange, t, availableLanguages }) => {
 
     const prefButtonClasses = (isSelected: boolean) =>
-        `px-4 py-3 rounded-2xl border transition-all duration-300 flex items-center gap-2 justify-center w-full font-bold hover:-translate-y-0.5
+        `px-4 py-3 rounded-2xl border transition-all duration-300 flex items-center gap-2 justify-center w-full font-bold
         ${isSelected
             ? 'bg-accent/95 backdrop-blur-md text-white border-white/20 shadow-lg shadow-accent/30'
             : 'bg-panel-bg/50 backdrop-blur-sm border-white/20 dark:border-white/10 hover:bg-hover-bg/80 hover:shadow-md text-text/80 shadow-sm'
@@ -70,7 +70,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                             </div>
                         </div>
                         <div>
-                            <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:bg-hover-bg/50">
+                            <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-hover-bg/50">
                                 <span className="font-bold text-base tracking-tight text-text/90">{t('uiShowToasts')}</span>
                                 <input
                                     type="checkbox"
@@ -91,7 +91,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                     </div>
                     <div className="space-y-6">
                         <div>
-                            <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:bg-hover-bg/50">
+                            <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-hover-bg/50">
                                 <span className="font-bold text-base tracking-tight text-text/90">{t('uiHideAi' as any)}</span>
                                 <input
                                     type="checkbox"

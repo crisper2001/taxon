@@ -352,6 +352,8 @@ export class LucidKeyParser {
         type: featureType,
         isState: false,
         description: f.description,
+        base_unit: f.base_unit,
+        unit_prefix: f.unit_prefix,
       });
       keyData.featureListForAI.push({ id: f.id, type: featureType, description: f.description ? `${f.name} - ${f.description}` : f.name });
 
@@ -382,8 +384,12 @@ export class LucidKeyParser {
           draftKey.entities.forEach(e => {
             const score = e.scores[s.id] as string;
             if (score) {
+              const vals = (s as any).values || [
+                { id: '1', name: 'Common' }, { id: '2', name: 'Rare' }, { id: '3', name: 'Uncertain' }, { id: '4', name: 'Common (misinterpreted)' }, { id: '5', name: 'Rare (misinterpreted)' }
+              ];
+              const scoreDef = vals.find((v: any) => v.id === score);
               keyData.entityScores.get(e.id)?.set(s.id, { value: score as ScoreType });
-              keyData.entityProfiles.get(e.id)?.characteristics.push({ text: s.name, parent: f.name, type: 'state', score: score as ScoreType });
+              keyData.entityProfiles.get(e.id)?.characteristics.push({ text: s.name, parent: f.name, type: 'state', score: score as ScoreType, scoreName: scoreDef ? scoreDef.name : undefined, scoreColor: scoreDef ? scoreDef.color : undefined, scoreIcon: scoreDef ? scoreDef.iconType : undefined } as any);
             }
           });
         });

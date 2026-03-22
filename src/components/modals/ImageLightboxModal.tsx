@@ -195,13 +195,13 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
 
   return (
     <div onClick={onClose} className={`fixed inset-0 bg-black/80 backdrop-blur-2xl z-[70] flex flex-col items-center justify-center p-4 transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
-      <button onClick={onClose} className="absolute top-6 right-6 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full p-2.5 transition-all duration-300 z-20 backdrop-blur-md cursor-pointer border border-white/10 shadow-lg hover:shadow-xl hover:-translate-y-0.5">
+      <button onClick={onClose} className="absolute top-6 right-6 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full p-2.5 transition-all duration-300 z-20 backdrop-blur-md cursor-pointer border border-white/10 shadow-lg hover:shadow-xl">
         <Icon name="X" size={28} />
       </button>
 
       <div className="relative w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
         {media.length > 1 && currentIndex > 0 && (
-          <button onClick={handlePrev} className="hidden md:flex absolute left-6 top-1/2 -translate-y-1/2 bg-black/20 text-white/70 hover:text-white rounded-full w-14 h-14 items-center justify-center hover:bg-black/40 z-20 transition-all duration-300 backdrop-blur-md cursor-pointer border border-white/10 shadow-lg hover:shadow-xl hover:-translate-y-1"><Icon name="ChevronLeft" size={36} /></button>
+          <button onClick={handlePrev} className="hidden md:flex absolute left-6 top-1/2 -translate-y-1/2 bg-black/20 text-white/70 hover:text-white rounded-full w-14 h-14 items-center justify-center hover:bg-black/40 z-20 transition-all duration-300 backdrop-blur-md cursor-pointer border border-white/10 shadow-lg hover:shadow-xl"><Icon name="ChevronLeft" size={36} /></button>
         )}
 
         <div 
@@ -255,7 +255,7 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
         </div>
 
         {media.length > 1 && currentIndex < media.length - 1 && (
-          <button onClick={handleNext} className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 bg-black/20 text-white/70 hover:text-white rounded-full w-14 h-14 items-center justify-center hover:bg-black/40 z-20 transition-all duration-300 backdrop-blur-md cursor-pointer border border-white/10 shadow-lg hover:shadow-xl hover:-translate-y-1"><Icon name="ChevronRight" size={36} /></button>
+          <button onClick={handleNext} className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 bg-black/20 text-white/70 hover:text-white rounded-full w-14 h-14 items-center justify-center hover:bg-black/40 z-20 transition-all duration-300 backdrop-blur-md cursor-pointer border border-white/10 shadow-lg hover:shadow-xl"><Icon name="ChevronRight" size={36} /></button>
         )}
 
         {media.length > 1 && (
