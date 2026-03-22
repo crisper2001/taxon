@@ -16,9 +16,7 @@ import { Icon } from './components/Icon';
 import { KeyBuilder } from './components/builder/KeyBuilder';
 import { Toast } from './components/Toast';
 import { AppProvider } from './context/AppContext';
-
-type Language = 'en' | 'pt-br' | 'es' | 'ru' | 'zh' | 'ja' | 'fr' | 'de' | 'la' | 'it';
-type Theme = 'light' | 'dark';
+import type { Language, Theme } from './types';
 
 const App: React.FC = () => {
   // --- STATE MANAGEMENT ---
@@ -132,6 +130,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     document.documentElement.lang = lang;
+    document.documentElement.dir = (lang === 'ar' || lang === 'he') ? 'rtl' : 'ltr';
   }, [lang]);
 
   useEffect(() => {
@@ -448,7 +447,7 @@ const App: React.FC = () => {
   };
 
   const handleModalClose = useCallback(() => {
-    if (modalState.type === 'lightbox' && underlyingModalState) {
+    if ((modalState.type === 'lightbox' || (modalState.type as any) === 'confirmClearData') && underlyingModalState) {
       setModalState(underlyingModalState);
       setUnderlyingModalState(null);
     } else {
@@ -467,6 +466,24 @@ const App: React.FC = () => {
       keyData ? keyData.keyTitle : t('loadKeyPrompt');
 
   const activeOrUnderlying = underlyingModalState || modalState;
+
+  const HomeButton = ({ onClick, onDragOver, onDragLeave, onDrop, isDragOver, icon, title, desc }: any) => (
+    <button 
+      onClick={onClick}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      className={`flex-1 flex flex-col items-center gap-4 p-8 bg-panel-bg border rounded-3xl transition-all group cursor-pointer shadow-sm ${isDragOver ? 'border-accent shadow-xl scale-105 bg-accent/5' : 'border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-lg'}`}
+    >
+      <div className="w-16 h-16 bg-accent/10 rounded-2xl flex items-center justify-center text-accent group-hover:scale-110 transition-transform pointer-events-none">
+        <Icon name={icon} size={32} />
+      </div>
+      <div className="text-center pointer-events-none">
+        <h3 className="text-xl font-bold text-text mb-2">{title}</h3>
+        <p className="text-sm text-gray-500 line-clamp-2">{desc}</p>
+      </div>
+    </button>
+  );
 
   // --- CONTEXT VALUE ---
   const contextValue = {
@@ -533,7 +550,7 @@ const App: React.FC = () => {
         t={t}
         onImageClick={handleOpenLightbox}
       />
-      <PreferencesModal isOpen={modalState.type === 'preferences' || underlyingModalState?.type === 'preferences'} onClose={() => setModalState({ type: 'none' })} currentPrefs={{ lang, theme, geminiApiKey, showToasts, hideAi }} onPreferenceChange={handlePreferenceChange} t={t} availableLanguages={Object.keys(translations) as Language[]} />
+      <PreferencesModal isOpen={modalState.type === 'preferences' || underlyingModalState?.type === 'preferences'} onClose={() => setModalState({ type: 'none' })} currentPrefs={{ lang, theme, geminiApiKey, showToasts, hideAi }} onPreferenceChange={handlePreferenceChange} t={t} availableLanguages={Object.keys(translations) as Language[]} onClearData={() => { setUnderlyingModalState(modalState); setModalState({ type: 'confirmClearData' as any }); }} />
       <KeyInfoModal isOpen={modalState.type === 'keyInfo' || underlyingModalState?.type === 'keyInfo'} onClose={() => setModalState({ type: 'none' })} keyData={keyData} t={t} />
       <FeatureImageModal isOpen={modalState.type === 'featureImage' || underlyingModalState?.type === 'featureImage'} onClose={handleModalClose} featureId={(activeOrUnderlying as any).featureId} keyData={keyData} t={t} onImageClick={handleOpenLightbox} />
       <ImageLightboxModal isOpen={modalState.type === 'lightbox'} onClose={handleModalClose} media={(modalState as any).media} startIndex={(modalState as any).startIndex ?? 0} />
@@ -551,6 +568,22 @@ const App: React.FC = () => {
           </div>
         }
         confirmText={t('clearFeatures')}
+        cancelText={t('cancel')}
+        isDestructive={true}
+      />
+
+      <ConfirmModal
+        isOpen={(modalState.type as any) === 'confirmClearData' || (underlyingModalState?.type as any) === 'confirmClearData'}
+        onClose={handleModalClose}
+        onConfirm={() => { localStorage.clear(); window.location.reload(); }}
+        title={t('clearLocalData' as any)}
+        message={
+          <div className="flex items-start gap-3 text-red-500 bg-red-500/10 p-4 rounded-xl border border-red-500/20">
+            <Icon name="TriangleAlert" size={24} className="shrink-0 mt-0.5" />
+            <p className="text-sm font-medium leading-relaxed">{t('confirmClearLocalData' as any)}</p>
+          </div>
+        }
+        confirmText={t('clearLocalData' as any)}
         cancelText={t('cancel')}
         isDestructive={true}
       />
@@ -680,7 +713,7 @@ const App: React.FC = () => {
                   <Icon name="Leaf" size={60} /> Taxon
                 </h2>
                 <div className="flex flex-col md:flex-row gap-6 w-full max-w-2xl mb-8">
-                  <button 
+                  <HomeButton 
                     onClick={() => {
                       setAppMode('identify');
                       if (keyData) {
@@ -692,18 +725,13 @@ const App: React.FC = () => {
                     onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverHomeButton('identify'); }}
                     onDragLeave={() => setDragOverHomeButton(null)}
                     onDrop={(e) => handleHomeDrop(e, 'identify')}
-                    className={`flex-1 flex flex-col items-center gap-4 p-8 bg-panel-bg border rounded-3xl transition-all group cursor-pointer shadow-sm ${dragOverHomeButton === 'identify' ? 'border-accent shadow-xl scale-105 bg-accent/5' : 'border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-lg'}`}
-                  >
-                    <div className="w-16 h-16 bg-accent/10 rounded-2xl flex items-center justify-center text-accent group-hover:scale-110 transition-transform pointer-events-none">
-                      <Icon name="FolderOpen" size={32} />
-                    </div>
-                    <div className="text-center pointer-events-none">
-                      <h3 className="text-xl font-bold text-text mb-2">{t('startOpenKey')}</h3>
-                      <p className="text-sm text-gray-500 line-clamp-2">{t('startOpenKeyDesc')}</p>
-                    </div>
-                  </button>
+                    isDragOver={dragOverHomeButton === 'identify'}
+                    icon="FolderOpen"
+                    title={t('startOpenKey')}
+                    desc={t('startOpenKeyDesc')}
+                  />
                   
-                  <button 
+                  <HomeButton 
                     onClick={() => {
                       setAppMode('build');
                       if (draftKeyData) {
@@ -719,16 +747,11 @@ const App: React.FC = () => {
                     onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverHomeButton('build'); }}
                     onDragLeave={() => setDragOverHomeButton(null)}
                     onDrop={(e) => handleHomeDrop(e, 'build')}
-                    className={`flex-1 flex flex-col items-center gap-4 p-8 bg-panel-bg border rounded-3xl transition-all group cursor-pointer shadow-sm ${dragOverHomeButton === 'build' ? 'border-accent shadow-xl scale-105 bg-accent/5' : 'border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-lg'}`}
-                  >
-                    <div className="w-16 h-16 bg-accent/10 rounded-2xl flex items-center justify-center text-accent group-hover:scale-110 transition-transform pointer-events-none">
-                      <Icon name="PenTool" size={32} />
-                    </div>
-                    <div className="text-center pointer-events-none">
-                      <h3 className="text-xl font-bold text-text mb-2">{t('startCreateKey')}</h3>
-                      <p className="text-sm text-gray-500 line-clamp-2">{t('startCreateKeyDesc')}</p>
-                    </div>
-                  </button>
+                    isDragOver={dragOverHomeButton === 'build'}
+                    icon="PenTool"
+                    title={t('startCreateKey')}
+                    desc={t('startCreateKeyDesc')}
+                  />
                 </div>
                 <button 
                   onClick={() => setModalState({ type: 'preferences' })}

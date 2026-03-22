@@ -1,8 +1,8 @@
 import React, { useRef, useState } from 'react';
 import { MarkdownToolbar } from './MarkdownToolbar';
 import { Icon } from '../Icon';
-import { marked } from 'marked';
 import { useAppContext } from '../../context/AppContext';
+import { Markdown } from './Markdown';
 
 interface MarkdownInputProps {
   label: string;
@@ -16,8 +16,6 @@ export const MarkdownInput: React.FC<MarkdownInputProps> = ({ label, value, onCh
   const [isPreview, setIsPreview] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const { t } = useAppContext();
-
-  const parsedMarkdown = isPreview ? (marked.parse(value || '') as string).replace(/<a (?![^>]*\btarget=)/g, '<a target="_blank" rel="noopener noreferrer" ') : '';
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -38,11 +36,9 @@ export const MarkdownInput: React.FC<MarkdownInputProps> = ({ label, value, onCh
         </div>
       </div>
       {isPreview ? (
-        <div 
-          className="input-base overflow-y-auto markdown-body text-sm [&>p]:mb-3 [&>p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:mb-3 [&_strong]:font-bold [&_em]:italic [&_a]:underline [&_a]:text-accent hover:[&_a]:text-accent-hover [&_h1]:font-bold [&_h1]:text-lg [&_h2]:font-bold [&_h3]:font-semibold break-words bg-panel-bg/50" 
-          style={{ minHeight: `calc(${rows} * 1.25rem + 1.5rem + 2px)` }}
-          dangerouslySetInnerHTML={{ __html: parsedMarkdown || `<span class="opacity-50 italic">${t('kbEmpty' as any)}</span>` }} 
-        />
+        <div className="input-base overflow-y-auto bg-panel-bg/50" style={{ minHeight: `calc(${rows} * 1.25rem + 1.5rem + 2px)` }}>
+          {value ? <Markdown content={value} className="text-sm" /> : <span className="opacity-50 italic text-sm">{t('kbEmpty' as any)}</span>}
+        </div>
       ) : (
         <textarea 
           ref={textareaRef} 

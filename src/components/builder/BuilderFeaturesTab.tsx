@@ -4,6 +4,8 @@ import type { DraftKeyData, DraftFeature } from '../../types';
 import { CustomSelect } from '../common/CustomSelect';
 import { MarkdownInput } from '../common/MarkdownInput';
 import { ConfirmModal, Modal } from '../modals';
+import { processImage } from '../../utils/imageUtils';
+import { useTreeDragAndDrop } from '../../hooks/useTreeDragAndDrop';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 const reorderArray = <T,>(arr: T[], from: number, to: number): T[] => {
@@ -29,19 +31,27 @@ interface BuilderFeaturesTabProps {
   setDraggedMedia: (media: { type: 'feature' | 'entity' | 'state', itemId: string, stateId?: string, index: number } | null) => void;
   setEditingMedia: (media: { type: 'feature' | 'entity' | 'state', itemId: string, stateId?: string, mediaIndex: number } | null) => void;
   setDeleteTarget: (target: { type: 'feature' | 'state' | 'entity' | 'featureMedia' | 'stateMedia' | 'entityMedia', id: string, parentId?: string, mediaIndex?: number } | null) => void;
-  processAndSetImage: (file: File, callback: (url: string) => void) => void;
   layoutMode?: 'list' | 'edit' | 'both';
 }
 
 export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
   draftKey, updateDraftKey, t, selectedFeatureId, setSelectedFeatureId, collapsedFeatures, toggleFeatureCollapse,
-  draggedItem, setDraggedItem, dragOverId, setDragOverId, draggedMedia, setDraggedMedia, setEditingMedia, setDeleteTarget, processAndSetImage,
+  draggedItem, setDraggedItem, dragOverId, setDragOverId, draggedMedia, setDraggedMedia, setEditingMedia, setDeleteTarget,
   layoutMode = 'both'
 }) => {
   const touchTimeout = useRef<NodeJS.Timeout | null>(null);
   const ghostRef = useRef<HTMLDivElement>(null);
   const lastTouchPos = useRef({ x: 0, y: 0 });
   const [draggedValue, setDraggedValue] = useState<{ stateId: string, index: number } | null>(null);
+
+  const featureTreeDnd = useTreeDragAndDrop({
+    items: draftKey.features,
+    draggedItem, setDraggedItem, dragOverId, setDragOverId,
+    itemType: 'feature',
+    dataAttribute: 'data-feature-id',
+    onMoveItem: (id, parentId) => updateFeature(id, { parentId }),
+    ghostRef
+  });
 
   const getDefaultStateValues = (t: any) => [
     { id: '1', name: t('kbScoreCommon') || 'Common' },
@@ -305,6 +315,23 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
     });
   };
 
+  const handleAddImages = async (fileList: FileList | File[] | null, targetType: 'feature' | 'state', id: string, parentId?: string) => {
+    if (!fileList) return;
+    const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+    if (files.length === 0) return;
+    const processed = await Promise.all(files.map(f => processImage(f)));
+    const newMedia = processed.map(p => ({ url: `data:${p.mimeType};base64,${p.base64}` }));
+    
+    if (targetType === 'feature') {
+      const feature = draftKey.features.find(f => f.id === id);
+      updateFeature(id, { media: [...(feature?.media || []), ...newMedia] });
+    } else if (targetType === 'state' && parentId) {
+      const feature = draftKey.features.find(f => f.id === parentId);
+      const state = feature?.states.find(s => s.id === id);
+      updateState(parentId, id, { media: [...(state?.media || []), ...newMedia] });
+    }
+  };
+
   const selectedFeature = draftKey.features.find(f => f.id === selectedFeatureId);
   const selectedStateParent = !selectedFeature ? draftKey.features.find(f => f.states?.some(s => s.id === selectedFeatureId)) : undefined;
   const selectedState = selectedStateParent?.states.find(s => s.id === selectedFeatureId);
@@ -323,114 +350,37 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
             draggable
             data-feature-id={f.id}
             onContextMenu={(e) => e.preventDefault()}
-            onDragStart={(e) => {
-              e.stopPropagation();
-              setDraggedItem({ type: 'feature', id: f.id });
-            }}
-            onDragEnd={() => {
-              setDraggedItem(null);
-              setDragOverId(null);
-            }}
+            onDragStart={(e) => featureTreeDnd.onDragStart(e, f.id)}
+            onDragEnd={featureTreeDnd.onDragEnd}
             onDragOver={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (draggedItem?.type === 'feature' && draggedItem.id !== f.id) {
-                let current: string | undefined = f.id;
-                let isCycle = false;
-                while (current) {
-                  if (current === draggedItem.id) { isCycle = true; break; }
-                  current = draftKey.features.find(x => x.id === current)?.parentId;
+              if (draggedItem?.type === 'state') {
+                e.preventDefault();
+                e.stopPropagation();
+                if (draggedItem.parentId !== f.id && f.type === 'state') {
+                  if (dragOverId !== f.id) setDragOverId(f.id);
                 }
-                if (!isCycle && dragOverId !== f.id) setDragOverId(f.id);
-              } else if (draggedItem?.type === 'state' && draggedItem.parentId !== f.id && f.type === 'state') {
-                if (dragOverId !== f.id) setDragOverId(f.id);
-              }
-            }}
-            onDragLeave={() => {
-              if (dragOverId === f.id) setDragOverId(null);
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setDragOverId(null);
-              if (draggedItem?.type === 'feature' && draggedItem.id !== f.id) {
-                let current: string | undefined = f.id;
-                let isCycle = false;
-                while (current) {
-                  if (current === draggedItem.id) { isCycle = true; break; }
-                  current = draftKey.features.find(x => x.id === current)?.parentId;
-                }
-                if (!isCycle) updateFeature(draggedItem.id, { parentId: f.id });
-              } else if (draggedItem?.type === 'state' && draggedItem.parentId !== f.id && f.type === 'state') {
-                moveStateToFeature(draggedItem.id, draggedItem.parentId!, f.id);
-              }
-              setDraggedItem(null);
-            }}
-            onTouchStart={(e) => {
-              e.stopPropagation();
-              lastTouchPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-              touchTimeout.current = setTimeout(() => {
-                setDraggedItem({ type: 'feature', id: f.id });
-                if (navigator.vibrate) navigator.vibrate(50);
-              }, 300);
-            }}
-            onTouchMove={(e) => {
-              const touch = e.touches[0];
-              lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
-              if (ghostRef.current) {
-                ghostRef.current.style.left = `${touch.clientX}px`;
-                ghostRef.current.style.top = `${touch.clientY}px`;
-              }
-              if (!draggedItem) {
-                if (touchTimeout.current) clearTimeout(touchTimeout.current);
-                return;
-              }
-              const el = document.elementFromPoint(touch.clientX, touch.clientY);
-              const targetFeature = el?.closest('[data-feature-id]');
-              const targetRoot = el?.closest('[data-root-drop="true"]');
-
-              if (targetFeature) {
-                const id = targetFeature.getAttribute('data-feature-id');
-                if (id && id !== f.id) {
-                  if (draggedItem.type === 'feature') {
-                    let current: string | undefined = id;
-                    let isCycle = false;
-                    while (current) {
-                      if (current === draggedItem.id) { isCycle = true; break; }
-                      current = draftKey.features.find(x => x.id === current)?.parentId;
-                    }
-                    if (!isCycle && dragOverId !== id) setDragOverId(id);
-                  } else if (draggedItem.type === 'state') {
-                    const targetFeatType = draftKey.features.find(x => x.id === id)?.type;
-                    if (targetFeatType === 'state' && draggedItem.parentId !== id && dragOverId !== id) setDragOverId(id);
-                  }
-                }
-              } else if (targetRoot && draggedItem.type === 'feature') {
-                if (dragOverId !== 'root-feature') setDragOverId('root-feature');
               } else {
-                if (dragOverId) setDragOverId(null);
+                featureTreeDnd.onDragOver(e, f.id);
               }
             }}
-            onTouchEnd={(e) => {
-              if (touchTimeout.current) clearTimeout(touchTimeout.current);
-              if (draggedItem) {
-                if (e.cancelable) e.preventDefault();
-                if (draggedItem.type === 'feature') {
-                  if (dragOverId && dragOverId !== 'root-feature' && dragOverId !== f.id) {
-                    updateFeature(draggedItem.id, { parentId: dragOverId });
-                  } else if (dragOverId === 'root-feature') {
-                    updateFeature(draggedItem.id, { parentId: undefined });
-                  }
+            onDragLeave={() => featureTreeDnd.onDragLeave(f.id)}
+            onDrop={(e) => {
+              if (draggedItem?.type === 'state') {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragOverId(null);
+                if (draggedItem.parentId !== f.id && f.type === 'state') {
+                  moveStateToFeature(draggedItem.id, draggedItem.parentId!, f.id);
                 }
                 setDraggedItem(null);
-                setDragOverId(null);
+              } else {
+                featureTreeDnd.onDrop(e, f.id);
               }
             }}
-            onTouchCancel={() => {
-              if (touchTimeout.current) clearTimeout(touchTimeout.current);
-              setDraggedItem(null);
-              setDragOverId(null);
-            }}
+            onTouchStart={(e) => featureTreeDnd.onTouchStart(e, f.id)}
+            onTouchMove={(e) => featureTreeDnd.onTouchMove(e, f.id)}
+            onTouchEnd={(e) => featureTreeDnd.onTouchEnd(e, f.id)}
+            onTouchCancel={featureTreeDnd.onTouchCancel}
             onClick={() => setSelectedFeatureId(f.id)}
             className={`rounded-xl transition-all relative group/item flex items-center gap-2 py-2 pr-2 border cursor-pointer ${selectedFeatureId === f.id ? 'bg-accent/95 backdrop-blur-md text-white shadow-md shadow-accent/30 border-white/20 z-10' : 'hover:bg-hover-bg/80 hover:shadow-sm text-text border-transparent hover:border-white/10 dark:hover:border-white/5'} ${dragOverId === f.id ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${draggedItem?.id === f.id ? 'opacity-50' : ''}`}
             style={{ paddingLeft: `calc(${1.5 + depth * 1.5}rem + 0.5rem)`, touchAction: draggedItem ? 'none' : 'auto' }}
@@ -641,21 +591,16 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
             <button onClick={addFeature} className="px-3 py-1.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-lg hover:bg-accent-hover transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg shadow-accent/30 flex items-center gap-1 cursor-pointer" title={t('kbAddFeature')}><Icon name="Plus" size={14} /> {t('kbAdd' as any)}</button>
           </div>
           <div
-            className={`overflow-y-auto flex-1 p-3 space-y-0.5 rounded-b-xl transition-colors ${dragOverId === 'root-feature' ? 'bg-accent/5 ring-2 ring-inset ring-accent' : ''}`}
+            className={`overflow-y-auto flex-1 p-3 space-y-0.5 rounded-b-xl transition-colors ${dragOverId === 'root' ? 'bg-accent/5 ring-2 ring-inset ring-accent' : ''}`}
             data-root-drop="true"
             onDragOver={(e) => {
               e.preventDefault();
-              if (draggedItem?.type === 'feature' && dragOverId !== 'root-feature') setDragOverId('root-feature');
+              if (draggedItem?.type === 'feature' && dragOverId !== 'root') setDragOverId('root');
             }}
             onDragLeave={() => {
-              if (dragOverId === 'root-feature') setDragOverId(null);
+              if (dragOverId === 'root') setDragOverId(null);
             }}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDragOverId(null);
-              if (draggedItem?.type === 'feature') updateFeature(draggedItem.id, { parentId: undefined });
-              setDraggedItem(null);
-            }}
+            onDrop={featureTreeDnd.onRootDrop}
           >
             {renderFeatureList()}
             {draftKey.features.length === 0 && <div className="p-6 text-center text-sm opacity-50 border-2 border-dashed border-border rounded-xl mt-2">{t('kbFeatures')} ({t('kbEmpty' as any)})</div>}
@@ -760,20 +705,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                       e.preventDefault();
                       e.stopPropagation();
                       setDragOverId(null);
-                      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
-                      if (files.length > 0) {
-                        let count = 0;
-                        const newUrls: string[] = [];
-                        files.forEach(file => {
-                          processAndSetImage(file, url => {
-                            newUrls.push(url);
-                            count++;
-                            if (count === files.length) {
-                              updateFeature(selectedFeature.id, { media: [...(selectedFeature.media || []), ...newUrls.map(u => ({ url: u }))] });
-                            }
-                          });
-                        });
-                      }
+                      handleAddImages(e.dataTransfer.files, 'feature', selectedFeature.id);
                     }
                   }}
                 >
@@ -858,20 +790,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                     <Icon name="Plus" size={24} className="mb-1 group-hover:scale-110 transition-transform" />
                     <span className="text-[10px] font-semibold uppercase tracking-wider">{t('kbAdd' as any)}</span>
                     <input type="file" accept="image/*" multiple className="hidden" onChange={e => {
-                      const files = Array.from(e.target.files || []);
-                      if (files.length > 0) {
-                        let count = 0;
-                        const newUrls: string[] = [];
-                        files.forEach(file => {
-                          processAndSetImage(file, url => {
-                            newUrls.push(url);
-                            count++;
-                            if (count === files.length) {
-                              updateFeature(selectedFeature.id, { media: [...(selectedFeature.media || []), ...newUrls.map(u => ({ url: u }))] });
-                            }
-                          });
-                        });
-                      }
+                      handleAddImages(e.target.files, 'feature', selectedFeature.id);
                       e.target.value = '';
                     }} />
                   </label>
@@ -930,20 +849,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                       e.preventDefault();
                       e.stopPropagation();
                       setDragOverId(null);
-                      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
-                      if (files.length > 0) {
-                        let count = 0;
-                        const newUrls: string[] = [];
-                        files.forEach(file => {
-                          processAndSetImage(file, url => {
-                            newUrls.push(url);
-                            count++;
-                            if (count === files.length) {
-                              updateState(selectedStateParent.id, selectedState.id, { media: [...(selectedState.media || []), ...newUrls.map(u => ({ url: u }))] });
-                            }
-                          });
-                        });
-                      }
+                      handleAddImages(e.dataTransfer.files, 'state', selectedState.id, selectedStateParent.id);
                     }
                   }}
                 >
@@ -1027,20 +933,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                     <Icon name="Plus" size={24} className="mb-1 group-hover:scale-110 transition-transform" />
                     <span className="text-[10px] font-semibold uppercase tracking-wider">{t('kbAdd' as any)}</span>
                     <input type="file" accept="image/*" multiple className="hidden" onChange={e => {
-                      const files = Array.from(e.target.files || []);
-                      if (files.length > 0) {
-                        let count = 0;
-                        const newUrls: string[] = [];
-                        files.forEach(file => {
-                          processAndSetImage(file, url => {
-                            newUrls.push(url);
-                            count++;
-                            if (count === files.length) {
-                              updateState(selectedStateParent.id, selectedState.id, { media: [...(selectedState.media || []), ...newUrls.map(u => ({ url: u }))] });
-                            }
-                          });
-                        });
-                      }
+                      handleAddImages(e.target.files, 'state', selectedState.id, selectedStateParent.id);
                       e.target.value = '';
                     }} />
                   </label>
@@ -1210,8 +1103,8 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
           ref={ghostRef}
           className="fixed pointer-events-none z-[9999] opacity-90 scale-105"
           style={{
-            left: lastTouchPos.current.x,
-            top: lastTouchPos.current.y,
+            left: draggedItem?.type === 'feature' ? featureTreeDnd.lastTouchPos.current.x : lastTouchPos.current.x,
+            top: draggedItem?.type === 'feature' ? featureTreeDnd.lastTouchPos.current.y : lastTouchPos.current.y,
             transform: 'translate(-50%, -120%)',
             willChange: 'left, top'
           }}

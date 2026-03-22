@@ -4,22 +4,26 @@ import { Icon } from '../Icon';
 import { translations } from '../../constants';
 import Spot from '../Spot';
 import { CustomSelect } from '../common/CustomSelect';
-
-type Language = keyof typeof translations;
-type Theme = 'light' | 'dark';
+import type { Language, Theme } from '../../types';
 
 // A map to display native language names
 const languageNames: Record<Language, string> = {
     'en': 'English',
     'pt-br': 'Português (Brasil)',
+    'pt-pt': 'Português (Portugal)',
     'es': 'Español',
     'ru': 'Русский',
     'zh': '中文',
     'ja': '日本語',
+    'ko': '한국어',
     'fr': 'Français',
     'de': 'Deutsch',
     'la': 'Latina',
     'it': 'Italiano',
+    'el': 'Ελληνικά',
+    'hi': 'हिन्दी',
+    'ar': 'العربية',
+    'he': 'עברית'
 };
 
 // --- PreferencesModal ---
@@ -30,8 +34,9 @@ interface PreferencesModalProps {
     onPreferenceChange: (key: 'lang' | 'theme' | 'geminiApiKey' | 'showToasts' | 'hideAi', value: string | boolean) => void;
     t: (key: keyof typeof translations['en']) => string;
     availableLanguages: Language[];
+    onClearData?: () => void;
 }
-export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onClose, currentPrefs, onPreferenceChange, t, availableLanguages }) => {
+export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onClose, currentPrefs, onPreferenceChange, t, availableLanguages, onClearData }) => {
 
     const prefButtonClasses = (isSelected: boolean) =>
         `px-4 py-3 rounded-2xl border transition-all duration-300 flex items-center gap-2 justify-center w-full font-bold
@@ -117,6 +122,17 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                         </div>
                     </div>
                 </section>
+
+                {onClearData && (
+                    <div className="pt-2 border-t border-black/10 dark:border-white/10 flex justify-end">
+                        <button 
+                            onClick={onClearData} 
+                            className="flex items-center gap-2 px-4 py-2.5 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-colors font-bold text-sm cursor-pointer shadow-sm"
+                        >
+                            <Icon name="Trash2" size={16} /> {t('clearLocalData' as any)}
+                        </button>
+                    </div>
+                )}
             </div>
         </Modal>
     );

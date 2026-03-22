@@ -8,6 +8,7 @@ import { BuilderFeaturesTab } from './BuilderFeaturesTab';
 import { BuilderEntitiesTab } from './BuilderEntitiesTab';
 import { BuilderScoringTab } from './BuilderScoringTab';
 import { Header } from '../Header';
+import { useSwipe } from '../../hooks/useSwipe';
 
 interface KeyBuilderProps {
   onExit: () => void;
@@ -150,102 +151,20 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
   const [collapsedFeatures, setCollapsedFeatures] = useState<Set<string>>(new Set());
   const [collapsedEntities, setCollapsedEntities] = useState<Set<string>>(new Set());
 
-  const [swipeOffset, setSwipeOffset] = useState(0);
-  const [isSwiping, setIsSwiping] = useState(false);
-  const touchStart = useRef<{ x: number, y: number } | null>(null);
-
   const tabIndex = activeTab === 'features' ? 0 : activeTab === 'entities' ? 1 : 2;
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-      touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      setIsSwiping(false);
-      setSwipeOffset(0);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-      if (!touchStart.current) return;
-      const currentX = e.touches[0].clientX;
-      const currentY = e.touches[0].clientY;
-      const deltaX = currentX - touchStart.current.x;
-      const deltaY = currentY - touchStart.current.y;
-
-      if (!isSwiping) {
-          if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
-              setIsSwiping(true);
-          } else if (Math.abs(deltaY) > 10) {
-              touchStart.current = null;
-              return;
-          }
-      }
-
-      if (isSwiping) {
-          let effectiveDelta = deltaX;
-          if (activeTab === 'features' && deltaX > 0) effectiveDelta *= 0.3;
-          if (activeTab === 'scoring' && deltaX < 0) effectiveDelta *= 0.3;
-          setSwipeOffset(effectiveDelta);
-      }
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-      if (!touchStart.current) {
-          setIsSwiping(false);
-          setSwipeOffset(0);
-          return;
-      }
-      if (isSwiping) {
-          const deltaX = e.changedTouches[0].clientX - touchStart.current.x;
-          if (deltaX < -50) {
-              if (activeTab === 'features') setActiveTab('entities');
-              else if (activeTab === 'entities') setActiveTab('scoring');
-          } else if (deltaX > 50) {
-              if (activeTab === 'scoring') setActiveTab('entities');
-              else if (activeTab === 'entities') setActiveTab('features');
-          }
-      }
-      setIsSwiping(false);
-      setSwipeOffset(0);
-      touchStart.current = null;
-  };
-
-  const processAndSetImage = (file: File, callback: (url: string) => void) => {
-    const objectUrl = URL.createObjectURL(file);
-    const img = new Image();
-
-    img.onload = () => {
-      let { width, height } = img;
-      const MAX_DIM = 1024;
-
-      if (width > MAX_DIM || height > MAX_DIM) {
-        const ratio = Math.min(MAX_DIM / width, MAX_DIM / height);
-        width = Math.round(width * ratio);
-        height = Math.round(height * ratio);
-      }
-
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-
-      if (ctx) {
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, width, height);
-        ctx.drawImage(img, 0, 0, width, height);
-        callback(canvas.toDataURL('image/jpeg', 0.85));
-      } else {
-        const reader = new FileReader();
-        reader.onloadend = () => callback(reader.result as string);
-        reader.readAsDataURL(file);
-      }
-      URL.revokeObjectURL(objectUrl);
-    };
-    img.onerror = () => {
-      const reader = new FileReader();
-      reader.onloadend = () => callback(reader.result as string);
-      reader.readAsDataURL(file);
-      URL.revokeObjectURL(objectUrl);
-    };
-    img.src = objectUrl;
-  };
+  const { swipeOffset, isSwiping, handleTouchStart, handleTouchMove, handleTouchEnd } = useSwipe(
+    () => {
+      if (activeTab === 'features') setActiveTab('entities');
+      else if (activeTab === 'entities') setActiveTab('scoring');
+    },
+    () => {
+      if (activeTab === 'scoring') setActiveTab('entities');
+      else if (activeTab === 'entities') setActiveTab('features');
+    },
+    activeTab === 'features',
+    activeTab === 'scoring'
+  );
 
   const exportJson = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(draftKey, null, 2));
@@ -419,33 +338,23 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
         draftKey.features.find(f => f.id === editingMedia.itemId)?.states.find(s => s.id === editingMedia.stateId)?.media?.[editingMedia.mediaIndex]
   ) : null;
 
+  const ActionButton = ({ onClick, disabled, title, icon, iconClass = '' }: any) => (
+    <button onClick={onClick} disabled={disabled} title={title} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
+      <Icon name={icon} size={24} className={`opacity-80 ${iconClass}`} />
+    </button>
+  );
+
   const builderLeftActions = (
     <>
-      <button onClick={() => setShowNewKeyModal(true)} title={t('kbNewKey' as any)} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0">
-        <Icon name="FilePlus" size={24} className="opacity-80" />
-      </button>
-      <button onClick={triggerOpenNativeKey} title={t('openNativeKey')} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0">
-        <Icon name="FolderOpen" size={24} className="opacity-80" />
-      </button>
-      <button onClick={exportJson} title={t('exportJson')} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0">
-        <Icon name="Download" size={24} className="opacity-80" />
-      </button>
-      <button onClick={() => onTestKey?.(draftKey)} title={t('kbTestKey' as any)} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0">
-        <Icon name="Play" size={24} className="opacity-80 text-accent" />
-      </button>
-      <button onClick={() => setShowMetadataModal(true)} title={t('kbMetadata')} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0">
-        <Icon name="Info" size={24} className="opacity-80" />
-      </button>
-      <button onClick={openPreferences} title={t('preferences')} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0">
-        <Icon name="Settings2" size={24} className="opacity-80" />
-      </button>
+      <ActionButton onClick={() => setShowNewKeyModal(true)} title={t('kbNewKey' as any)} icon="FilePlus" />
+      <ActionButton onClick={triggerOpenNativeKey} title={t('openNativeKey')} icon="FolderOpen" />
+      <ActionButton onClick={exportJson} title={t('exportJson')} icon="Download" />
+      <ActionButton onClick={() => onTestKey?.(draftKey)} title={t('kbTestKey' as any)} icon="Play" iconClass="text-accent" />
+      <ActionButton onClick={() => setShowMetadataModal(true)} title={t('kbMetadata')} icon="Info" />
+      <ActionButton onClick={openPreferences} title={t('preferences')} icon="Settings2" />
       <div className="w-px h-6 bg-border mx-1 opacity-50" />
-      <button onClick={undo} disabled={historyIndex <= 0} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0 disabled:opacity-30 disabled:cursor-not-allowed" title={t('kbUndo')}>
-        <Icon name="Undo" size={24} className="opacity-80" />
-      </button>
-      <button onClick={redo} disabled={historyIndex >= history.length - 1} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0 disabled:opacity-30 disabled:cursor-not-allowed" title={t('kbRedo')}>
-        <Icon name="Redo" size={24} className="opacity-80" />
-      </button>
+      <ActionButton onClick={undo} disabled={historyIndex <= 0} title={t('kbUndo')} icon="Undo" />
+      <ActionButton onClick={redo} disabled={historyIndex >= history.length - 1} title={t('kbRedo')} icon="Redo" />
     </>
   );
 
@@ -541,7 +450,6 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
                   dragOverId={dragOverId} setDragOverId={setDragOverId}
                   draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
                   setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
-                  processAndSetImage={processAndSetImage}
                 />
                 </div>
                 <div className="w-1/2 h-full flex flex-col bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg overflow-hidden">
@@ -553,7 +461,6 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
                   dragOverId={dragOverId} setDragOverId={setDragOverId}
                   draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
                   setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
-                  processAndSetImage={processAndSetImage}
                 />
                 </div>
               </div>
@@ -570,7 +477,6 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
                   dragOverId={dragOverId} setDragOverId={setDragOverId}
                   draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
                   setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
-                  processAndSetImage={processAndSetImage}
                 />
               </div>
             </div>
@@ -586,7 +492,6 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
                   dragOverId={dragOverId} setDragOverId={setDragOverId}
                   draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
                   setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
-                  processAndSetImage={processAndSetImage}
                 />
               </div>
             </div>

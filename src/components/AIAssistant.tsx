@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Icon } from './Icon';
 import { callGeminiAPI } from '../services/GeminiService';
 import type { KeyData, GeminiResponse, GeminiFeatureMatch, Entity, StateScore, NumericScore, RawChatMessage, AiMessageVersion } from '../types';
-import { marked } from 'marked';
 import Spot from './Spot';
 import { ConfirmModal } from './modals';
+import { Markdown } from './common/Markdown';
+import { processImage } from '../utils/imageUtils';
 
 interface AIAssistantProps {
   isVisible: boolean;
@@ -177,7 +178,7 @@ const ChatMessageBubble = React.memo<{
           <>
             {msg.content && (
               <div className={`relative ${!isExpanded ? 'max-h-48 overflow-hidden' : ''}`}>
-                <div className="markdown-body text-[15px] leading-relaxed [&>p]:mb-3 [&>p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:mb-3 [&_strong]:font-bold [&_em]:italic [&_a]:underline [&_a]:text-accent hover:[&_a]:text-accent-hover [&_h1]:font-bold [&_h1]:text-lg [&_h2]:font-bold [&_h3]:font-semibold break-words" dangerouslySetInnerHTML={{ __html: (marked.parse(msg.content) as string).replace(/<a (?![^>]*\btarget=)/g, '<a target="_blank" rel="noopener noreferrer" ') }} />
+                <Markdown content={msg.content} className="text-[15px]" />
                 {!isExpanded && (
                   <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-header-bg to-transparent pointer-events-none" />
                 )}
@@ -434,50 +435,12 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
     }
   };
 
-  const processAndSetImage = (file: File) => {
+  const processAndSetImage = async (file: File) => {
     if (selectedImage) {
       URL.revokeObjectURL(selectedImage.url);
     }
-    const objectUrl = URL.createObjectURL(file);
-    const img = new Image();
-
-    const fallbackReader = () => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = (reader.result as string).split(',')[1];
-        setSelectedImage({ file, base64, mimeType: file.type, url: objectUrl });
-      };
-      reader.readAsDataURL(file);
-    };
-
-    img.onload = () => {
-      let { width, height } = img;
-      const MAX_DIM = 1024;
-
-      if (width > MAX_DIM || height > MAX_DIM) {
-        const ratio = Math.min(MAX_DIM / width, MAX_DIM / height);
-        width = Math.round(width * ratio);
-        height = Math.round(height * ratio);
-      }
-
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-
-      if (ctx) {
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, width, height);
-        ctx.drawImage(img, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-        const base64 = dataUrl.split(',')[1];
-        setSelectedImage({ file, base64, mimeType: 'image/jpeg', url: objectUrl });
-      } else {
-        fallbackReader();
-      }
-    };
-    img.onerror = fallbackReader;
-    img.src = objectUrl;
+    const processed = await processImage(file);
+    setSelectedImage({ file, ...processed });
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -717,14 +680,20 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
     const languageNames: Record<string, string> = {
       'en': 'English',
       'pt-br': 'Portuguese (Brazil)',
+      'pt-pt': 'Portuguese (Portugal)',
       'es': 'Spanish',
       'ru': 'Russian',
       'zh': 'Chinese',
       'ja': 'Japanese',
+      'ko': 'Korean',
       'fr': 'French',
       'de': 'German',
       'la': 'Latin',
-      'it': 'Italian'
+      'it': 'Italian',
+      'el': 'Greek',
+      'hi': 'Hindi',
+      'ar': 'Arabic',
+      'he': 'Hebrew'
     };
     const targetLanguage = languageNames[lang] || 'English';
 

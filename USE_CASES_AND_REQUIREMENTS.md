@@ -38,7 +38,7 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 
 ### UC9: Configure Application Preferences
 * **Actor:** User
-* **Description:** The user accesses the preferences (available directly from the welcome screen, the desktop header, or the mobile sidebar) to set the UI theme (Light/Dark), application language, toggle toast notifications, hide the AI assistant, and provide the Gemini API key required for the AI assistant.
+* **Description:** The user accesses the preferences (available directly from the welcome screen, the desktop header, or the mobile sidebar) to set the UI theme (Light/Dark), application language, toggle toast notifications, hide the AI assistant, provide the Gemini API key required for the AI assistant, and delete all locally saved data.
 
 ### UC10: Create and Edit Identification Keys
 * **Actor:** User
@@ -107,10 +107,11 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **FR6.1:** The system must preserve user preferences (API key, language selection, light/dark theme, toast notifications toggle, AI assistant visibility, panel layout sizes, and entities view modes) across sessions using the browser's `localStorage`.
 * **FR6.2:** All application states (loaded keys, AI chat history, selected features) must be reset gracefully when a user opens a new key. The user can also manually clear their selections via the clear button in the Chosen Features panel, or clear the AI chat history via the Assistant panel (both of which prompt for confirmation via a custom modal).
 * **FR6.3:** Chat histories and active states must be strictly isolated between the Identify and Builder modes to prevent contextual overlap.
+* **FR6.4:** The system must provide an option in the preferences menu to safely delete all locally saved data, wiping the `localStorage` and resetting the application state entirely.
 
 ### 2.7. Localization (i18n)
 * **FR7.1:** The system must support multi-language translation using an internal dictionary.
-* **FR7.2:** Supported languages must include English, Portuguese (BR), Spanish, Russian, Chinese, Japanese, French, German, Latin, and Italian.
+* **FR7.2:** Supported languages must include English, Portuguese (BR), Portuguese (PT), Spanish, Russian, Chinese, Japanese, Korean, French, German, Latin, Italian, Greek, Hindi, Arabic, and Hebrew.
 * **FR7.3:** The system must automatically detect the user's browser language on first load and fall back to English if the language is unsupported.
 
 ### 2.8. Key Builder (Authoring Mode)

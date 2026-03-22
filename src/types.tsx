@@ -40,6 +40,9 @@ export interface FeatureNode {
   children: FeatureNode[];
 }
 
+export type Language = 'en' | 'pt-br' | 'pt-pt' | 'es' | 'ru' | 'zh' | 'ja' | 'ko' | 'fr' | 'de' | 'la' | 'it' | 'el' | 'hi' | 'ar' | 'he';
+export type Theme = 'light' | 'dark';
+
 export interface StateScore {
   value: ScoreType;
 }

@@ -3,6 +3,8 @@ import { Icon } from '../Icon';
 import type { DraftKeyData, DraftEntity } from '../../types';
 import { CustomSelect } from '../common/CustomSelect';
 import { MarkdownInput } from '../common/MarkdownInput';
+import { processImage } from '../../utils/imageUtils';
+import { useTreeDragAndDrop } from '../../hooks/useTreeDragAndDrop';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 const reorderArray = <T,>(arr: T[], from: number, to: number): T[] => {
@@ -28,18 +30,26 @@ interface BuilderEntitiesTabProps {
   setDraggedMedia: (media: { type: 'feature' | 'entity' | 'state', itemId: string, stateId?: string, index: number } | null) => void;
   setEditingMedia: (media: { type: 'feature' | 'entity' | 'state', itemId: string, stateId?: string, mediaIndex: number } | null) => void;
   setDeleteTarget: (target: { type: 'feature' | 'state' | 'entity' | 'featureMedia' | 'stateMedia' | 'entityMedia', id: string, parentId?: string, mediaIndex?: number } | null) => void;
-  processAndSetImage: (file: File, callback: (url: string) => void) => void;
   layoutMode?: 'list' | 'edit' | 'both';
 }
 
 export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
   draftKey, updateDraftKey, t, selectedEntityId, setSelectedEntityId, collapsedEntities, toggleEntityCollapse,
-  draggedItem, setDraggedItem, dragOverId, setDragOverId, draggedMedia, setDraggedMedia, setEditingMedia, setDeleteTarget, processAndSetImage,
+  draggedItem, setDraggedItem, dragOverId, setDragOverId, draggedMedia, setDraggedMedia, setEditingMedia, setDeleteTarget,
   layoutMode = 'both'
 }) => {
   const touchTimeout = useRef<NodeJS.Timeout | null>(null);
   const ghostRef = useRef<HTMLDivElement>(null);
   const lastTouchPos = useRef({ x: 0, y: 0 });
+
+  const treeDnd = useTreeDragAndDrop({
+    items: draftKey.entities,
+    draggedItem, setDraggedItem, dragOverId, setDragOverId,
+    itemType: 'entity',
+    dataAttribute: 'data-entity-id',
+    onMoveItem: (id, parentId) => updateEntity(id, { parentId }),
+    ghostRef
+  });
 
   const addEntity = () => {
     const id = generateId();
@@ -91,6 +101,17 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
     }));
   };
 
+  const handleAddImages = async (fileList: FileList | File[] | null, id: string) => {
+    if (!fileList) return;
+    const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+    if (files.length === 0) return;
+    const processed = await Promise.all(files.map(f => processImage(f)));
+    const newMedia = processed.map(p => ({ url: `data:${p.mimeType};base64,${p.base64}` }));
+    
+    const entity = draftKey.entities.find(e => e.id === id);
+    updateEntity(id, { media: [...(entity?.media || []), ...newMedia] });
+  };
+
   const selectedEntity = draftKey.entities.find(e => e.id === selectedEntityId);
 
   const renderEntityList = () => {
@@ -105,103 +126,15 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
                     draggable
                     data-entity-id={e.id}
                     onContextMenu={(ev) => ev.preventDefault()}
-                    onDragStart={(ev) => {
-                        ev.stopPropagation();
-                        setDraggedItem({ type: 'entity', id: e.id });
-                    }}
-                    onDragEnd={() => {
-                        setDraggedItem(null);
-                        setDragOverId(null);
-                    }}
-                    onDragOver={(ev) => {
-                        ev.preventDefault();
-                        ev.stopPropagation();
-                        if (draggedItem?.type === 'entity' && draggedItem.id !== e.id) {
-                            let current: string | undefined = e.id;
-                            let isCycle = false;
-                            while (current) {
-                                if (current === draggedItem.id) { isCycle = true; break; }
-                                current = draftKey.entities.find(x => x.id === current)?.parentId;
-                            }
-                            if (!isCycle && dragOverId !== e.id) setDragOverId(e.id);
-                        }
-                    }}
-                    onDragLeave={() => {
-                        if (dragOverId === e.id) setDragOverId(null);
-                    }}
-                    onDrop={(ev) => {
-                        ev.preventDefault();
-                        ev.stopPropagation();
-                        setDragOverId(null);
-                        if (draggedItem?.type === 'entity' && draggedItem.id !== e.id) {
-                            let current: string | undefined = e.id;
-                            let isCycle = false;
-                            while (current) {
-                                if (current === draggedItem.id) { isCycle = true; break; }
-                                current = draftKey.entities.find(x => x.id === current)?.parentId;
-                            }
-                            if (!isCycle) updateEntity(draggedItem.id, { parentId: e.id });
-                        }
-                        setDraggedItem(null);
-                    }}
-                    onTouchStart={(ev) => {
-                        ev.stopPropagation();
-                        lastTouchPos.current = { x: ev.touches[0].clientX, y: ev.touches[0].clientY };
-                        touchTimeout.current = setTimeout(() => {
-                            setDraggedItem({ type: 'entity', id: e.id });
-                            if (navigator.vibrate) navigator.vibrate(50);
-                        }, 300);
-                    }}
-                    onTouchMove={(ev) => {
-                        const touch = ev.touches[0];
-                        lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
-                        if (ghostRef.current) {
-                            ghostRef.current.style.left = `${touch.clientX}px`;
-                            ghostRef.current.style.top = `${touch.clientY}px`;
-                        }
-                        if (!draggedItem) {
-                            if (touchTimeout.current) clearTimeout(touchTimeout.current);
-                            return;
-                        }
-                        const el = document.elementFromPoint(touch.clientX, touch.clientY);
-                        const targetEntity = el?.closest('[data-entity-id]');
-                        const targetRoot = el?.closest('[data-root-drop="true"]');
-                        
-                        if (targetEntity) {
-                            const id = targetEntity.getAttribute('data-entity-id');
-                            if (id && id !== e.id) {
-                                let current: string | undefined = id;
-                                let isCycle = false;
-                                while (current) {
-                                    if (current === draggedItem.id) { isCycle = true; break; }
-                                    current = draftKey.entities.find(x => x.id === current)?.parentId;
-                                }
-                                if (!isCycle && dragOverId !== id) setDragOverId(id);
-                            }
-                        } else if (targetRoot) {
-                            if (dragOverId !== 'root-entity') setDragOverId('root-entity');
-                        } else {
-                            if (dragOverId) setDragOverId(null);
-                        }
-                    }}
-                    onTouchEnd={(ev) => {
-                        if (touchTimeout.current) clearTimeout(touchTimeout.current);
-                        if (draggedItem) {
-                            if (ev.cancelable) ev.preventDefault();
-                            if (dragOverId && dragOverId !== 'root-entity' && dragOverId !== e.id) {
-                                updateEntity(draggedItem.id, { parentId: dragOverId });
-                            } else if (dragOverId === 'root-entity') {
-                                updateEntity(draggedItem.id, { parentId: undefined });
-                            }
-                            setDraggedItem(null);
-                            setDragOverId(null);
-                        }
-                    }}
-                    onTouchCancel={() => {
-                        if (touchTimeout.current) clearTimeout(touchTimeout.current);
-                        setDraggedItem(null);
-                        setDragOverId(null);
-                    }}
+                    onDragStart={(ev) => treeDnd.onDragStart(ev, e.id)}
+                    onDragEnd={treeDnd.onDragEnd}
+                    onDragOver={(ev) => treeDnd.onDragOver(ev, e.id)}
+                    onDragLeave={() => treeDnd.onDragLeave(e.id)}
+                    onDrop={(ev) => treeDnd.onDrop(ev, e.id)}
+                    onTouchStart={(ev) => treeDnd.onTouchStart(ev, e.id)}
+                    onTouchMove={(ev) => treeDnd.onTouchMove(ev, e.id)}
+                    onTouchEnd={(ev) => treeDnd.onTouchEnd(ev, e.id)}
+                    onTouchCancel={treeDnd.onTouchCancel}
                     onClick={() => setSelectedEntityId(e.id)}
                     className={`rounded-xl transition-all relative group/item flex items-center gap-2 py-2 pr-2 border cursor-pointer ${selectedEntityId === e.id ? 'bg-accent/95 backdrop-blur-md text-white shadow-md shadow-accent/30 border-white/20 z-10' : 'hover:bg-hover-bg/80 hover:shadow-sm text-text border-transparent hover:border-white/10 dark:hover:border-white/5'} ${dragOverId === e.id ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${draggedItem?.id === e.id ? 'opacity-50' : ''}`}
                     style={{ paddingLeft: `calc(${1.5 + depth * 1.5}rem + 0.5rem)`, touchAction: draggedItem ? 'none' : 'auto' }}
@@ -254,21 +187,16 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
           <button onClick={addEntity} className="px-3 py-1.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-lg hover:bg-accent-hover transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg shadow-accent/30 flex items-center gap-1 cursor-pointer" title={t('kbAddEntity')}><Icon name="Plus" size={14} /> {t('kbAdd' as any)}</button>
         </div>
         <div 
-          className={`overflow-y-auto flex-1 p-3 space-y-0.5 rounded-b-xl transition-colors ${dragOverId === 'root-entity' ? 'bg-accent/5 ring-2 ring-inset ring-accent' : ''}`}
+          className={`overflow-y-auto flex-1 p-3 space-y-0.5 rounded-b-xl transition-colors ${dragOverId === 'root' ? 'bg-accent/5 ring-2 ring-inset ring-accent' : ''}`}
           data-root-drop="true"
           onDragOver={(e) => {
               e.preventDefault();
-              if (draggedItem?.type === 'entity' && dragOverId !== 'root-entity') setDragOverId('root-entity');
+              if (draggedItem?.type === 'entity' && dragOverId !== 'root') setDragOverId('root');
           }}
           onDragLeave={() => {
-              if (dragOverId === 'root-entity') setDragOverId(null);
+              if (dragOverId === 'root') setDragOverId(null);
           }}
-          onDrop={(e) => {
-              e.preventDefault();
-              setDragOverId(null);
-              if (draggedItem?.type === 'entity') updateEntity(draggedItem.id, { parentId: undefined });
-              setDraggedItem(null);
-          }}
+          onDrop={treeDnd.onRootDrop}
         >
           {renderEntityList()}
           {draftKey.entities.length === 0 && <div className="p-6 text-center text-sm opacity-50 border-2 border-dashed border-border rounded-xl mt-2">{t('kbEntities')} ({t('kbEmpty' as any)})</div>}
@@ -323,20 +251,7 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
                     e.preventDefault();
                     e.stopPropagation();
                     setDragOverId(null);
-                    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
-                    if (files.length > 0) {
-                      let count = 0;
-                      const newUrls: string[] = [];
-                      files.forEach(file => {
-                        processAndSetImage(file, url => {
-                          newUrls.push(url);
-                          count++;
-                          if (count === files.length) {
-                            updateEntity(selectedEntity.id, { media: [...(selectedEntity.media || []), ...newUrls.map(u => ({ url: u }))] });
-                          }
-                        });
-                      });
-                    }
+                    handleAddImages(e.dataTransfer.files, selectedEntity.id);
                   }
                 }}
               >
@@ -420,20 +335,7 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
                   <Icon name="Plus" size={24} className="mb-1 group-hover:scale-110 transition-transform" />
                   <span className="text-[10px] font-semibold uppercase tracking-wider">{t('kbAdd' as any)}</span>
                   <input type="file" accept="image/*" multiple className="hidden" onChange={e => {
-                    const files = Array.from(e.target.files || []);
-                    if (files.length > 0) {
-                      let count = 0;
-                      const newUrls: string[] = [];
-                      files.forEach(file => {
-                        processAndSetImage(file, url => {
-                          newUrls.push(url);
-                          count++;
-                          if (count === files.length) {
-                            updateEntity(selectedEntity.id, { media: [...(selectedEntity.media || []), ...newUrls.map(u => ({ url: u }))] });
-                          }
-                        });
-                      });
-                    }
+                    handleAddImages(e.target.files, selectedEntity.id);
                     e.target.value = '';
                   }} />
                 </label>
@@ -456,8 +358,8 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
           ref={ghostRef}
           className="fixed pointer-events-none z-[9999] opacity-90 scale-105"
           style={{
-            left: lastTouchPos.current.x,
-            top: lastTouchPos.current.y,
+            left: draggedItem ? treeDnd.lastTouchPos.current.x : lastTouchPos.current.x,
+            top: draggedItem ? treeDnd.lastTouchPos.current.y : lastTouchPos.current.y,
             transform: 'translate(-50%, -120%)',
             willChange: 'left, top'
           }}

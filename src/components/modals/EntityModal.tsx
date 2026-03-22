@@ -4,7 +4,8 @@ import { Icon } from '../Icon';
 import { ImageViewer } from '../common/ImageViewer';
 import type { KeyData, Media, ScoreType, Characteristic, IconName, EntityNode } from '../../types';
 import { translations } from '../../constants';
-import { marked } from 'marked';
+import { Markdown } from '../common/Markdown';
+import { useSwipe } from '../../hooks/useSwipe';
 
 interface GroupNode {
   name: string;
@@ -83,9 +84,19 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
   const detailsRef = useRef<HTMLDivElement>(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [mobileTab, setMobileTab] = useState<'image' | 'details' | 'features'>('image');
-  const [swipeOffset, setSwipeOffset] = useState(0);
-  const [isSwiping, setIsSwiping] = useState(false);
-  const touchStart = useRef<{ x: number, y: number } | null>(null);
+  
+  const { swipeOffset, isSwiping, handleTouchStart, handleTouchMove, handleTouchEnd } = useSwipe(
+    () => {
+      if (mobileTab === 'image') setMobileTab('details');
+      else if (mobileTab === 'details') setMobileTab('features');
+    },
+    () => {
+      if (mobileTab === 'features') setMobileTab('details');
+      else if (mobileTab === 'details') setMobileTab('image');
+    },
+    mobileTab === 'image',
+    mobileTab === 'features'
+  );
 
   // Cache the entityId when the modal opens to prevent content disappearing during close animation
   useEffect(() => {
@@ -145,8 +156,6 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
     });
     return root;
   }, [profile?.characteristics]);
-
-  const parsedDescription = profile?.description ? (marked.parse(profile.description) as string).replace(/<a (?![^>]*\btarget=)/g, '<a target="_blank" rel="noopener noreferrer" ') : '';
 
   if (!entity) return <Modal isOpen={isOpen} onClose={onClose} title={t('loading')}><div /></Modal>;
 
@@ -277,57 +286,6 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
 
   const tabIndex = mobileTab === 'image' ? 0 : mobileTab === 'details' ? 1 : 2;
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-      touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      setIsSwiping(false);
-      setSwipeOffset(0);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-      if (!touchStart.current) return;
-      const currentX = e.touches[0].clientX;
-      const currentY = e.touches[0].clientY;
-      const deltaX = currentX - touchStart.current.x;
-      const deltaY = currentY - touchStart.current.y;
-
-      if (!isSwiping) {
-          if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
-              setIsSwiping(true);
-          } else if (Math.abs(deltaY) > 10) {
-              touchStart.current = null;
-              return;
-          }
-      }
-
-      if (isSwiping) {
-          let effectiveDelta = deltaX;
-          if (mobileTab === 'image' && deltaX > 0) effectiveDelta *= 0.3;
-          if (mobileTab === 'features' && deltaX < 0) effectiveDelta *= 0.3;
-          setSwipeOffset(effectiveDelta);
-      }
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-      if (!touchStart.current) {
-          setIsSwiping(false);
-          setSwipeOffset(0);
-          return;
-      }
-      if (isSwiping) {
-          const deltaX = e.changedTouches[0].clientX - touchStart.current.x;
-          if (deltaX < -50) {
-              if (mobileTab === 'image') setMobileTab('details');
-              else if (mobileTab === 'details') setMobileTab('features');
-          } else if (deltaX > 50) {
-              if (mobileTab === 'features') setMobileTab('details');
-              else if (mobileTab === 'details') setMobileTab('image');
-          }
-      }
-      setIsSwiping(false);
-      setSwipeOffset(0);
-      touchStart.current = null;
-  };
-
   const modalTitle = (
     <div className="flex items-center gap-2 min-w-0">
       {navigationHistory.length > 0 && (
@@ -386,10 +344,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
                 <Icon name="FileText" size={18} />
                 <span className="grow text-base">{t('kbDescription')}</span>
               </div>
-              <div 
-                className="text-sm text-text opacity-90 leading-relaxed markdown-body md:max-h-[30vh] grow overflow-y-auto pr-2 [&>p]:mb-3 [&>p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:mb-3 [&_strong]:font-bold [&_em]:italic [&_a]:underline [&_a]:text-accent hover:[&_a]:text-accent-hover [&_h1]:font-bold [&_h1]:text-lg [&_h2]:font-bold [&_h3]:font-semibold break-words"
-              dangerouslySetInnerHTML={{ __html: parsedDescription }}
-              />
+              <Markdown content={profile.description} className="text-sm opacity-90 md:max-h-[30vh] grow overflow-y-auto pr-2" />
             </div>
                  )}
                </div>
