@@ -9,6 +9,7 @@ import { BuilderEntitiesTab } from './BuilderEntitiesTab';
 import { BuilderScoringTab } from './BuilderScoringTab';
 import { Header } from '../Header';
 import { useSwipe } from '../../hooks/useSwipe';
+import { Sidebar, type SidebarAction } from '../Sidebar';
 
 interface KeyBuilderProps {
   onExit: () => void;
@@ -23,7 +24,6 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
   const appContext = useAppContext();
   const { t, triggerOpenNativeKey, isAiPanelVisible, setAiPanelVisible, openPreferences } = appContext;
   const hideAi = (appContext as any).hideAi;
-  const openAppInfo = (appContext as any).openAppInfo;
   const [activeTab, setActiveTab] = useState<'features' | 'entities' | 'scoring'>('features');
   const [showMetadataModal, setShowMetadataModal] = useState(false);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -380,43 +380,17 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
     </div>
   );
 
+  const sidebarActions: SidebarAction[] = [
+    { icon: 'FilePlus', label: t('kbNewKey' as any), onClick: () => setShowNewKeyModal(true) },
+    { icon: 'FolderOpen', label: t('openNativeKey'), onClick: triggerOpenNativeKey },
+    { icon: 'Download', label: t('exportJson'), onClick: exportJson },
+    { icon: 'Play', label: t('kbTestKey' as any), onClick: () => onTestKey?.(draftKey), iconClass: 'text-accent' }
+  ];
+
   return (
     <div className="flex flex-col h-full w-full bg-bg">
       {/* Mobile Sidebar */}
-      <div className={`md:hidden fixed top-0 left-0 h-full z-40 w-60 bg-panel-bg/90 backdrop-blur-2xl border-r border-white/20 dark:border-white/10 p-5 flex flex-col gap-5 shadow-2xl transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div onClick={() => { setSidebarOpen(false); onExit(); }} title={t('closeKey' as any)} className="pb-4 pt-2 flex items-center justify-center border-b border-black/5 dark:border-white/5 cursor-pointer hover:opacity-80 transition-opacity">
-          <h2 className="text-2xl font-black flex items-center gap-2 text-accent tracking-tight">
-            <Icon name="Leaf" size={28} /> Taxon
-          </h2>
-        </div>
-        <div className="flex flex-col gap-2 text-sm font-semibold">
-          <button onClick={() => { setSidebarOpen(false); setShowNewKeyModal(true); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md group">
-            <Icon name="FilePlus" className="opacity-80 group-hover:opacity-100" /> {t('kbNewKey' as any)}
-          </button>
-          <button onClick={() => { setSidebarOpen(false); triggerOpenNativeKey(); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md group">
-            <Icon name="FolderOpen" className="opacity-80 group-hover:opacity-100" /> {t('openNativeKey')}
-          </button>
-          <button onClick={() => { setSidebarOpen(false); exportJson(); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md group">
-            <Icon name="Download" className="opacity-80 group-hover:opacity-100" /> {t('exportJson')}
-          </button>
-          <button onClick={() => { setSidebarOpen(false); onTestKey?.(draftKey); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md group">
-            <Icon name="Play" className="opacity-80 group-hover:opacity-100 text-accent" /> {t('kbTestKey' as any)}
-          </button>
-        </div>
-        <div className="mt-auto flex flex-col gap-2 pt-5 border-t border-black/5 dark:border-white/5 text-sm font-semibold">
-          <button onClick={() => { setSidebarOpen(false); openPreferences(); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer hover:shadow-sm">
-            <Icon name="Settings2" className="opacity-80" /> {t('preferences')}
-          </button>
-          <button onClick={() => { setSidebarOpen(false); openAppInfo(); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer hover:shadow-sm">
-            <Icon name="Info" className="opacity-80" /> {t('aboutTaxon' as any)}
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Sidebar Backdrop */}
-      {isSidebarOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 md:hidden" onClick={() => setSidebarOpen(false)} />
-      )}
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} onExit={onExit} actions={sidebarActions} />
 
       <Header 
         isSidebarOpen={isSidebarOpen} 

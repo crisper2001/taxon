@@ -5,7 +5,6 @@ import { FeaturesPanel, EntitiesPanel, ChosenFeaturesPanel } from './components/
 import { AIAssistant } from './components/AIAssistant';
 import { ResizablePanels } from './components/panels/ResizablePanels';
 import { EntityModal, PreferencesModal, KeyInfoModal, FeatureModal, ImageLightboxModal, ConfirmModal } from './components/modals';
-import { AppInfoModal } from './components/modals/AppInfoModal';
 import { translations } from './constants';
 import { useKeyFiltering } from './hooks/useKeyFiltering';
 import { useResizablePanel } from './hooks/useResizablePanel';
@@ -501,7 +500,6 @@ const App: React.FC = () => {
     triggerOpenNativeKey: () => jsonFileInputRef.current?.click(),
     resetKey: handleReset,
     openPreferences: () => setModalState({ type: 'preferences' }),
-    openAppInfo: () => setModalState({ type: 'appInfo' }),
     openKeyInfo: () => keyData && setModalState({ type: 'keyInfo' }),
     closeKey: () => {
       setIsHome(true);
@@ -554,7 +552,6 @@ const App: React.FC = () => {
       <KeyInfoModal isOpen={modalState.type === 'keyInfo' || underlyingModalState?.type === 'keyInfo'} onClose={() => setModalState({ type: 'none' })} keyData={keyData} t={t} />
       <FeatureModal isOpen={modalState.type === 'feature' || underlyingModalState?.type === 'feature'} onClose={handleModalClose} featureId={(activeOrUnderlying as any).featureId} keyData={keyData} t={t} onImageClick={handleOpenLightbox} />
       <ImageLightboxModal isOpen={modalState.type === 'lightbox'} onClose={handleModalClose} media={(modalState as any).media} startIndex={(modalState as any).startIndex ?? 0} />
-      <AppInfoModal isOpen={modalState.type === 'appInfo' || underlyingModalState?.type === 'appInfo'} onClose={handleModalClose} t={t} />
 
       <ConfirmModal
         isOpen={modalState.type === 'confirmClear' || underlyingModalState?.type === 'confirmClear'}
@@ -617,10 +614,6 @@ const App: React.FC = () => {
         onClose={() => setSidebarOpen(false)}
       />
 
-      {/* Mobile Sidebar Backdrop */}
-      {isSidebarOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 md:hidden" onClick={() => setSidebarOpen(false)} />
-      )}
 
       <div className={`content-wrapper flex grow min-h-0 transition-all duration-300 ease-in-out ml-0`}>
         <div className="page-content grow flex flex-col h-full min-w-0 min-h-0 overflow-hidden relative">
