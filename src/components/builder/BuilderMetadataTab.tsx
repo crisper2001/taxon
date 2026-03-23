@@ -9,7 +9,7 @@ interface BuilderMetadataTabProps {
   t: (key: string) => string;
 }
 
-export const BuilderMetadataTab: React.FC<BuilderMetadataTabProps> = ({ draftKey, updateDraftKey, t }) => {
+export const BuilderMetadataTab: React.FC<BuilderMetadataTabProps> = React.memo(({ draftKey, updateDraftKey, t }) => {
   return (
     <div className="flex flex-col gap-5 animate-fade-in p-6 overflow-y-auto">
       <label className="flex flex-col gap-1.5">
@@ -23,4 +23,4 @@ export const BuilderMetadataTab: React.FC<BuilderMetadataTabProps> = ({ draftKey
       <MarkdownInput label={t('kbDescription')} value={draftKey.description || ''} onChange={val => updateDraftKey(prev => ({...prev, description: val}))} rows={6} />
     </div>
   );
-};
+});

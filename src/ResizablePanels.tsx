@@ -27,13 +27,14 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children }) =>
     const dragOffset = useRef(0);
     const [isResizing, setIsResizing] = useState(false);
 
-    const handleMouseDown = (e: React.MouseEvent, type: 'v' | 'h') => {
-        e.preventDefault();
+    const handleMouseDown = (e: React.MouseEvent | React.TouchEvent, type: 'v' | 'h') => {
         resizingType.current = type;
         setIsResizing(true);
         const rect = containerRef.current!.getBoundingClientRect();
-        if (type === 'v') dragOffset.current = e.clientX - (rect.left + containerRef.current!.firstElementChild!.clientWidth);
-        else dragOffset.current = e.clientY - (rect.top + containerRef.current!.firstElementChild!.clientHeight);
+        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+        if (type === 'v') dragOffset.current = clientX - (rect.left + containerRef.current!.firstElementChild!.clientWidth);
+        else dragOffset.current = clientY - (rect.top + containerRef.current!.firstElementChild!.clientHeight);
     };
 
     const handleMouseUp = useCallback(() => {
@@ -41,19 +42,22 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children }) =>
         setIsResizing(false);
     }, [setIsResizing]);
 
-    const handleMouseMove = useCallback((e: MouseEvent) => {
+    const handleMouseMove = useCallback((e: MouseEvent | TouchEvent) => {
         if (!resizingType.current || !containerRef.current) return;
+        if ('touches' in e && e.cancelable) e.preventDefault(); // Prevent scrolling while resizing
 
         requestAnimationFrame(() => {
             if (!resizingType.current || !containerRef.current) return;
             const rect = containerRef.current.getBoundingClientRect();
+            const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+            const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
 
             if (resizingType.current === 'v') {
-                let newFirstColWidth = e.clientX - rect.left - dragOffset.current;
+                let newFirstColWidth = clientX - rect.left - dragOffset.current;
                 newFirstColWidth = Math.max(MIN_PANEL_SIZE, Math.min(newFirstColWidth, rect.width - MIN_PANEL_SIZE - RESIZER_SIZE));
                 setLayout(prev => ({ ...prev, cols: `${newFirstColWidth}px ${RESIZER_SIZE}px 1fr` }));
             } else { // 'h'
-                let newFirstRowHeight = e.clientY - rect.top - dragOffset.current;
+                let newFirstRowHeight = clientY - rect.top - dragOffset.current;
                 newFirstRowHeight = Math.max(MIN_PANEL_SIZE, Math.min(newFirstRowHeight, rect.height - MIN_PANEL_SIZE - RESIZER_SIZE));
                 setLayout(prev => ({ ...prev, rows: `${newFirstRowHeight}px ${RESIZER_SIZE}px 1fr` }));
             }
@@ -67,17 +71,23 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children }) =>
     useEffect(() => {
         if (!isResizing) return;
 
-        const handleMove = (e: MouseEvent) => handleMouseMove(e);
+        const handleMove = (e: MouseEvent | TouchEvent) => handleMouseMove(e);
         const handleUp = () => handleMouseUp();
 
         window.addEventListener('mousemove', handleMove);
         window.addEventListener('mouseup', handleUp);
         window.addEventListener('mouseleave', handleUp);
+        window.addEventListener('touchmove', handleMove, { passive: false });
+        window.addEventListener('touchend', handleUp);
+        window.addEventListener('touchcancel', handleUp);
 
         return () => {
             window.removeEventListener('mousemove', handleMove);
             window.removeEventListener('mouseup', handleUp);
             window.removeEventListener('mouseleave', handleUp);
+            window.removeEventListener('touchmove', handleMove);
+            window.removeEventListener('touchend', handleUp);
+            window.removeEventListener('touchcancel', handleUp);
         };
     }, [isResizing, handleMouseMove, handleMouseUp]);
 
@@ -90,6 +100,7 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children }) =>
             <div style={{ gridArea: '1 / 1 / 2 / 2' }} className="min-h-0 min-w-0">{children[0]}</div>
             <div 
                 onMouseDown={(e) => handleMouseDown(e, 'v')} 
+                onTouchStart={(e) => handleMouseDown(e, 'v')}
                 onDoubleClick={() => setLayout(prev => ({ ...prev, cols: `1fr ${RESIZER_SIZE}px 2fr` }))} 
                 style={{ gridArea: '1 / 2 / 4 / 3' }} 
                 className={`cursor-col-resize flex items-center justify-center group`}
@@ -100,6 +111,7 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children }) =>
             <div style={{ gridArea: '1 / 3 / 2 / 4' }} className="min-h-0 min-w-0">{children[1]}</div>
             <div 
                 onMouseDown={(e) => handleMouseDown(e, 'h')} 
+                onTouchStart={(e) => handleMouseDown(e, 'h')}
                 onDoubleClick={() => setLayout(prev => ({ ...prev, rows: `3fr ${RESIZER_SIZE}px 2fr` }))} 
                 style={{ gridArea: '2 / 1 / 3 / 4' }} 
                 className={`cursor-row-resize flex items-center justify-center group`}

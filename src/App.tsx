@@ -510,14 +510,14 @@ const App: React.FC = () => {
   return (
     <AppProvider value={contextValue}>
     <div 
-      className={`main-container flex flex-col h-[100dvh] w-full font-sans bg-bg text-text transition-colors duration-300 overflow-hidden ${isActivelyResizing ? 'select-none cursor-col-resize' : ''}`}
+      className={`main-container flex flex-col h-dvh w-full font-sans bg-bg text-text transition-colors duration-300 overflow-hidden ${isActivelyResizing ? 'select-none cursor-col-resize' : ''}`}
       onDragEnter={handleGlobalDragEnter}
       onDragOver={handleGlobalDragOver}
       onDragLeave={handleGlobalDragLeave}
       onDrop={handleGlobalDrop}
     >
       {isGlobalDragging && !isHome && (
-        <div className="absolute inset-0 z-[100] bg-bg/80 backdrop-blur-sm flex flex-col items-center justify-center text-accent pointer-events-none transition-all duration-300">
+        <div className="absolute inset-0 z-100 bg-bg/80 backdrop-blur-sm flex flex-col items-center justify-center text-accent pointer-events-none transition-all duration-300">
           <div className="border-4 border-dashed border-accent rounded-3xl p-12 flex flex-col items-center justify-center bg-panel-bg shadow-2xl animate-fade-in-up">
              <Icon name="FolderOpen" size={64} className="mb-6 animate-bounce" />
              <h3 className="text-3xl font-black tracking-tight">{t('openNativeKey')}</h3>
@@ -773,6 +773,7 @@ const App: React.FC = () => {
           >
             <div
             onMouseDown={handleAiPanelMouseDown}
+            onTouchStart={handleAiPanelMouseDown}
             onDoubleClick={() => setAiPanelWidth && setAiPanelWidth(450)}
             className={`absolute -left-4 top-4 bottom-4 z-20 w-4 cursor-col-resize items-center justify-center group ${!isAiPanelVisible ? 'hidden' : 'hidden md:flex'}`}
             title={`${t('resizePanel')} ${t('doubleClickToReset' as any)}`}
@@ -799,7 +800,7 @@ const App: React.FC = () => {
         </>
         )}
       </div>
-      <div className="fixed md:bottom-6 bottom-24 left-0 right-0 z-[100] flex flex-col items-center gap-2 pointer-events-none px-4 md:px-0">
+      <div className="fixed md:bottom-6 bottom-24 left-0 right-0 z-100 flex flex-col items-center gap-2 pointer-events-none px-4 md:px-0">
         {toasts.map(toast => (
           <Toast key={toast.id} message={toast.message} onClose={() => handleCloseToast(toast.id)} />
         ))}

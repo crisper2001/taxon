@@ -15,7 +15,6 @@ export const Header: React.FC<HeaderProps> = ({ isSidebarOpen, setSidebarOpen, l
   const appContext = useAppContext();
   const { keyData, isLoading, error, statusText, isAiPanelVisible, setAiPanelVisible, openKeyInfo, t, appMode, triggerImport, openPreferences } = appContext;
   const hideAi = (appContext as any).hideAi;
-  const openAppInfo = (appContext as any).openAppInfo;
   const closeKey = (appContext as any).closeKey;
   const handleLogoClick = onLogoClick || closeKey;
 
@@ -43,10 +42,6 @@ export const Header: React.FC<HeaderProps> = ({ isSidebarOpen, setSidebarOpen, l
 
               <button onClick={openPreferences} title={t('preferences')} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0">
                 <Icon name="Settings2" size={24} className="opacity-80" />
-              </button>
-
-              <button onClick={openAppInfo} title={t('aboutTaxon' as any)} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0">
-                <Icon name="Info" size={24} className="opacity-80" />
               </button>
             </>
           )}

@@ -29,7 +29,7 @@ interface BuilderScoringTabProps {
   t: (key: string) => string;
 }
 
-export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = ({ draftKey, updateDraftKey, t }) => {
+export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({ draftKey, updateDraftKey, t }) => {
   const [editingNumeric, setEditingNumeric] = useState<{entityId: string, featureId: string, min: string, max: string} | null>(null);
   const lastEditingNumeric = useRef<{entityId: string, featureId: string, min: string, max: string} | null>(null);
   if (editingNumeric) lastEditingNumeric.current = editingNumeric;
@@ -184,11 +184,11 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = ({ draftKey, 
         >
           <thead>
             <tr>
-              <th className="sticky top-0 left-0 z-40 bg-header-bg p-4 border-b border-border border-r-2 border-r-border w-[250px] min-w-[250px] max-w-[250px] align-bottom">
+              <th className="sticky top-0 left-0 z-40 bg-header-bg p-4 border-b border-border border-r-2 border-r-border w-[140px] min-w-[140px] max-w-[140px] md:w-[250px] md:min-w-[250px] md:max-w-[250px] align-bottom">
               </th>
               {flattenedEntities.map(({ item: e, depth }) => (
                 <th key={e.id} className="sticky top-0 z-20 bg-header-bg py-2 px-3 border-b border-r border-border w-[1%] whitespace-nowrap align-bottom text-center">
-                  <div className="inline-flex items-center justify-start font-bold text-accent h-40 relative" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', paddingTop: `${depth * 1.5}rem` }}>
+                  <div className="inline-flex items-center justify-start font-bold text-accent h-40 relative pt-[calc(var(--depth)*0.75rem)] md:pt-[calc(var(--depth)*1.5rem)]" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', '--depth': depth } as React.CSSProperties}>
                     <span className="truncate max-h-[140px] whitespace-nowrap" title={e.name}>{e.name || t('kbUnnamedEntity')}</span>
                   </div>
                 </th>
@@ -200,8 +200,8 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = ({ draftKey, 
               return (
               <React.Fragment key={f.id}>
                 <tr className="transition-colors group/row bg-panel-bg" data-no-highlight={f.type === 'state'}>
-                  <td className="sticky left-0 z-30 p-4 border-b border-border border-r-2 border-r-border transition-colors align-middle w-[250px] min-w-[250px] max-w-[250px] bg-header-bg">
-                    <div className="flex items-center gap-2 font-bold text-accent relative w-full" style={{ paddingLeft: `${depth * 1.5}rem` }}>
+                  <td className="sticky left-0 z-30 p-2 md:p-4 border-b border-border border-r-2 border-r-border transition-colors align-middle w-[140px] min-w-[140px] max-w-[140px] md:w-[250px] md:min-w-[250px] md:max-w-[250px] bg-header-bg">
+                    <div className="flex items-center gap-2 font-bold text-accent relative w-full text-sm md:text-base pl-[calc(var(--depth)*0.75rem)] md:pl-[calc(var(--depth)*1.5rem)]" style={{ '--depth': depth } as React.CSSProperties}>
                        <span className="truncate" title={f.name}>{f.name || t('kbUnnamedFeature')}</span>
                     </div>
                   </td>
@@ -231,8 +231,8 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = ({ draftKey, 
                 </tr>
                 {f.type === 'state' && f.states.map(s => (
                   <tr key={s.id} className="transition-colors group/row bg-panel-bg">
-                    <td className="sticky left-0 z-30 py-3 px-4 border-b border-border border-r-2 border-r-border transition-colors align-middle w-[250px] min-w-[250px] max-w-[250px] bg-header-bg text-text font-medium">
-                      <div className="flex items-center gap-2 relative w-full" style={{ paddingLeft: `${(depth + 1) * 1.5}rem` }}>
+                    <td className="sticky left-0 z-30 py-2 md:py-3 px-2 md:px-4 border-b border-border border-r-2 border-r-border transition-colors align-middle w-[140px] min-w-[140px] max-w-[140px] md:w-[250px] md:min-w-[250px] md:max-w-[250px] bg-header-bg text-text font-medium">
+                      <div className="flex items-center gap-2 relative w-full text-xs md:text-sm pl-[calc(var(--depth)*0.75rem)] md:pl-[calc(var(--depth)*1.5rem)]" style={{ '--depth': depth + 1 } as React.CSSProperties}>
                          <span className="truncate opacity-90" title={s.name}>{s.name}</span>
                       </div>
                     </td>
@@ -290,7 +290,7 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = ({ draftKey, 
                <div className="text-base text-accent mb-2">
                  <span className="font-bold">{feature?.name}</span> &rarr; <span className="font-bold">{entity?.name}</span>
                </div>
-               <div className="flex gap-4">
+               <div className="flex flex-col sm:flex-row gap-4">
                  <label className="flex flex-col gap-1.5 flex-1">
                    <span className="text-sm font-semibold opacity-80">{t('kbMin')}</span>
                    <div className="relative flex items-center">
@@ -336,4 +336,4 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = ({ draftKey, 
       </Modal>
     </div>
   );
-};
+});

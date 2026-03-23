@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { Icon } from '../Icon';
 import { ConfirmModal, Modal } from '../modals';
@@ -27,6 +27,13 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
   const [activeTab, setActiveTab] = useState<'features' | 'entities' | 'scoring'>('features');
   const [showMetadataModal, setShowMetadataModal] = useState(false);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const getInitialDraft = () => {
     if (initialData) return initialData;
@@ -41,7 +48,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
   const [historyIndex, setHistoryIndex] = useState(0);
   const [isSaved, setIsSaved] = useState(false);
   const isFirstRender = useRef(true);
-  const [showNewKeyModal, setShowNewKeyModal] = useState(false);
+  const [keyPromptMode, setKeyPromptMode] = useState<'new' | 'open' | null>(null);
 
   useEffect(() => {
     if (initialData) {
@@ -68,16 +75,17 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
     return () => clearTimeout(timer);
   }, [draftKey, onChange]);
 
-  const updateDraftKey = (updater: (prev: DraftKeyData) => DraftKeyData) => {
-    const nextState = updater(draftKey);
-    setHistory(prev => {
-      const newHistory = prev.slice(0, historyIndex + 1);
+  const updateDraftKey = useCallback((updater: (prev: DraftKeyData) => DraftKeyData) => {
+    setHistory(prevHistory => {
+      const currentDraft = prevHistory[historyIndex] || { title: '', authors: '', description: '', features: [], entities: [] };
+      const nextState = updater(currentDraft);
+      const newHistory = prevHistory.slice(0, historyIndex + 1);
       newHistory.push(nextState);
       if (newHistory.length > 50) newHistory.shift();
       return newHistory;
     });
     setHistoryIndex(prev => Math.min(prev + 1, 49));
-  };
+  }, [historyIndex]);
 
   const getDefaultStateValues = (t: any) => [
     { id: '1', name: t('kbScoreCommon') || 'Common' },
@@ -151,7 +159,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
   const [collapsedFeatures, setCollapsedFeatures] = useState<Set<string>>(new Set());
   const [collapsedEntities, setCollapsedEntities] = useState<Set<string>>(new Set());
 
-  const tabIndex = activeTab === 'features' ? 0 : activeTab === 'entities' ? 1 : 2;
+  const offsetIndex = isMobile ? (activeTab === 'features' ? 0 : activeTab === 'entities' ? 1 : 2) : (activeTab === 'scoring' ? 1 : 0);
 
   const { swipeOffset, isSwiping, handleTouchStart, handleTouchMove, handleTouchEnd } = useSwipe(
     () => {
@@ -232,26 +240,34 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
     setActiveTab('features');
     setSelectedFeatureId(null);
     setSelectedEntityId(null);
-    setShowNewKeyModal(false);
   };
 
-  const toggleFeatureCollapse = (id: string) => {
+  const handleConfirmPrompt = () => {
+    if (keyPromptMode === 'new') {
+      handleCreateNew();
+    } else if (keyPromptMode === 'open') {
+      triggerOpenNativeKey();
+    }
+    setKeyPromptMode(null);
+  };
+
+  const toggleFeatureCollapse = useCallback((id: string) => {
     setCollapsedFeatures(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  };
+  }, []);
 
-  const toggleEntityCollapse = (id: string) => {
+  const toggleEntityCollapse = useCallback((id: string) => {
     setCollapsedEntities(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  };
+  }, []);
 
   const confirmDelete = () => {
     if (!deleteTarget) return;
@@ -346,8 +362,8 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
 
   const builderLeftActions = (
     <>
-      <ActionButton onClick={() => setShowNewKeyModal(true)} title={t('kbNewKey' as any)} icon="FilePlus" />
-      <ActionButton onClick={triggerOpenNativeKey} title={t('openNativeKey')} icon="FolderOpen" />
+      <ActionButton onClick={() => setKeyPromptMode('new')} title={t('kbNewKey' as any)} icon="FilePlus" />
+      <ActionButton onClick={() => setKeyPromptMode('open')} title={t('openNativeKey')} icon="FolderOpen" />
       <ActionButton onClick={exportJson} title={t('exportJson')} icon="Download" />
       <ActionButton onClick={() => onTestKey?.(draftKey)} title={t('kbTestKey' as any)} icon="Play" iconClass="text-accent" />
       <ActionButton onClick={() => setShowMetadataModal(true)} title={t('kbMetadata')} icon="Info" />
@@ -374,6 +390,10 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
           <Icon name="Target" size={18} /> {t('kbScoring')}
         </button>
       </div>
+      <div className="flex md:hidden items-center gap-1">
+        <ActionButton onClick={undo} disabled={historyIndex <= 0} title={t('kbUndo')} icon="Undo" />
+        <ActionButton onClick={redo} disabled={historyIndex >= history.length - 1} title={t('kbRedo')} icon="Redo" />
+      </div>
       <span className={`absolute left-full ml-3 text-xs font-bold text-green-500 dark:text-green-400 flex items-center gap-1 transition-opacity duration-500 whitespace-nowrap pointer-events-none ${isSaved ? 'opacity-100' : 'opacity-0'}`}>
         <Icon name="Check" size={14} /> <span className="hidden md:inline">{t('saved' as any)}</span>
       </span>
@@ -381,9 +401,10 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
   );
 
   const sidebarActions: SidebarAction[] = [
-    { icon: 'FilePlus', label: t('kbNewKey' as any), onClick: () => setShowNewKeyModal(true) },
-    { icon: 'FolderOpen', label: t('openNativeKey'), onClick: triggerOpenNativeKey },
+    { icon: 'FilePlus', label: t('kbNewKey' as any), onClick: () => setKeyPromptMode('new') },
+    { icon: 'FolderOpen', label: t('openNativeKey'), onClick: () => setKeyPromptMode('open') },
     { icon: 'Download', label: t('exportJson'), onClick: exportJson },
+    { icon: 'Info', label: t('kbMetadata'), onClick: () => setShowMetadataModal(true) },
     { icon: 'Play', label: t('kbTestKey' as any), onClick: () => onTestKey?.(draftKey), iconClass: 'text-accent' }
   ];
 
@@ -410,10 +431,11 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          <div className={`builder-mobile-view ${isSwiping ? 'is-swiping' : ''}`} style={{ '--mobile-tab-offset': `-${tabIndex * 100}%`, '--swipe-offset': `${swipeOffset}px` } as React.CSSProperties}>
+        <div className={`builder-mobile-view ${isSwiping ? 'is-swiping' : ''}`} style={{ '--mobile-tab-offset': `-${offsetIndex * 100}%`, '--swipe-offset': `${swipeOffset}px` } as React.CSSProperties}>
 
-            {/* Desktop Combined Features & Entities */}
-            <div className={`max-md:!hidden builder-panel ${['features', 'entities'].includes(activeTab) ? 'active' : ''}`}>
+          {!isMobile ? (
+            <div className={`builder-panel ${['features', 'entities'].includes(activeTab) ? 'active' : ''}`}>
+              {/* Desktop Combined Features & Entities */}
               <div className="w-full h-full flex flex-row gap-4">
                 <div className="w-1/2 h-full flex flex-col bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg overflow-hidden">
                 <BuilderFeaturesTab
@@ -439,36 +461,39 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
                 </div>
               </div>
             </div>
-
-            {/* Mobile Separated Features */}
-            <div className={`md:!hidden builder-panel ${activeTab === 'features' ? 'active' : ''}`}>
-              <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg">
-                <BuilderFeaturesTab
-                  draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
-                  selectedFeatureId={selectedFeatureId} setSelectedFeatureId={setSelectedFeatureId}
-                  collapsedFeatures={collapsedFeatures} toggleFeatureCollapse={toggleFeatureCollapse}
-                  draggedItem={draggedItem} setDraggedItem={setDraggedItem}
-                  dragOverId={dragOverId} setDragOverId={setDragOverId}
-                  draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
-                  setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
-                />
+          ) : (
+            <>
+              {/* Mobile Separated Features */}
+              <div className={`builder-panel ${activeTab === 'features' ? 'active' : ''}`}>
+                <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg">
+                  <BuilderFeaturesTab
+                    draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
+                    selectedFeatureId={selectedFeatureId} setSelectedFeatureId={setSelectedFeatureId}
+                    collapsedFeatures={collapsedFeatures} toggleFeatureCollapse={toggleFeatureCollapse}
+                    draggedItem={draggedItem} setDraggedItem={setDraggedItem}
+                    dragOverId={dragOverId} setDragOverId={setDragOverId}
+                    draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
+                    setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* Mobile Separated Entities */}
-            <div className={`md:!hidden builder-panel ${activeTab === 'entities' ? 'active' : ''}`}>
-              <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg">
-                <BuilderEntitiesTab
-                  draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
-                  selectedEntityId={selectedEntityId} setSelectedEntityId={setSelectedEntityId}
-                  collapsedEntities={collapsedEntities} toggleEntityCollapse={toggleEntityCollapse}
-                  draggedItem={draggedItem} setDraggedItem={setDraggedItem}
-                  dragOverId={dragOverId} setDragOverId={setDragOverId}
-                  draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
-                  setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
-                />
+              {/* Mobile Separated Entities */}
+              <div className={`builder-panel ${activeTab === 'entities' ? 'active' : ''}`}>
+                <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg">
+                  <BuilderEntitiesTab
+                    draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
+                    selectedEntityId={selectedEntityId} setSelectedEntityId={setSelectedEntityId}
+                    collapsedEntities={collapsedEntities} toggleEntityCollapse={toggleEntityCollapse}
+                    draggedItem={draggedItem} setDraggedItem={setDraggedItem}
+                    dragOverId={dragOverId} setDragOverId={setDragOverId}
+                    draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
+                    setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
+                  />
+                </div>
               </div>
-            </div>
+            </>
+          )}
 
             <div className={`builder-panel ${activeTab === 'scoring' ? 'active' : ''} min-w-0`}>
               <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg min-w-0">
@@ -482,10 +507,6 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
 
       {/* Mobile Bottom Bar */}
       <div className="flex md:hidden items-center justify-around bg-panel-bg/85 backdrop-blur-xl border border-white/20 dark:border-white/10 p-2 shrink-0 z-20 shadow-lg rounded-3xl m-2" style={{ marginBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}>
-        <button onClick={() => setShowMetadataModal(true)} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 relative text-gray-500 hover:text-accent hover:bg-hover-bg/50`}>
-          <Icon name="Info" size={22} />
-          <span className="text-[10px] font-bold text-center leading-none tracking-tight">{t('kbMetadata')}</span>
-        </button>
         <button onClick={() => setActiveTab('features')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 relative ${activeTab === 'features' ? 'text-accent bg-accent/10 shadow-inner scale-105' : 'text-gray-500 hover:text-accent hover:bg-hover-bg/50'}`}>
           <Icon name="ListTree" size={22} className={activeTab === 'features' ? 'drop-shadow-sm' : ''} />
           <span className="text-[10px] font-bold text-center leading-none tracking-tight">{t('kbFeatures')}</span>
@@ -504,7 +525,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
 
       {/* Media Edit Modal */}
       {editingMedia && activeEditingMedia && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-60 flex items-center justify-center p-4">
           <div className="bg-panel-bg/95 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-[0_16px_40px_rgba(0,0,0,0.2)] w-full max-w-4xl flex flex-col md:flex-row overflow-hidden max-h-[90vh] animate-fade-in-up">
             <div className="w-full md:w-1/2 bg-black/5 dark:bg-white/5 flex items-center justify-center p-6 relative">
               <img src={activeEditingMedia.url} alt={t('preview')} className="max-w-full max-h-full object-contain drop-shadow-md rounded-lg" />
@@ -557,16 +578,16 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
         isDestructive={true}
       />
 
-      <Modal isOpen={showNewKeyModal} onClose={() => setShowNewKeyModal(false)} title={t('kbNewKey' as any)}>
+      <Modal isOpen={keyPromptMode !== null} onClose={() => setKeyPromptMode(null)} title={keyPromptMode === 'new' ? t('kbNewKey' as any) : t('openNativeKey')}>
         <div className="p-7 text-text">
           <div className="flex items-start gap-3 text-yellow-500 bg-yellow-500/10 p-4 rounded-xl border border-yellow-500/20 mb-8">
             <Icon name="TriangleAlert" size={24} className="shrink-0 mt-0.5" />
-            <p className="text-sm font-medium leading-relaxed">{t('kbNewKeyPrompt' as any)}</p>
+            <p className="text-sm font-medium leading-relaxed">{keyPromptMode === 'new' ? t('kbNewKeyPrompt' as any) : t('kbOpenKeyPrompt' as any)}</p>
           </div>
           <div className="flex flex-col-reverse md:flex-row justify-end gap-3 mt-2">
-            <button onClick={() => setShowNewKeyModal(false)} className="w-full md:w-auto px-5 py-2.5 hover:bg-hover-bg/80 rounded-xl font-bold text-gray-500 transition-all duration-300 cursor-pointer">{t('cancel')}</button>
-            <button onClick={() => { exportJson(); handleCreateNew(); }} className="w-full md:w-auto justify-center px-5 py-2.5 bg-panel-bg border border-white/20 dark:border-white/10 rounded-xl hover:bg-hover-bg/80 hover:shadow-md transition-all duration-300 shadow-sm font-bold flex items-center gap-2 cursor-pointer"><Icon name="FileJson" size={16} /> {t('exportJson')}</button>
-            <button onClick={handleCreateNew} className="w-full md:w-auto justify-center px-5 py-2.5 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-xl hover:bg-red-600 transition-all duration-300 shadow-md hover:shadow-lg shadow-red-500/30 font-bold cursor-pointer">{t('kbDiscardAndCreate' as any)}</button>
+            <button onClick={() => setKeyPromptMode(null)} className="w-full md:w-auto px-5 py-2.5 hover:bg-hover-bg/80 rounded-xl font-bold text-gray-500 transition-all duration-300 cursor-pointer">{t('cancel')}</button>
+            <button onClick={() => { exportJson(); handleConfirmPrompt(); }} className="w-full md:w-auto justify-center px-5 py-2.5 bg-panel-bg border border-white/20 dark:border-white/10 rounded-xl hover:bg-hover-bg/80 hover:shadow-md transition-all duration-300 shadow-sm font-bold flex items-center gap-2 cursor-pointer"><Icon name="FileJson" size={16} /> {t('exportJson')}</button>
+            <button onClick={handleConfirmPrompt} className="w-full md:w-auto justify-center px-5 py-2.5 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-xl hover:bg-red-600 transition-all duration-300 shadow-md hover:shadow-lg shadow-red-500/30 font-bold cursor-pointer">{keyPromptMode === 'new' ? t('kbDiscardAndCreate' as any) : t('kbDiscardAndOpen' as any)}</button>
           </div>
         </div>
       </Modal>

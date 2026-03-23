@@ -34,7 +34,7 @@ interface BuilderFeaturesTabProps {
   layoutMode?: 'list' | 'edit' | 'both';
 }
 
-export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
+export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(({
   draftKey, updateDraftKey, t, selectedFeatureId, setSelectedFeatureId, collapsedFeatures, toggleFeatureCollapse,
   draggedItem, setDraggedItem, dragOverId, setDragOverId, draggedMedia, setDraggedMedia, setEditingMedia, setDeleteTarget,
   layoutMode = 'both'
@@ -378,8 +378,14 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
               }
             }}
             onTouchStart={(e) => featureTreeDnd.onTouchStart(e, f.id)}
-            onTouchMove={(e) => featureTreeDnd.onTouchMove(e, f.id)}
-            onTouchEnd={(e) => featureTreeDnd.onTouchEnd(e, f.id)}
+            onTouchMove={(e) => {
+              if (draggedItem) e.stopPropagation();
+              featureTreeDnd.onTouchMove(e, f.id);
+            }}
+            onTouchEnd={(e) => {
+              if (draggedItem) e.stopPropagation();
+              featureTreeDnd.onTouchEnd(e, f.id);
+            }}
             onTouchCancel={featureTreeDnd.onTouchCancel}
             onClick={() => setSelectedFeatureId(f.id)}
             className={`rounded-xl transition-all relative group/item flex items-center gap-2 py-2 pr-2 border cursor-pointer ${selectedFeatureId === f.id ? 'bg-accent/95 backdrop-blur-md text-white shadow-md shadow-accent/30 border-white/20 z-10' : 'hover:bg-hover-bg/80 hover:shadow-sm text-text border-transparent hover:border-white/10 dark:hover:border-white/5'} ${dragOverId === f.id ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${draggedItem?.id === f.id ? 'opacity-50' : ''}`}
@@ -388,17 +394,17 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
             {hasChildren && (
               <button
                 onClick={(e) => { e.stopPropagation(); toggleFeatureCollapse(f.id); }}
-                className={`w-5 h-5 flex items-center justify-center rounded-md cursor-pointer absolute z-20 transition-colors ${selectedFeatureId === f.id ? 'text-white/80 hover:text-white hover:bg-white/20' : 'text-gray-500 hover:bg-black/10 dark:hover:bg-white/10'}`}
-                style={{ left: `calc(${1.5 + depth * 1.5}rem - 1.25rem)` }}
+                className={`w-7 h-7 flex items-center justify-center rounded-md cursor-pointer absolute z-20 transition-colors ${selectedFeatureId === f.id ? 'text-white/80 hover:text-white hover:bg-white/20' : 'text-gray-500 hover:bg-black/10 dark:hover:bg-white/10'}`}
+                style={{ left: `calc(${depth * 1.5}rem)` }}
               >
-                <Icon name="ChevronDown" size={14} className={`transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`} />
+                <Icon name="ChevronDown" size={16} className={`transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`} />
               </button>
             )}
 
             <Icon name={iconName} size={14} className={`shrink-0 ${selectedFeatureId === f.id ? 'opacity-100' : 'opacity-60'}`} />
             <span className="truncate flex-1 text-sm font-medium">{f.name || t('kbUnnamedFeature')}</span>
             
-            <div className="opacity-0 group-hover/item:opacity-100 flex items-center gap-0.5 transition-opacity z-20 shrink-0">
+            <div className="max-md:hidden opacity-0 group-hover/item:opacity-100 flex items-center gap-0.5 transition-opacity z-20 shrink-0">
               {f.type === 'state' && (
                 <button onClick={(e) => { e.stopPropagation(); addState(f.id); if (collapsedFeatures.has(f.id)) toggleFeatureCollapse(f.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedFeatureId === f.id ? 'text-white/70 hover:text-white hover:bg-white/20' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbAddState')}>
                   <Icon name="Plus" size={14} />
@@ -467,7 +473,6 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                     setDraggedItem(null);
                   }}
                   onTouchStart={(e) => {
-                    e.stopPropagation();
                     lastTouchPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
                     touchTimeout.current = setTimeout(() => {
                       setDraggedItem({ type: 'state', id: s.id, parentId: f.id });
@@ -475,6 +480,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                     }, 300);
                   }}
                   onTouchMove={(e) => {
+                    if (draggedItem) e.stopPropagation();
                     const touch = e.touches[0];
                     lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
                     if (ghostRef.current) {
@@ -512,6 +518,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                     }
                   }}
                   onTouchEnd={(e) => {
+                    if (draggedItem) e.stopPropagation();
                     if (touchTimeout.current) clearTimeout(touchTimeout.current);
                     if (draggedItem && draggedItem.type === 'state') {
                       if (e.cancelable) e.preventDefault();
@@ -553,7 +560,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                   <span className={`w-1 h-1 rounded-full shrink-0 ${selectedFeatureId === s.id ? 'bg-white' : 'bg-text opacity-50'}`}></span>
                   <span className="truncate flex-1 text-sm font-medium">{s.name || t('kbStateName' as any) || 'Unnamed State'}</span>
                   
-                  <div className="opacity-0 group-hover/state:opacity-100 flex items-center gap-0.5 transition-opacity z-20 shrink-0">
+                  <div className="max-md:hidden opacity-0 group-hover/state:opacity-100 flex items-center gap-0.5 transition-opacity z-20 shrink-0">
                      <button onClick={(e) => { e.stopPropagation(); duplicateState(f.id, s.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedFeatureId === s.id ? 'text-white/70 hover:text-white hover:bg-white/20' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbDuplicate')}>
                         <Icon name="Copy" size={14} />
                      </button>
@@ -574,7 +581,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
   return (
     <div className={`flex flex-col ${layoutMode === 'both' ? 'md:flex-row' : ''} w-full h-full animate-fade-in`}>
       {layoutMode !== 'edit' && (
-        <div className={`w-full ${layoutMode === 'both' ? 'h-[40%] md:h-full md:w-2/5 md:min-w-[220px] border-b md:border-b-0 md:border-r shadow-[4px_0_24px_-4px_rgba(0,0,0,0.1)]' : 'h-full flex-1'} border-white/10 dark:border-white/5 flex flex-col bg-panel-bg/50 backdrop-blur-sm z-10 shrink-0`}>
+        <div className={`w-full ${layoutMode === 'both' ? 'h-full md:w-2/5 md:min-w-[220px] border-b md:border-b-0 md:border-r shadow-[4px_0_24px_-4px_rgba(0,0,0,0.1)]' : 'h-full flex-1'} border-white/10 dark:border-white/5 flex flex-col bg-panel-bg/50 backdrop-blur-sm z-10 shrink-0`}>
           <div className="p-4 border-b border-white/10 dark:border-white/5 flex justify-between items-center bg-header-bg/85 backdrop-blur-md shadow-sm rounded-tl-3xl">
             <div className="flex items-center gap-2 font-bold text-text">
               <Icon name="ListTree" size={18} className="opacity-70" />
@@ -603,12 +610,20 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
             onDrop={featureTreeDnd.onRootDrop}
           >
             {renderFeatureList()}
-            {draftKey.features.length === 0 && <div className="p-6 text-center text-sm opacity-50 border-2 border-dashed border-border rounded-xl mt-2">{t('kbFeatures')} ({t('kbEmpty' as any)})</div>}
           </div>
         </div>
       )}
       {layoutMode !== 'list' && (
-        <div className="flex-1 p-8 overflow-y-auto bg-bg/50 relative">
+        <div className={`flex-1 flex flex-col min-h-0 bg-bg/50 relative max-md:fixed max-md:inset-0 max-md:z-50 max-md:bg-bg max-md:transition-transform max-md:duration-300 ${!selectedFeatureId ? 'max-md:translate-y-full max-md:opacity-0 max-md:pointer-events-none' : 'max-md:translate-y-0 max-md:opacity-100'}`}>
+          <div className="md:hidden flex justify-between items-center p-4 border-b border-black/5 dark:border-white/5 bg-header-bg/95 backdrop-blur-md shrink-0 z-10">
+             <h3 className="text-lg font-bold text-accent truncate pr-4">
+               {selectedState ? (selectedState.name || t('kbStateName' as any) || 'Unnamed State') : (selectedFeature?.name || t('kbUnnamedFeature'))}
+             </h3>
+             <button onClick={() => setSelectedFeatureId(null)} className="p-2 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer shrink-0 transition-colors">
+               <Icon name="X" size={20} />
+             </button>
+          </div>
+          <div className="flex-1 p-5 md:p-8 overflow-y-auto relative min-h-0">
           {selectedFeature ? (
             <div className="max-w-xl flex flex-col gap-6 animate-fade-in-up">
               <div className="flex justify-between items-start">
@@ -679,6 +694,29 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                 </div>
               )}
 
+              {selectedFeature.type === 'state' && (
+                <div className="flex flex-col gap-3 mt-2 border border-white/20 dark:border-white/10 p-5 rounded-3xl bg-panel-bg/50 backdrop-blur-sm shadow-md">
+                  <div className="flex justify-between items-center border-b border-black/5 dark:border-white/5 pb-3 mb-1">
+                    <span className="text-lg font-bold text-text">{t('kbStates')}</span>
+                    <button onClick={() => { addState(selectedFeature.id); if (collapsedFeatures.has(selectedFeature.id)) toggleFeatureCollapse(selectedFeature.id); }} className="text-accent hover:bg-accent/10 px-3 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-1 cursor-pointer border border-transparent hover:border-accent/30">
+                      <Icon name="Plus" size={14} /> {t('kbAdd' as any)}
+                    </button>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {selectedFeature.states.length === 0 ? (
+                      <span className="text-sm opacity-50 italic">{t('kbNoStatesDefined' as any)}</span>
+                    ) : (
+                      selectedFeature.states.map(s => (
+                        <div key={s.id} onClick={() => setSelectedFeatureId(s.id)} className="flex items-center justify-between p-3 rounded-xl bg-bg border border-border hover:border-accent/50 cursor-pointer transition-colors group/editstate shadow-sm hover:shadow-md">
+                          <span className="text-sm font-medium truncate flex-1">{s.name || t('kbStateName' as any) || 'Unnamed State'}</span>
+                          <Icon name="ChevronRight" size={16} className="opacity-40 group-hover/editstate:opacity-100 group-hover/editstate:text-accent transition-all" />
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="flex flex-col gap-1.5 mt-2">
                 <span className="text-sm font-semibold opacity-80">{t('kbImages' as any) || 'Images'}</span>
                 <div 
@@ -732,7 +770,6 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                         setDraggedMedia(null);
                       }}
                       onTouchStart={(e) => {
-                        e.stopPropagation();
                         lastTouchPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
                         touchTimeout.current = setTimeout(() => {
                           setDraggedMedia({ type: 'feature', itemId: selectedFeature.id, index: i });
@@ -740,6 +777,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                         }, 300);
                       }}
                       onTouchMove={(e) => {
+                        if (draggedMedia) e.stopPropagation();
                         const touch = e.touches[0];
                         lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
                         if (ghostRef.current) {
@@ -760,6 +798,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                         }
                       }}
                       onTouchEnd={(e) => {
+                        if (draggedMedia) e.stopPropagation();
                         if (touchTimeout.current) clearTimeout(touchTimeout.current);
                         if (draggedMedia) {
                           if (e.cancelable) e.preventDefault();
@@ -876,7 +915,6 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                         setDraggedMedia(null);
                       }}
                       onTouchStart={(e) => {
-                        e.stopPropagation();
                         lastTouchPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
                         touchTimeout.current = setTimeout(() => {
                           setDraggedMedia({ type: 'state', itemId: selectedStateParent.id, stateId: selectedState.id, index: i });
@@ -884,6 +922,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                         }, 300);
                       }}
                       onTouchMove={(e) => {
+                        if (draggedMedia) e.stopPropagation();
                         const touch = e.touches[0];
                         lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
                         if (ghostRef.current) {
@@ -904,6 +943,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                         }
                       }}
                       onTouchEnd={(e) => {
+                        if (draggedMedia) e.stopPropagation();
                         if (touchTimeout.current) clearTimeout(touchTimeout.current);
                         if (draggedMedia) {
                           if (e.cancelable) e.preventDefault();
@@ -1004,7 +1044,6 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                         }}
                         onDragEnd={() => { setDraggedValue(null); setDragOverId(null); }}
                         onTouchStart={(e) => {
-                          e.stopPropagation();
                           if (isDefault) return;
                           lastTouchPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
                           touchTimeout.current = setTimeout(() => {
@@ -1013,6 +1052,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                           }, 300);
                         }}
                         onTouchMove={(e) => {
+                          if (draggedValue) e.stopPropagation();
                           const touch = e.touches[0];
                           lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
                           if (ghostRef.current) {
@@ -1034,6 +1074,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
                           }
                         }}
                         onTouchEnd={(e) => {
+                          if (draggedValue) e.stopPropagation();
                           if (touchTimeout.current) clearTimeout(touchTimeout.current);
                           if (draggedValue) {
                             if (e.cancelable) e.preventDefault();
@@ -1089,11 +1130,12 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
               </div>
             </div>
           ) : (
-            <div className="flex h-full items-center justify-center opacity-40 text-lg font-medium flex-col gap-4">
+            <div className="absolute inset-0 flex items-center justify-center opacity-40 text-lg font-medium flex-col gap-4 pointer-events-none">
               <Icon name="MousePointerClick" size={48} className="opacity-50" />
               {t('kbSelectFeature' as any)}
             </div>
           )}
+          </div>
         </div>
       )}
 
@@ -1101,7 +1143,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
       {(draggedItem || draggedMedia || draggedValue) && (
         <div
           ref={ghostRef}
-          className="fixed pointer-events-none z-[9999] opacity-90 scale-105"
+          className="fixed pointer-events-none z-9999 opacity-90 scale-105"
           style={{
             left: draggedItem?.type === 'feature' ? featureTreeDnd.lastTouchPos.current.x : lastTouchPos.current.x,
             top: draggedItem?.type === 'feature' ? featureTreeDnd.lastTouchPos.current.y : lastTouchPos.current.y,
@@ -1156,4 +1198,4 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = ({
       />
     </div>
   );
-};
+});

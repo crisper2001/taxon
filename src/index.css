@@ -300,6 +300,8 @@ svg.text-red-500:not([class*="bg-"])[fill="currentColor"], svg.text-red-500:not(
 }
 
 /* --- Scoring Matrix Crosshair Highlight --- */
-.matrix-highlight {
-  background-image: linear-gradient(0deg, color-mix(in srgb, var(--color-accent) 12%, transparent), color-mix(in srgb, var(--color-accent) 12%, transparent)) !important;
+@media (min-width: 768px) {
+  .matrix-highlight {
+    background-image: linear-gradient(0deg, color-mix(in srgb, var(--color-accent) 12%, transparent), color-mix(in srgb, var(--color-accent) 12%, transparent)) !important;
+  }
 }

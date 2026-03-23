@@ -33,7 +33,7 @@ interface BuilderEntitiesTabProps {
   layoutMode?: 'list' | 'edit' | 'both';
 }
 
-export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
+export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(({
   draftKey, updateDraftKey, t, selectedEntityId, setSelectedEntityId, collapsedEntities, toggleEntityCollapse,
   draggedItem, setDraggedItem, dragOverId, setDragOverId, draggedMedia, setDraggedMedia, setEditingMedia, setDeleteTarget,
   layoutMode = 'both'
@@ -132,8 +132,14 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
                     onDragLeave={() => treeDnd.onDragLeave(e.id)}
                     onDrop={(ev) => treeDnd.onDrop(ev, e.id)}
                     onTouchStart={(ev) => treeDnd.onTouchStart(ev, e.id)}
-                    onTouchMove={(ev) => treeDnd.onTouchMove(ev, e.id)}
-                    onTouchEnd={(ev) => treeDnd.onTouchEnd(ev, e.id)}
+                    onTouchMove={(ev) => {
+                        if (draggedItem) ev.stopPropagation();
+                        treeDnd.onTouchMove(ev, e.id);
+                    }}
+                    onTouchEnd={(ev) => {
+                        if (draggedItem) ev.stopPropagation();
+                        treeDnd.onTouchEnd(ev, e.id);
+                    }}
                     onTouchCancel={treeDnd.onTouchCancel}
                     onClick={() => setSelectedEntityId(e.id)}
                     className={`rounded-xl transition-all relative group/item flex items-center gap-2 py-2 pr-2 border cursor-pointer ${selectedEntityId === e.id ? 'bg-accent/95 backdrop-blur-md text-white shadow-md shadow-accent/30 border-white/20 z-10' : 'hover:bg-hover-bg/80 hover:shadow-sm text-text border-transparent hover:border-white/10 dark:hover:border-white/5'} ${dragOverId === e.id ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${draggedItem?.id === e.id ? 'opacity-50' : ''}`}
@@ -142,17 +148,17 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
                     {children.length > 0 && (
                         <button 
                             onClick={(ev) => { ev.stopPropagation(); toggleEntityCollapse(e.id); }} 
-                            className={`w-5 h-5 flex items-center justify-center rounded-md cursor-pointer absolute z-20 transition-colors ${selectedEntityId === e.id ? 'text-white/80 hover:text-white hover:bg-white/20' : 'text-gray-500 hover:bg-black/10 dark:hover:bg-white/10'}`}
-                            style={{ left: `calc(${1.5 + depth * 1.5}rem - 1.25rem)` }}
+                            className={`w-7 h-7 flex items-center justify-center rounded-md cursor-pointer absolute z-20 transition-colors ${selectedEntityId === e.id ? 'text-white/80 hover:text-white hover:bg-white/20' : 'text-gray-500 hover:bg-black/10 dark:hover:bg-white/10'}`}
+                            style={{ left: `calc(${depth * 1.5}rem)` }}
                         >
-                            <Icon name="ChevronDown" size={14} className={`transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`} />
+                            <Icon name="ChevronDown" size={16} className={`transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`} />
                         </button>
                     )}
 
                     <Icon name="Leaf" size={14} className={`shrink-0 ${selectedEntityId === e.id ? 'opacity-100' : 'opacity-60'}`} />
                     <span className="truncate flex-1 text-sm font-medium">{e.name || t('kbUnnamedEntity' as any)}</span>
                     
-                    <div className="opacity-0 group-hover/item:opacity-100 flex items-center gap-0.5 transition-opacity z-20 shrink-0">
+                    <div className="max-md:hidden opacity-0 group-hover/item:opacity-100 flex items-center gap-0.5 transition-opacity z-20 shrink-0">
                         <button onClick={(ev) => { ev.stopPropagation(); duplicateEntity(e.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedEntityId === e.id ? 'text-white/70 hover:text-white hover:bg-white/20' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbDuplicate')}>
                             <Icon name="Copy" size={14} />
                         </button>
@@ -175,7 +181,7 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
   return (
     <div className={`flex flex-col ${layoutMode === 'both' ? 'md:flex-row' : ''} w-full h-full animate-fade-in`}>
       {layoutMode !== 'edit' && (
-      <div className={`w-full ${layoutMode === 'both' ? 'h-[40%] md:h-full md:w-2/5 md:min-w-[220px] border-b md:border-b-0 md:border-r shadow-[4px_0_24px_-4px_rgba(0,0,0,0.1)]' : 'h-full flex-1'} border-white/10 dark:border-white/5 flex flex-col bg-panel-bg/50 backdrop-blur-sm z-10 shrink-0`}>
+      <div className={`w-full ${layoutMode === 'both' ? 'h-full md:w-2/5 md:min-w-[220px] border-b md:border-b-0 md:border-r shadow-[4px_0_24px_-4px_rgba(0,0,0,0.1)]' : 'h-full flex-1'} border-white/10 dark:border-white/5 flex flex-col bg-panel-bg/50 backdrop-blur-sm z-10 shrink-0`}>
         <div className="p-4 border-b border-white/10 dark:border-white/5 flex justify-between items-center bg-header-bg/85 backdrop-blur-md shadow-sm rounded-tl-3xl">
           <div className="flex items-center gap-2 font-bold text-text">
             <Icon name="List" size={18} className="opacity-70"/> 
@@ -199,12 +205,20 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
           onDrop={treeDnd.onRootDrop}
         >
           {renderEntityList()}
-          {draftKey.entities.length === 0 && <div className="p-6 text-center text-sm opacity-50 border-2 border-dashed border-border rounded-xl mt-2">{t('kbEntities')} ({t('kbEmpty' as any)})</div>}
         </div>
       </div>
       )}
       {layoutMode !== 'list' && (
-      <div className="flex-1 p-8 overflow-y-auto bg-bg/50 relative">
+      <div className={`flex-1 flex flex-col min-h-0 bg-bg/50 relative max-md:fixed max-md:inset-0 max-md:z-50 max-md:bg-bg max-md:transition-transform max-md:duration-300 ${!selectedEntityId ? 'max-md:translate-y-full max-md:opacity-0 max-md:pointer-events-none' : 'max-md:translate-y-0 max-md:opacity-100'}`}>
+        <div className="md:hidden flex justify-between items-center p-4 border-b border-black/5 dark:border-white/5 bg-header-bg/95 backdrop-blur-md shrink-0 z-10">
+           <h3 className="text-lg font-bold text-accent truncate pr-4">
+             {selectedEntity?.name || t('kbUnnamedEntity' as any)}
+           </h3>
+           <button onClick={() => setSelectedEntityId(null)} className="p-2 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer shrink-0 transition-colors">
+             <Icon name="X" size={20} />
+           </button>
+        </div>
+        <div className="flex-1 p-5 md:p-8 overflow-y-auto relative min-h-0">
         {selectedEntity ? (
           <div className="max-w-2xl flex flex-col gap-6 animate-fade-in-up">
             <div className="flex justify-between items-start">
@@ -278,7 +292,6 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
                             setDraggedMedia(null);
                          }}
                          onTouchStart={(e) => {
-                             e.stopPropagation();
                              lastTouchPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
                              touchTimeout.current = setTimeout(() => {
                                  setDraggedMedia({ type: 'entity', itemId: selectedEntity.id, index: i });
@@ -286,6 +299,7 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
                              }, 300);
                          }}
                          onTouchMove={(e) => {
+                             if (draggedMedia) e.stopPropagation();
                              const touch = e.touches[0];
                              lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
                              if (ghostRef.current) {
@@ -306,6 +320,7 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
                              }
                          }}
                          onTouchEnd={(e) => {
+                             if (draggedMedia) e.stopPropagation();
                              if (touchTimeout.current) clearTimeout(touchTimeout.current);
                              if (draggedMedia) {
                                  if (e.cancelable) e.preventDefault();
@@ -344,11 +359,12 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
 
           </div>
         ) : (
-          <div className="flex h-full items-center justify-center opacity-40 text-lg font-medium flex-col gap-4">
+          <div className="absolute inset-0 flex items-center justify-center opacity-40 text-lg font-medium flex-col gap-4 pointer-events-none">
              <Icon name="MousePointerClick" size={48} className="opacity-50" />
              {t('kbSelectEntity' as any)}
           </div>
         )}
+        </div>
       </div>
       )}
 
@@ -356,7 +372,7 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
       {(draggedItem || draggedMedia) && (
         <div 
           ref={ghostRef}
-          className="fixed pointer-events-none z-[9999] opacity-90 scale-105"
+          className="fixed pointer-events-none z-9999 opacity-90 scale-105"
           style={{
             left: draggedItem ? treeDnd.lastTouchPos.current.x : lastTouchPos.current.x,
             top: draggedItem ? treeDnd.lastTouchPos.current.y : lastTouchPos.current.y,
@@ -384,4 +400,4 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = ({
       )}
     </div>
   );
-};
+});

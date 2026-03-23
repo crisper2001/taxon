@@ -24,11 +24,11 @@ export const useResizablePanel = (initialWidth: number, minWidth: number, maxWid
   const dragOffset = useRef(0);
   const [isActivelyResizing, setIsActivelyResizing] = useState(false);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
+  const handleMouseDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     isResizing.current = true;
     setIsActivelyResizing(true);
-    dragOffset.current = e.clientX - (window.innerWidth - width);
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    dragOffset.current = clientX - (window.innerWidth - width);
   }, [width]); // Added width dependency
 
   const handleMouseUp = useCallback(() => {
@@ -36,11 +36,12 @@ export const useResizablePanel = (initialWidth: number, minWidth: number, maxWid
     setIsActivelyResizing(false);
   }, []);
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
+  const handleMouseMove = useCallback((e: MouseEvent | TouchEvent) => {
     if (!isResizing.current) return;
     requestAnimationFrame(() => {
       if (!isResizing.current) return;
-      const newWidth = window.innerWidth - (e.clientX - dragOffset.current);
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      const newWidth = window.innerWidth - (clientX - dragOffset.current);
       const clampedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
       setWidth(clampedWidth);
     });
@@ -52,11 +53,17 @@ export const useResizablePanel = (initialWidth: number, minWidth: number, maxWid
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
     window.addEventListener('mouseleave', handleMouseUp);
+    window.addEventListener('touchmove', handleMouseMove, { passive: false });
+    window.addEventListener('touchend', handleMouseUp);
+    window.addEventListener('touchcancel', handleMouseUp);
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
       window.removeEventListener('mouseleave', handleMouseUp);
+      window.removeEventListener('touchmove', handleMouseMove);
+      window.removeEventListener('touchend', handleMouseUp);
+      window.removeEventListener('touchcancel', handleMouseUp);
     };
   }, [isVisible, handleMouseMove, handleMouseUp]);
 
