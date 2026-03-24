@@ -37,7 +37,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title}>
-      <div className="p-7">
+      <div className="p-7 bg-bg/80 backdrop-blur-sm rounded-b-3xl">
         {typeof message === 'string' ? (
           <p className="text-lg text-text/90 mb-8">{message}</p>
         ) : (
@@ -47,7 +47,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           <button onClick={onClose} className="w-full md:w-auto px-5 py-2.5 rounded-xl font-bold text-gray-500 hover:bg-hover-bg/80 hover:shadow-sm transition-all duration-300 cursor-pointer">
             {cancelText}
           </button>
-          <button onClick={() => { onConfirm(); onClose(); }} className={`w-full md:w-auto justify-center px-5 py-2.5 rounded-xl font-bold text-white shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer flex items-center gap-2 border border-white/20 ${isDestructive ? 'bg-red-500/95 backdrop-blur-md hover:bg-red-600 shadow-red-500/30' : 'bg-accent/95 backdrop-blur-md hover:bg-accent-hover shadow-accent/30'}`}>
+          <button onClick={() => { onConfirm(); onClose(); }} className={`w-full md:w-auto justify-center px-5 py-2.5 rounded-xl font-bold text-white shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer flex items-center gap-2 border border-white/20 ${isDestructive ? 'bg-red-500/95 backdrop-blur-md hover:bg-red-600' : 'bg-accent/95 backdrop-blur-md hover:bg-accent-hover'}`}>
             {isDestructive && <Icon name="Trash2" size={18} />}
             {confirmText}
           </button>

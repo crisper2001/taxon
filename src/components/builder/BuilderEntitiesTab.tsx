@@ -1,18 +1,11 @@
 import React, { useRef } from 'react';
 import { Icon } from '../Icon';
 import type { DraftKeyData, DraftEntity } from '../../types';
-import { CustomSelect } from '../common/CustomSelect';
-import { MarkdownInput } from '../common/MarkdownInput';
 import { processImage } from '../../utils/imageUtils';
 import { useTreeDragAndDrop } from '../../hooks/useTreeDragAndDrop';
+import { BuilderEntityModal } from '../modals';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
-const reorderArray = <T,>(arr: T[], from: number, to: number): T[] => {
-  const newArr = [...arr];
-  const [moved] = newArr.splice(from, 1);
-  newArr.splice(to, 0, moved);
-  return newArr;
-};
 
 interface BuilderEntitiesTabProps {
   draftKey: DraftKeyData;
@@ -30,13 +23,11 @@ interface BuilderEntitiesTabProps {
   setDraggedMedia: (media: { type: 'feature' | 'entity' | 'state', itemId: string, stateId?: string, index: number } | null) => void;
   setEditingMedia: (media: { type: 'feature' | 'entity' | 'state', itemId: string, stateId?: string, mediaIndex: number } | null) => void;
   setDeleteTarget: (target: { type: 'feature' | 'state' | 'entity' | 'featureMedia' | 'stateMedia' | 'entityMedia', id: string, parentId?: string, mediaIndex?: number } | null) => void;
-  layoutMode?: 'list' | 'edit' | 'both';
 }
 
 export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(({
   draftKey, updateDraftKey, t, selectedEntityId, setSelectedEntityId, collapsedEntities, toggleEntityCollapse,
-  draggedItem, setDraggedItem, dragOverId, setDragOverId, draggedMedia, setDraggedMedia, setEditingMedia, setDeleteTarget,
-  layoutMode = 'both'
+  draggedItem, setDraggedItem, dragOverId, setDragOverId, draggedMedia, setDraggedMedia, setEditingMedia, setDeleteTarget
 }) => {
   const touchTimeout = useRef<NodeJS.Timeout | null>(null);
   const ghostRef = useRef<HTMLDivElement>(null);
@@ -97,7 +88,15 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
     if (from === to) return;
     updateDraftKey(prev => ({
       ...prev,
-      entities: prev.entities.map(e => e.id === entityId && e.media ? { ...e, media: reorderArray(e.media, from, to) } : e)
+      entities: prev.entities.map(e => {
+        if (e.id === entityId && e.media) {
+           const newMedia = [...e.media];
+           const [moved] = newMedia.splice(from, 1);
+           newMedia.splice(to, 0, moved);
+           return { ...e, media: newMedia };
+        }
+        return e;
+      })
     }));
   };
 
@@ -142,7 +141,7 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
                     }}
                     onTouchCancel={treeDnd.onTouchCancel}
                     onClick={() => setSelectedEntityId(e.id)}
-                    className={`rounded-xl transition-all relative group/item flex items-center gap-2 py-2 pr-2 border cursor-pointer ${selectedEntityId === e.id ? 'bg-accent/95 backdrop-blur-md text-white shadow-md shadow-accent/30 border-white/20 z-10' : 'hover:bg-hover-bg/80 hover:shadow-sm text-text border-transparent hover:border-white/10 dark:hover:border-white/5'} ${dragOverId === e.id ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${draggedItem?.id === e.id ? 'opacity-50' : ''}`}
+                    className={`rounded-xl transition-all relative group/item flex items-center gap-2 py-2 pr-2 border cursor-pointer ${selectedEntityId === e.id ? 'bg-accent/95 backdrop-blur-md text-white shadow-md border-white/20 z-10' : 'hover:bg-hover-bg/80 hover:shadow-sm text-text border-transparent hover:border-white/10 dark:hover:border-white/5'} ${dragOverId === e.id ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${draggedItem?.id === e.id ? 'opacity-50' : ''}`}
                     style={{ paddingLeft: `calc(${1.5 + depth * 1.5}rem + 0.5rem)`, touchAction: draggedItem ? 'none' : 'auto' }}
                 >
                     {children.length > 0 && (
@@ -179,10 +178,9 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
   };
 
   return (
-    <div className={`flex flex-col ${layoutMode === 'both' ? 'md:flex-row' : ''} w-full h-full animate-fade-in`}>
-      {layoutMode !== 'edit' && (
-      <div className={`w-full ${layoutMode === 'both' ? 'h-full md:w-2/5 md:min-w-[220px] border-b md:border-b-0 md:border-r shadow-[4px_0_24px_-4px_rgba(0,0,0,0.1)]' : 'h-full flex-1'} border-white/10 dark:border-white/5 flex flex-col bg-panel-bg/50 backdrop-blur-sm z-10 shrink-0`}>
-        <div className="p-4 border-b border-white/10 dark:border-white/5 flex justify-between items-center bg-header-bg/85 backdrop-blur-md shadow-sm rounded-tl-3xl">
+    <div className="flex flex-col w-full h-full animate-fade-in">
+      <div className="w-full h-full border-white/10 dark:border-white/5 flex flex-col bg-panel-bg/50 backdrop-blur-sm z-10 shrink-0">
+        <div className="p-4 border-b border-white/10 dark:border-white/5 flex justify-between items-center bg-header-bg/85 backdrop-blur-md shadow-sm rounded-tl-3xl md:rounded-tr-3xl">
           <div className="flex items-center gap-2 font-bold text-text">
             <Icon name="List" size={18} className="opacity-70"/> 
             {t('kbEntities')}
@@ -190,7 +188,7 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
               {draftKey.entities.length}
             </span>
           </div>
-          <button onClick={addEntity} className="px-3 py-1.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-lg hover:bg-accent-hover transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg shadow-accent/30 flex items-center gap-1 cursor-pointer" title={t('kbAddEntity')}><Icon name="Plus" size={14} /> {t('kbAdd' as any)}</button>
+          <button onClick={addEntity} className="px-3 py-1.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-lg hover:bg-accent-hover transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg flex items-center gap-1 cursor-pointer" title={t('kbAddEntity')}><Icon name="Plus" size={14} /> {t('kbAdd' as any)}</button>
         </div>
         <div 
           className={`overflow-y-auto flex-1 p-3 space-y-0.5 rounded-b-xl transition-colors ${dragOverId === 'root' ? 'bg-accent/5 ring-2 ring-inset ring-accent' : ''}`}
@@ -207,166 +205,26 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
           {renderEntityList()}
         </div>
       </div>
-      )}
-      {layoutMode !== 'list' && (
-      <div className={`flex-1 flex flex-col min-h-0 bg-bg/50 relative max-md:fixed max-md:inset-0 max-md:z-50 max-md:bg-bg max-md:transition-transform max-md:duration-300 ${!selectedEntityId ? 'max-md:translate-y-full max-md:opacity-0 max-md:pointer-events-none' : 'max-md:translate-y-0 max-md:opacity-100'}`}>
-        <div className="md:hidden flex justify-between items-center p-4 border-b border-black/5 dark:border-white/5 bg-header-bg/95 backdrop-blur-md shrink-0 z-10">
-           <h3 className="text-lg font-bold text-accent truncate pr-4">
-             {selectedEntity?.name || t('kbUnnamedEntity' as any)}
-           </h3>
-           <button onClick={() => setSelectedEntityId(null)} className="p-2 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer shrink-0 transition-colors">
-             <Icon name="X" size={20} />
-           </button>
-        </div>
-        <div className="flex-1 p-5 md:p-8 overflow-y-auto relative min-h-0">
-        {selectedEntity ? (
-          <div className="max-w-2xl flex flex-col gap-6 animate-fade-in-up">
-            <div className="flex justify-between items-start">
-              <div className="flex items-center gap-3">
-                <Icon name="Leaf" size={24} className="text-accent" />
-                <h3 className="text-2xl font-bold text-accent">{selectedEntity.name || t('kbUnnamedEntity' as any)}</h3>
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <button onClick={() => duplicateEntity(selectedEntity.id)} className="p-2 text-gray-500 hover:text-accent hover:bg-panel-bg rounded-xl shadow-sm border border-transparent hover:border-border transition-all cursor-pointer" title={t('kbDuplicate')}><Icon name="Copy" size={18}/></button>
-                <button onClick={() => setDeleteTarget({ type: 'entity', id: selectedEntity.id })} className="p-2 text-red-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl shadow-sm border border-transparent hover:border-red-500/20 transition-all cursor-pointer" title={t('kbDelete')}><Icon name="Trash2" size={18}/></button>
-              </div>
-            </div>
-            
-            <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-semibold opacity-80">{t('kbName')}</span>
-              <input type="text" value={selectedEntity.name} onChange={e => updateEntity(selectedEntity.id, { name: e.target.value })} className="input-base text-xl font-bold" />
-            </label>
 
-            <MarkdownInput label={t('kbDescription')} value={selectedEntity.description || ''} onChange={val => updateEntity(selectedEntity.id, { description: val })} rows={3} />
-
-            <div className="flex flex-col gap-1.5 mt-2">
-              <span className="text-sm font-semibold opacity-80">{t('kbImages' as any) || 'Images'}</span>
-              <div 
-                className={`flex gap-3 overflow-x-auto pb-2 pt-2 px-2 -mx-2 rounded-xl transition-all min-h-[116px] ${dragOverId === 'entity-images' ? 'bg-accent/10 ring-2 ring-accent ring-inset' : ''}`}
-                onDragEnter={(e) => {
-                  if (e.dataTransfer.types.includes('Files')) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }
-                }}
-                onDragOver={(e) => {
-                  if (e.dataTransfer.types.includes('Files')) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (dragOverId !== 'entity-images') setDragOverId('entity-images');
-                  }
-                }}
-                onDragLeave={(e) => {
-                  e.stopPropagation();
-                  if (dragOverId === 'entity-images') setDragOverId(null);
-                }}
-                onDrop={(e) => {
-                  if (dragOverId === 'entity-images') {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setDragOverId(null);
-                    handleAddImages(e.dataTransfer.files, selectedEntity.id);
-                  }
-                }}
-              >
-                {selectedEntity.media?.map((m, i) => (
-                    <div key={i} className={`relative shrink-0 group rounded-xl transition-all ${dragOverId === `entity-media-${i}` ? 'ring-2 ring-accent ring-offset-2 ring-offset-bg scale-[1.02]' : ''} ${draggedMedia?.index === i && draggedMedia.itemId === selectedEntity.id ? 'opacity-50' : ''}`}
-                         draggable
-                         data-entity-media-idx={i}
-                         onContextMenu={(e) => e.preventDefault()}
-                         onDragStart={() => setDraggedMedia({ type: 'entity', itemId: selectedEntity.id, index: i })}
-                         onDragEnd={() => { setDraggedMedia(null); setDragOverId(null); }}
-                         onDragOver={(e) => {
-                            e.preventDefault();
-                            if (draggedMedia?.type === 'entity' && draggedMedia.itemId === selectedEntity.id && draggedMedia.index !== i) {
-                               if (dragOverId !== `entity-media-${i}`) setDragOverId(`entity-media-${i}`);
-                            }
-                         }}
-                         onDragLeave={() => { if (dragOverId === `entity-media-${i}`) setDragOverId(null); }}
-                         onDrop={(e) => {
-                            e.preventDefault();
-                            setDragOverId(null);
-                            if (draggedMedia?.type === 'entity' && draggedMedia.itemId === selectedEntity.id) {
-                               reorderEntityMedia(selectedEntity.id, draggedMedia.index, i);
-                            }
-                            setDraggedMedia(null);
-                         }}
-                         onTouchStart={(e) => {
-                             lastTouchPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-                             touchTimeout.current = setTimeout(() => {
-                                 setDraggedMedia({ type: 'entity', itemId: selectedEntity.id, index: i });
-                                 if (navigator.vibrate) navigator.vibrate(50);
-                             }, 300);
-                         }}
-                         onTouchMove={(e) => {
-                             if (draggedMedia) e.stopPropagation();
-                             const touch = e.touches[0];
-                             lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
-                             if (ghostRef.current) {
-                                 ghostRef.current.style.left = `${touch.clientX}px`;
-                                 ghostRef.current.style.top = `${touch.clientY}px`;
-                             }
-                             if (!draggedMedia) {
-                                 if (touchTimeout.current) clearTimeout(touchTimeout.current);
-                                 return;
-                             }
-                             const el = document.elementFromPoint(touch.clientX, touch.clientY);
-                             const targetMedia = el?.closest('[data-entity-media-idx]');
-                             if (targetMedia) {
-                                 const targetIdx = parseInt(targetMedia.getAttribute('data-entity-media-idx') || '-1');
-                                 if (targetIdx !== -1 && targetIdx !== i && dragOverId !== `entity-media-${targetIdx}`) setDragOverId(`entity-media-${targetIdx}`);
-                             } else {
-                                 if (dragOverId) setDragOverId(null);
-                             }
-                         }}
-                         onTouchEnd={(e) => {
-                             if (draggedMedia) e.stopPropagation();
-                             if (touchTimeout.current) clearTimeout(touchTimeout.current);
-                             if (draggedMedia) {
-                                 if (e.cancelable) e.preventDefault();
-                                 if (dragOverId && dragOverId.startsWith('entity-media-')) {
-                                     const targetIdx = parseInt(dragOverId.replace('entity-media-', ''));
-                                     if (!isNaN(targetIdx) && targetIdx !== i) reorderEntityMedia(selectedEntity.id, i, targetIdx);
-                                 }
-                                 setDraggedMedia(null);
-                                 setDragOverId(null);
-                             }
-                         }}
-                         onTouchCancel={() => {
-                             if (touchTimeout.current) clearTimeout(touchTimeout.current);
-                             setDraggedMedia(null);
-                             setDragOverId(null);
-                         }}
-                         style={{ touchAction: draggedMedia ? 'none' : 'auto' }}>
-                      <div className="h-24 w-24 relative overflow-hidden rounded-xl border border-white/20 dark:border-white/10 shadow-md cursor-move group-hover:shadow-lg transition-all" onClick={() => setEditingMedia({ type: 'entity', itemId: selectedEntity.id, mediaIndex: i })}>
-                        <img src={m.url} alt={m.caption || ''} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300 pointer-events-none" />
-                      </div>
-                      <button onClick={() => {
-                        setDeleteTarget({ type: 'entityMedia', id: selectedEntity.id, mediaIndex: i });
-                      }} className="absolute -top-2 -right-2 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-full p-1 hover:bg-red-600 transition-all opacity-0 group-hover:opacity-100 shadow-md hover:shadow-lg cursor-pointer z-10"><Icon name="X" size={12}/></button>
-                    </div>
-                ))}
-                <label className="w-24 h-24 shrink-0 flex flex-col items-center justify-center border-2 border-dashed border-border hover:border-accent hover:bg-accent/5 rounded-xl cursor-pointer transition-colors text-gray-400 hover:text-accent group">
-                  <Icon name="Plus" size={24} className="mb-1 group-hover:scale-110 transition-transform" />
-                  <span className="text-[10px] font-semibold uppercase tracking-wider">{t('kbAdd' as any)}</span>
-                  <input type="file" accept="image/*" multiple className="hidden" onChange={e => {
-                    handleAddImages(e.target.files, selectedEntity.id);
-                    e.target.value = '';
-                  }} />
-                </label>
-              </div>
-            </div>
-
-          </div>
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center opacity-40 text-lg font-medium flex-col gap-4 pointer-events-none">
-             <Icon name="MousePointerClick" size={48} className="opacity-50" />
-             {t('kbSelectEntity' as any)}
-          </div>
-        )}
-        </div>
-      </div>
-      )}
+      <BuilderEntityModal
+        isOpen={!!selectedEntityId && !!selectedEntity}
+        onClose={() => setSelectedEntityId(null)}
+        selectedEntity={selectedEntity}
+        t={t as any}
+        updateEntity={updateEntity}
+        duplicateEntity={duplicateEntity}
+        setDeleteTarget={setDeleteTarget}
+        dragOverId={dragOverId}
+        setDragOverId={setDragOverId}
+        draggedMedia={draggedMedia}
+        setDraggedMedia={setDraggedMedia}
+        reorderEntityMedia={reorderEntityMedia}
+        handleAddImages={handleAddImages}
+        setEditingMedia={setEditingMedia}
+        ghostRef={ghostRef}
+        lastTouchPos={lastTouchPos}
+        touchTimeout={touchTimeout}
+      />
 
       {/* Touch Drag Ghost */}
       {(draggedItem || draggedMedia) && (

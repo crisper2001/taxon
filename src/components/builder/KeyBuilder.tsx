@@ -16,11 +16,12 @@ interface KeyBuilderProps {
   initialData?: DraftKeyData;
   onChange?: (draft: DraftKeyData) => void;
   onTestKey?: (draft: DraftKeyData) => void;
+  onNewKey?: () => void;
 }
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
-export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onChange, onTestKey }) => {
+export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onChange, onTestKey, onNewKey }) => {
   const appContext = useAppContext();
   const { t, triggerOpenNativeKey, isAiPanelVisible, setAiPanelVisible, openPreferences } = appContext;
   const hideAi = (appContext as any).hideAi;
@@ -28,6 +29,10 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
   const [showMetadataModal, setShowMetadataModal] = useState(false);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+
+  const tabBgRef = useRef<HTMLDivElement>(null);
+  const featuresBtnRef = useRef<HTMLButtonElement>(null);
+  const scoringBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -39,7 +44,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
     if (initialData) return initialData;
     const saved = localStorage.getItem('draftKeyData');
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
+      try { return JSON.parse(saved); } catch (e) { }
     }
     return { title: t('kbNewIdentKey' as any) || 'New Identification Key', authors: '', description: '', features: [], entities: [] };
   };
@@ -87,6 +92,22 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
     setHistoryIndex(prev => Math.min(prev + 1, 49));
   }, [historyIndex]);
 
+  useEffect(() => {
+    const handleUndoHistory = () => {
+      setHistoryIndex(prev => Math.max(0, prev - 1));
+    };
+    const handleRestoreSnapshot = (e: any) => {
+      const snapshot = e.detail;
+      updateDraftKey(() => snapshot);
+    };
+    window.addEventListener('undo-builder-history', handleUndoHistory);
+    window.addEventListener('restore-builder-snapshot', handleRestoreSnapshot);
+    return () => {
+      window.removeEventListener('undo-builder-history', handleUndoHistory);
+      window.removeEventListener('restore-builder-snapshot', handleRestoreSnapshot);
+    };
+  }, [updateDraftKey]);
+
   const getDefaultStateValues = (t: any) => [
     { id: '1', name: t('kbScoreCommon') || 'Common' },
     { id: '2', name: t('kbScoreRare') || 'Rare' },
@@ -96,44 +117,214 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
   ];
 
   useEffect(() => {
+    const updateSlider = () => {
+      const activeBtn = ['features', 'entities'].includes(activeTab) ? featuresBtnRef.current : scoringBtnRef.current;
+      if (activeBtn && tabBgRef.current) {
+        tabBgRef.current.style.width = `${activeBtn.offsetWidth}px`;
+        tabBgRef.current.style.transform = `translateX(${activeBtn.offsetLeft}px)`;
+      }
+    };
+    updateSlider();
+    const timer = setTimeout(updateSlider, 100);
+    window.addEventListener('resize', updateSlider);
+    return () => { clearTimeout(timer); window.removeEventListener('resize', updateSlider); };
+  }, [activeTab, t]);
+
+  useEffect(() => {
+    const parseScoreValue = (valStr: string) => {
+      const lower = String(valStr).toLowerCase();
+      if (lower.includes('rare') || lower.includes('raro')) return '2';
+      if (lower.includes('uncertain') || lower.includes('incerto') || lower.includes('duvidoso') || lower.includes('unknown')) return '3';
+      if (lower.includes('-')) {
+        const parts = lower.split('-');
+        if (parts.length === 2) {
+          const min = parseFloat(parts[0]);
+          const max = parseFloat(parts[1]);
+          if (!isNaN(min) && !isNaN(max)) return { min, max };
+        }
+      }
+      return '1'; // Default Common
+    };
+
+    const processFeatureMerge = (prevFeatures: any[], f: any) => {
+      let nextFeatures = [...prevFeatures];
+      if (f.action === 'delete' && f.id) {
+        return nextFeatures.filter(xf => xf.id !== f.id).map(xf => xf.parentId === f.id ? { ...xf, parentId: undefined } : xf);
+      }
+      const featureId = f.id || generateId();
+      const existingIdx = nextFeatures.findIndex(xf => xf.id === featureId);
+
+      if (existingIdx >= 0) {
+        const oldF = nextFeatures[existingIdx];
+        let mergedStates = [...(oldF.states || [])];
+
+        if (f.type === 'state' && f.states) {
+          f.states.forEach((s: any) => {
+            if (s.action === 'delete') {
+              if (s.id) mergedStates = mergedStates.filter(st => st.id !== s.id);
+            } else {
+              const sName = typeof s === 'string' ? s : s.name;
+              const sId = s.id || generateId();
+              const existingStateIdx = mergedStates.findIndex(st => st.id === s.id || st.name === sName);
+
+              let mergedValues = existingStateIdx >= 0 && (mergedStates[existingStateIdx] as any).values ? [...(mergedStates[existingStateIdx] as any).values] : getDefaultStateValues(t);
+
+              if (s.values) {
+                s.values.forEach((v: any) => {
+                  if (v.action === 'delete') {
+                    if (v.id) mergedValues = mergedValues.filter((mv: any) => mv.id !== v.id);
+                  } else {
+                    const vId = v.id || generateId();
+                    const existingValIdx = mergedValues.findIndex((mv: any) => mv.id === v.id || mv.name === v.name);
+                    if (existingValIdx >= 0) {
+                      mergedValues[existingValIdx] = { ...mergedValues[existingValIdx], name: v.name };
+                    } else {
+                      mergedValues.push({ id: vId, name: v.name });
+                    }
+                  }
+                });
+              }
+
+              if (existingStateIdx >= 0) {
+                mergedStates[existingStateIdx] = { ...mergedStates[existingStateIdx], name: sName, description: typeof s === 'string' ? undefined : s.description, values: mergedValues };
+              } else {
+                mergedStates.push({ id: sId, name: sName, description: typeof s === 'string' ? undefined : s.description, values: mergedValues });
+              }
+            }
+          });
+        }
+        nextFeatures[existingIdx] = {
+          ...oldF,
+          name: f.name || oldF.name,
+          description: f.description !== undefined ? f.description : oldF.description,
+          type: f.type || oldF.type,
+          base_unit: f.base_unit !== undefined ? f.base_unit : oldF.base_unit,
+          unit_prefix: f.unit_prefix !== undefined ? f.unit_prefix : oldF.unit_prefix,
+          states: mergedStates
+        };
+      } else {
+        const newStates = f.type === 'state' && f.states ? f.states.filter((s: any) => s.action !== 'delete').map((s: any) => {
+          const sName = typeof s === 'string' ? s : s.name;
+          let mergedValues = getDefaultStateValues(t);
+          if (s.values) {
+            s.values.forEach((v: any) => {
+              if (v.action === 'delete') {
+                if (v.id) mergedValues = mergedValues.filter((mv: any) => mv.id !== v.id);
+              } else {
+                const vId = v.id || generateId();
+                const existingValIdx = mergedValues.findIndex((mv: any) => mv.id === v.id || mv.name === v.name);
+                if (existingValIdx >= 0) {
+                  mergedValues[existingValIdx] = { ...mergedValues[existingValIdx], name: v.name };
+                } else {
+                  mergedValues.push({ id: vId, name: v.name });
+                }
+              }
+            });
+          }
+          return { id: s.id || generateId(), name: sName, description: typeof s === 'string' ? undefined : s.description, values: mergedValues };
+        }) : [];
+        nextFeatures.push({
+          id: featureId, name: f.name, description: f.description, type: f.type, base_unit: f.base_unit, unit_prefix: f.unit_prefix, states: newStates
+        });
+      }
+      return nextFeatures;
+    };
+
+    const processEntityMerge = (prevEntities: any[], ent: any, nameToIdMap: Record<string, string>, featuresList: any[]) => {
+      let nextEntities = [...prevEntities];
+      if (ent.action === 'delete' && ent.id) {
+        return nextEntities.filter(xe => xe.id !== ent.id).map(xe => xe.parentId === ent.id ? { ...xe, parentId: undefined } : xe);
+      }
+      const existingIdx = nextEntities.findIndex(xe => xe.id === ent.id);
+      const oldE = existingIdx >= 0 ? nextEntities[existingIdx] : null;
+
+      let finalScores: Record<string, any> = oldE && ent.action !== 'clear_scores' && !ent.clear_scores ? { ...oldE.scores } : {};
+
+      if (ent.scores && Array.isArray(ent.scores)) {
+        ent.scores.forEach((sc: any) => {
+          const fName = sc.feature_name?.toLowerCase();
+          const sName = sc.state_name?.toLowerCase();
+          let targetId = null;
+          if (sName) {
+            targetId = nameToIdMap[`${fName}::${sName}`] || nameToIdMap[sName];
+          } else if (fName) {
+            targetId = nameToIdMap[fName];
+          }
+          if (targetId) {
+            if (sc.action === 'delete') {
+              delete finalScores[targetId];
+              const feat = featuresList.find(f => f.id === targetId);
+              if (feat && feat.type === 'state' && feat.states) {
+                feat.states.forEach((st: any) => {
+                  delete finalScores[st.id];
+                });
+              }
+            } else {
+              finalScores[targetId] = parseScoreValue(sc.score_value !== undefined ? sc.score_value : 'Common');
+            }
+          }
+        });
+      }
+
+      if (existingIdx >= 0) {
+        nextEntities[existingIdx] = { ...oldE, name: ent.name || oldE.name, description: ent.description !== undefined ? ent.description : oldE.description, scores: finalScores };
+      } else {
+        nextEntities.push({ id: ent.id || generateId(), name: ent.name, description: ent.description, scores: finalScores });
+      }
+      return nextEntities;
+    };
+
     const handleAddFeature = (e: any) => {
       const f = e.detail;
-      const id = generateId();
-      updateDraftKey(prev => ({
-        ...prev,
-        features: [
-          ...prev.features,
-          { id, name: f.name, description: f.description, type: f.type, states: f.type === 'state' && f.states ? f.states.map((s: string) => ({ id: generateId(), name: s, values: getDefaultStateValues(t) })) : [] }
-        ]
-      }));
+      updateDraftKey(prev => ({ ...prev, features: processFeatureMerge(prev.features, f) }));
     };
+
     const handleAddEntity = (e: any) => {
       const ent = e.detail;
-      updateDraftKey(prev => ({
-        ...prev,
-        entities: [
-          ...prev.entities,
-          { id: generateId(), name: ent.name, description: ent.description, scores: {} }
-        ]
-      }));
+      updateDraftKey(prev => {
+        const nameToIdMap: Record<string, string> = {};
+        prev.features.forEach(f => {
+          if (f.name) nameToIdMap[f.name.toLowerCase()] = f.id;
+          if (f.type === 'state' && f.states) {
+            f.states.forEach(s => {
+              if (s.name) {
+                if (f.name) nameToIdMap[`${f.name.toLowerCase()}::${s.name.toLowerCase()}`] = s.id;
+                nameToIdMap[s.name.toLowerCase()] = s.id;
+              }
+            });
+          }
+        });
+        return { ...prev, entities: processEntityMerge(prev.entities, ent, nameToIdMap, prev.features) };
+      });
     };
+
     const handleAddAllItems = (e: any) => {
       const { features = [], entities = [] } = e.detail;
       updateDraftKey(prev => {
-        const newFeatures = features.map((f: any) => ({
-          id: generateId(),
-          name: f.name,
-          description: f.description,
-          type: f.type,
-          states: f.type === 'state' && f.states ? f.states.map((s: string) => ({ id: generateId(), name: s, values: getDefaultStateValues(t) })) : []
-        }));
-        const newEntities = entities.map((ent: any) => ({
-          id: generateId(),
-          name: ent.name,
-          description: ent.description,
-          scores: {}
-        }));
-        return { ...prev, features: [...prev.features, ...newFeatures], entities: [...prev.entities, ...newEntities] };
+        let nextFeatures = [...prev.features];
+        features.forEach((f: any) => {
+          nextFeatures = processFeatureMerge(nextFeatures, f);
+        });
+
+        const nameToIdMap: Record<string, string> = {};
+        nextFeatures.forEach(f => {
+          if (f.name) nameToIdMap[f.name.toLowerCase()] = f.id;
+          if (f.type === 'state' && f.states) {
+            f.states.forEach(s => {
+              if (s.name) {
+                if (f.name) nameToIdMap[`${f.name.toLowerCase()}::${s.name.toLowerCase()}`] = s.id;
+                nameToIdMap[s.name.toLowerCase()] = s.id;
+              }
+            });
+          }
+        });
+
+        let nextEntities = [...prev.entities];
+        entities.forEach((ent: any) => {
+          nextEntities = processEntityMerge(nextEntities, ent, nameToIdMap, nextFeatures);
+        });
+
+        return { ...prev, features: nextFeatures, entities: nextEntities };
       });
     };
     window.addEventListener('add-draft-feature', handleAddFeature);
@@ -144,7 +335,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
       window.removeEventListener('add-draft-entity', handleAddEntity);
       window.removeEventListener('add-all-draft-items', handleAddAllItems);
     };
-  }, [draftKey, t]);
+  }, [t, updateDraftKey]);
 
   const undo = () => { if (historyIndex > 0) setHistoryIndex(prev => prev - 1); };
   const redo = () => { if (historyIndex < history.length - 1) setHistoryIndex(prev => prev + 1); };
@@ -240,6 +431,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
     setActiveTab('features');
     setSelectedFeatureId(null);
     setSelectedEntityId(null);
+    onNewKey?.();
   };
 
   const handleConfirmPrompt = () => {
@@ -375,17 +567,23 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
   );
 
   const builderCenterContent = (
-    <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
-      <div className="hidden md:flex items-center gap-2">
+    <div
+      className="absolute flex items-center gap-2 z-10 transition-all duration-300"
+      style={{ left: isMobile ? '50%' : 'max(50vw, 590px)', transform: 'translateX(-50%)' }}
+    >
+      <div className="hidden md:flex relative items-center bg-black/5 dark:bg-white/5 p-1 rounded-full border border-black/5 dark:border-white/5 shadow-inner">
+        <div ref={tabBgRef} className="absolute left-0 top-1 bottom-1 bg-panel-bg rounded-full shadow-sm transition-all duration-300 ease-out pointer-events-none" />
         <button
+          ref={featuresBtnRef}
           onClick={() => setActiveTab('features')}
-          className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-all duration-300 cursor-pointer shadow-sm border shrink-0 font-bold text-sm ${['features', 'entities'].includes(activeTab) ? 'bg-accent/10 text-accent border-accent/20' : 'opacity-90 hover:opacity-100 hover:bg-hover-bg/80 border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md text-text'}`}
+          className={`relative z-10 flex items-center gap-2 px-4 py-1.5 rounded-full transition-colors duration-300 cursor-pointer shrink-0 font-bold text-sm ${['features', 'entities'].includes(activeTab) ? 'text-accent' : 'text-gray-500 hover:text-text'}`}
         >
           <Icon name="ListTree" size={18} /> {t('kbFeatures')} &amp; {t('kbEntities')}
         </button>
         <button
+          ref={scoringBtnRef}
           onClick={() => setActiveTab('scoring')}
-          className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-all duration-300 cursor-pointer shadow-sm border shrink-0 font-bold text-sm ${activeTab === 'scoring' ? 'bg-accent/10 text-accent border-accent/20' : 'opacity-90 hover:opacity-100 hover:bg-hover-bg/80 border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md text-text'}`}
+          className={`relative z-10 flex items-center gap-2 px-4 py-1.5 rounded-full transition-colors duration-300 cursor-pointer shrink-0 font-bold text-sm ${activeTab === 'scoring' ? 'text-accent' : 'text-gray-500 hover:text-text'}`}
         >
           <Icon name="Target" size={18} /> {t('kbScoring')}
         </button>
@@ -413,94 +611,94 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
       {/* Mobile Sidebar */}
       <Sidebar isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} onExit={onExit} actions={sidebarActions} />
 
-      <Header 
-        isSidebarOpen={isSidebarOpen} 
-        setSidebarOpen={setSidebarOpen} 
-        leftActions={builderLeftActions} 
-        centerContent={builderCenterContent} 
-        onLogoClick={onExit} 
+      <Header
+        isSidebarOpen={isSidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        leftActions={builderLeftActions}
+        centerContent={builderCenterContent}
+        onLogoClick={onExit}
       />
 
       <div className="flex flex-col grow overflow-hidden">
         <div className="flex flex-row grow overflow-hidden p-0 md:p-4 gap-0 md:gap-4">
 
           {/* Builder Main Content */}
-        <div 
-          className="flex grow flex-col relative min-w-0 min-h-0"
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        >
-        <div className={`builder-mobile-view ${isSwiping ? 'is-swiping' : ''}`} style={{ '--mobile-tab-offset': `-${offsetIndex * 100}%`, '--swipe-offset': `${swipeOffset}px` } as React.CSSProperties}>
+          <div
+            className="flex grow flex-col relative min-w-0 min-h-0"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            <div className={`builder-mobile-view ${isSwiping ? 'is-swiping' : ''}`} style={{ '--mobile-tab-offset': `-${offsetIndex * 100}%`, '--swipe-offset': `${swipeOffset}px` } as React.CSSProperties}>
 
-          {!isMobile ? (
-            <div className={`builder-panel ${['features', 'entities'].includes(activeTab) ? 'active' : ''}`}>
-              {/* Desktop Combined Features & Entities */}
-              <div className="w-full h-full flex flex-row gap-4">
-                <div className="w-1/2 h-full flex flex-col bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg overflow-hidden">
-                <BuilderFeaturesTab
-                  draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
-                  selectedFeatureId={selectedFeatureId} setSelectedFeatureId={setSelectedFeatureId}
-                  collapsedFeatures={collapsedFeatures} toggleFeatureCollapse={toggleFeatureCollapse}
-                  draggedItem={draggedItem} setDraggedItem={setDraggedItem}
-                  dragOverId={dragOverId} setDragOverId={setDragOverId}
-                  draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
-                  setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
-                />
+              {!isMobile ? (
+                <div className={`builder-panel ${['features', 'entities'].includes(activeTab) ? 'active' : ''}`}>
+                  {/* Desktop Combined Features & Entities */}
+                  <div className="w-full h-full flex flex-row gap-4">
+                    <div className="w-1/2 h-full flex flex-col bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg overflow-hidden">
+                      <BuilderFeaturesTab
+                        draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
+                        selectedFeatureId={selectedFeatureId} setSelectedFeatureId={setSelectedFeatureId}
+                        collapsedFeatures={collapsedFeatures} toggleFeatureCollapse={toggleFeatureCollapse}
+                        draggedItem={draggedItem} setDraggedItem={setDraggedItem}
+                        dragOverId={dragOverId} setDragOverId={setDragOverId}
+                        draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
+                        setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
+                      />
+                    </div>
+                    <div className="w-1/2 h-full flex flex-col bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg overflow-hidden">
+                      <BuilderEntitiesTab
+                        draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
+                        selectedEntityId={selectedEntityId} setSelectedEntityId={setSelectedEntityId}
+                        collapsedEntities={collapsedEntities} toggleEntityCollapse={toggleEntityCollapse}
+                        draggedItem={draggedItem} setDraggedItem={setDraggedItem}
+                        dragOverId={dragOverId} setDragOverId={setDragOverId}
+                        draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
+                        setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="w-1/2 h-full flex flex-col bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg overflow-hidden">
-                <BuilderEntitiesTab
-                  draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
-                  selectedEntityId={selectedEntityId} setSelectedEntityId={setSelectedEntityId}
-                  collapsedEntities={collapsedEntities} toggleEntityCollapse={toggleEntityCollapse}
-                  draggedItem={draggedItem} setDraggedItem={setDraggedItem}
-                  dragOverId={dragOverId} setDragOverId={setDragOverId}
-                  draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
-                  setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
-                />
+              ) : (
+                <>
+                  {/* Mobile Separated Features */}
+                  <div className={`builder-panel ${activeTab === 'features' ? 'active' : ''}`}>
+                    <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg">
+                      <BuilderFeaturesTab
+                        draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
+                        selectedFeatureId={selectedFeatureId} setSelectedFeatureId={setSelectedFeatureId}
+                        collapsedFeatures={collapsedFeatures} toggleFeatureCollapse={toggleFeatureCollapse}
+                        draggedItem={draggedItem} setDraggedItem={setDraggedItem}
+                        dragOverId={dragOverId} setDragOverId={setDragOverId}
+                        draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
+                        setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Mobile Separated Entities */}
+                  <div className={`builder-panel ${activeTab === 'entities' ? 'active' : ''}`}>
+                    <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg">
+                      <BuilderEntitiesTab
+                        draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
+                        selectedEntityId={selectedEntityId} setSelectedEntityId={setSelectedEntityId}
+                        collapsedEntities={collapsedEntities} toggleEntityCollapse={toggleEntityCollapse}
+                        draggedItem={draggedItem} setDraggedItem={setDraggedItem}
+                        dragOverId={dragOverId} setDragOverId={setDragOverId}
+                        draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
+                        setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className={`builder-panel ${activeTab === 'scoring' ? 'active' : ''} min-w-0`}>
+                <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg min-w-0">
+                  <BuilderScoringTab draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any} />
                 </div>
               </div>
             </div>
-          ) : (
-            <>
-              {/* Mobile Separated Features */}
-              <div className={`builder-panel ${activeTab === 'features' ? 'active' : ''}`}>
-                <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg">
-                  <BuilderFeaturesTab
-                    draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
-                    selectedFeatureId={selectedFeatureId} setSelectedFeatureId={setSelectedFeatureId}
-                    collapsedFeatures={collapsedFeatures} toggleFeatureCollapse={toggleFeatureCollapse}
-                    draggedItem={draggedItem} setDraggedItem={setDraggedItem}
-                    dragOverId={dragOverId} setDragOverId={setDragOverId}
-                    draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
-                    setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
-                  />
-                </div>
-              </div>
-
-              {/* Mobile Separated Entities */}
-              <div className={`builder-panel ${activeTab === 'entities' ? 'active' : ''}`}>
-                <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg">
-                  <BuilderEntitiesTab
-                    draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
-                    selectedEntityId={selectedEntityId} setSelectedEntityId={setSelectedEntityId}
-                    collapsedEntities={collapsedEntities} toggleEntityCollapse={toggleEntityCollapse}
-                    draggedItem={draggedItem} setDraggedItem={setDraggedItem}
-                    dragOverId={dragOverId} setDragOverId={setDragOverId}
-                    draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
-                    setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
-                  />
-                </div>
-              </div>
-            </>
-          )}
-
-            <div className={`builder-panel ${activeTab === 'scoring' ? 'active' : ''} min-w-0`}>
-              <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg min-w-0">
-                <BuilderScoringTab draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any} />
-              </div>
-            </div>
-          </div>
           </div>
         </div>
       </div>
@@ -555,7 +753,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
               </label>
 
               <div className="mt-auto flex flex-col md:flex-row justify-end gap-3 pt-6">
-                <button onClick={() => setEditingMedia(null)} className="w-full md:w-auto px-6 py-2.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white font-bold rounded-xl hover:bg-accent-hover transition-all duration-300 shadow-md hover:shadow-lg shadow-accent/30 cursor-pointer">{t('save')}</button>
+                <button onClick={() => setEditingMedia(null)} className="w-full md:w-auto px-6 py-2.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white font-bold rounded-xl hover:bg-accent-hover transition-all duration-300 shadow-md hover:shadow-lg cursor-pointer">{t('save')}</button>
               </div>
             </div>
           </div>
@@ -587,7 +785,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
           <div className="flex flex-col-reverse md:flex-row justify-end gap-3 mt-2">
             <button onClick={() => setKeyPromptMode(null)} className="w-full md:w-auto px-5 py-2.5 hover:bg-hover-bg/80 rounded-xl font-bold text-gray-500 transition-all duration-300 cursor-pointer">{t('cancel')}</button>
             <button onClick={() => { exportJson(); handleConfirmPrompt(); }} className="w-full md:w-auto justify-center px-5 py-2.5 bg-panel-bg border border-white/20 dark:border-white/10 rounded-xl hover:bg-hover-bg/80 hover:shadow-md transition-all duration-300 shadow-sm font-bold flex items-center gap-2 cursor-pointer"><Icon name="FileJson" size={16} /> {t('exportJson')}</button>
-            <button onClick={handleConfirmPrompt} className="w-full md:w-auto justify-center px-5 py-2.5 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-xl hover:bg-red-600 transition-all duration-300 shadow-md hover:shadow-lg shadow-red-500/30 font-bold cursor-pointer">{keyPromptMode === 'new' ? t('kbDiscardAndCreate' as any) : t('kbDiscardAndOpen' as any)}</button>
+            <button onClick={handleConfirmPrompt} className="w-full md:w-auto justify-center px-5 py-2.5 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-xl hover:bg-red-600 transition-all duration-300 shadow-md hover:shadow-lg font-bold cursor-pointer">{keyPromptMode === 'new' ? t('kbDiscardAndCreate' as any) : t('kbDiscardAndOpen' as any)}</button>
           </div>
         </div>
       </Modal>

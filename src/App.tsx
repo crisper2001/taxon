@@ -643,6 +643,7 @@ const App: React.FC = () => {
                       setDraftKeyData(draft);
                       setAppMode('identify');
                     }}
+                    onNewKey={() => setBuildChatHistory([])}
                   />
                 </div>
               ) : keyData ? (
@@ -734,6 +735,7 @@ const App: React.FC = () => {
                         setIsHome(false);
                       } else {
                         setDraftKeyData(undefined);
+                      setBuildChatHistory([]);
                         setIsHome(false);
                       }
                     }}
@@ -778,7 +780,7 @@ const App: React.FC = () => {
             className={`absolute -left-4 top-4 bottom-4 z-20 w-4 cursor-col-resize items-center justify-center group ${!isAiPanelVisible ? 'hidden' : 'hidden md:flex'}`}
             title={`${t('resizePanel')} ${t('doubleClickToReset' as any)}`}
           >
-            <div className={`w-1 h-full rounded-full transition-all duration-300 ${isActivelyResizing ? 'bg-accent shadow-md shadow-accent/50 scale-x-150' : 'bg-transparent group-hover:bg-accent/50 group-hover:scale-x-150'}`}></div>
+            <div className={`w-1 h-full rounded-full transition-all duration-300 ${isActivelyResizing ? 'bg-accent shadow-md scale-x-150' : 'bg-transparent group-hover:bg-accent/50 group-hover:scale-x-150'}`}></div>
           </div>
           <div className={`ai-panel-wrapper grow min-w-0 h-full transition-all duration-300 ${isAiPanelVisible ? 'p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:p-0 md:py-4 md:pr-4' : 'p-0 overflow-hidden'}`}>
             <AIAssistant

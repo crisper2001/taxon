@@ -5,4 +5,6 @@ export * from './KeyInfoModal';
 export * from './FeatureModal';
 export * from './ImageLightboxModal';
 export * from './ConfirmModal';
+export * from './BuilderFeatureModal';
+export * from './BuilderEntityModal';
 export * from '../common/ImageViewer';

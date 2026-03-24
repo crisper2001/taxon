@@ -26,9 +26,19 @@ export async function callGeminiAPI(
   }
 
   // Combine history (if any) with the current new prompt
-  const contents = history 
+  const rawContents = history 
     ? [...history, { role: 'user', parts: currentParts }]
     : [{ role: 'user', parts: currentParts }];
+
+  // Collapse adjacent messages of the same role to prevent API 500 errors
+  const contents = rawContents.reduce((acc: any[], curr) => {
+    if (acc.length > 0 && acc[acc.length - 1].role === curr.role) {
+      acc[acc.length - 1].parts.push(...curr.parts);
+    } else {
+      acc.push({ role: curr.role, parts: [...curr.parts] });
+    }
+    return acc;
+  }, []);
 
   try {
     const response = await ai.models.generateContent({
@@ -70,10 +80,39 @@ export async function callGeminiAPI(
               items: {
                 type: Type.OBJECT,
                 properties: {
+                  id: { type: Type.STRING },
                   name: { type: Type.STRING },
                   description: { type: Type.STRING },
                   type: { type: Type.STRING },
-                  states: { type: Type.ARRAY, items: { type: Type.STRING } }
+                  action: { type: Type.STRING, description: "Set to 'delete' to remove this feature" },
+                  base_unit: { type: Type.STRING, description: "Base unit for numeric features (e.g. metre, square metre, cubic metre, litre, degrees celcius, degrees planar, none)" },
+                  unit_prefix: { type: Type.STRING, description: "Unit prefix for numeric features (e.g. kilo, hecto, deca, deci, centi, milli, micro, none)" },
+                  states: { 
+                    type: Type.ARRAY, 
+                    items: { 
+                      type: Type.OBJECT,
+                      properties: {
+                        id: { type: Type.STRING },
+                        name: { type: Type.STRING },
+                        description: { type: Type.STRING },
+                        action: { type: Type.STRING, description: "Set to 'delete' to remove this state" },
+                        values: {
+                          type: Type.ARRAY,
+                          description: "Score types for this state",
+                          items: {
+                            type: Type.OBJECT,
+                            properties: {
+                              id: { type: Type.STRING },
+                              name: { type: Type.STRING },
+                              action: { type: Type.STRING, description: "Set to 'delete' to remove this value" }
+                            },
+                            required: ['name']
+                          }
+                        }
+                      },
+                      required: ['name']
+                    } 
+                  }
                 },
                 required: ['name', 'type']
               }
@@ -83,8 +122,24 @@ export async function callGeminiAPI(
               items: {
                 type: Type.OBJECT,
                 properties: {
+                  id: { type: Type.STRING },
                   name: { type: Type.STRING },
-                  description: { type: Type.STRING }
+                  description: { type: Type.STRING },
+                  action: { type: Type.STRING, description: "Set to 'delete' to remove this entity" },
+                  clear_scores: { type: Type.BOOLEAN, description: "CRITICAL: Set to true to completely wipe/clear all scores from this entity." },
+                  scores: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        feature_name: { type: Type.STRING },
+                        state_name: { type: Type.STRING },
+                        score_value: { type: Type.STRING },
+                        action: { type: Type.STRING, description: "Set to 'delete' to remove this specific score" }
+                      },
+                      required: ['feature_name']
+                    }
+                  }
                 },
                 required: ['name']
               }

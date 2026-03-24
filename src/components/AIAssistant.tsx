@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Icon } from './Icon';
 import { callGeminiAPI } from '../services/GeminiService';
-import type { KeyData, GeminiResponse, GeminiFeatureMatch, Entity, StateScore, NumericScore, RawChatMessage, AiMessageVersion } from '../types';
+import type { KeyData, GeminiResponse, GeminiFeatureMatch, Entity, StateScore, NumericScore, RawChatMessage, AiMessageVersion, DraftKeyData } from '../types';
 import Spot from './Spot';
 import { ConfirmModal } from './modals';
 import { Markdown } from './common/Markdown';
@@ -30,6 +30,7 @@ interface ChatMessage {
   versions?: AiMessageVersion[];
   currentVersionIndex?: number;
   imageUrl?: string;
+  draftSnapshot?: DraftKeyData;
 }
 
 const findMatchingEntities = (features: GeminiFeatureMatch[], keyData: KeyData): Entity[] => {
@@ -85,8 +86,8 @@ const ChatMessageBubble = React.memo<{
 }>(({ msg, index, keyData, t, isLatestAi, isLatestUser, onRegenerate, onEditSubmit, onVersionChange, isThinking, onImageClick, appMode }) => {
   const [isCopied, setIsCopied] = useState(false);
 
-  // Truncate AI messages if they exceed 500 characters
-  const isLong = msg.sender === 'ai' && msg.content.length > 500;
+  // Truncate AI messages if they exceed 500 characters (excluding HTML markup used for clickable entities)
+  const isLong = msg.sender === 'ai' && msg.content.replace(/<[^>]*>?/gm, '').length > 500;
   const [isExpanded, setIsExpanded] = useState(!isLong);
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
 
@@ -97,6 +98,17 @@ const ChatMessageBubble = React.memo<{
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(msg.content);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleUndo = () => {
+    if (msg.draftSnapshot) {
+      window.dispatchEvent(new CustomEvent('restore-builder-snapshot', { detail: msg.draftSnapshot }));
+    } else {
+      window.dispatchEvent(new CustomEvent('undo-builder-history'));
+    }
+    setAddedFeatures(new Set());
+    setAddedEntities(new Set());
+    setAddedAll(false);
+  };
 
   // Auto-focus and resize when entering edit mode
   useEffect(() => {
@@ -141,13 +153,14 @@ const ChatMessageBubble = React.memo<{
   };
 
   const hasFeatures = msg.data?.features_used && msg.data.features_used.length > 0;
-  const hasEntities = msg.data?.entities_used && msg.data.entities_used.length > 0;
-  const hasConsideredData = appMode === 'identify' && (hasFeatures || hasEntities);
+  const isIdentification = !msg.data?.answer?.trim();
+  const hasConsideredData = appMode === 'identify' && hasFeatures && isIdentification;
   const hasSuggestions = appMode === 'build' && (msg.data?.suggested_features?.length || msg.data?.suggested_entities?.length);
+  const hasEdits = appMode === 'build' && (msg.data?.suggested_features?.some((sf: any) => sf.id) || msg.data?.suggested_entities?.some((se: any) => se.id));
 
   return (
     <div className={`chat-message flex flex-col animate-fade-in-up duration-300 ease-out space-y-1 mb-2 ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
-      <div className={`msg-content flex flex-col max-w-[92%] p-3.5 rounded-3xl border transition-all ${msg.sender === 'user' ? 'bg-accent/95 backdrop-blur-md text-white rounded-br-sm border-white/20 shadow-md shadow-accent/20' : 'bg-header-bg/90 backdrop-blur-md rounded-bl-sm border-white/20 dark:border-white/10 shadow-sm'}`}>
+      <div className={`msg-content flex flex-col max-w-[92%] p-3.5 rounded-3xl border transition-all ${msg.sender === 'user' ? 'bg-accent/95 backdrop-blur-md text-white rounded-br-sm border-white/20 shadow-md' : 'bg-header-bg/90 backdrop-blur-md rounded-bl-sm border-white/20 dark:border-white/10 shadow-sm'}`}>
 
         {/* Text Content */}
         {msg.imageUrl && (
@@ -178,9 +191,9 @@ const ChatMessageBubble = React.memo<{
           <>
             {msg.content && (
               <div className={`relative ${!isExpanded ? 'max-h-48 overflow-hidden' : ''}`}>
-                <Markdown content={msg.content} className="text-[15px]" />
+                <Markdown content={msg.content} className={`text-[15px] space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mt-1 [&_ul_ul]:list-[circle] [&_ul_ul]:mt-1 [&_li>p]:inline ${msg.sender === 'user' ? '!text-white [&_*]:!text-white' : ''}`} />
                 {!isExpanded && (
-                  <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-header-bg to-transparent pointer-events-none" />
+                  <div className={`absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t ${msg.sender === 'user' ? 'from-accent' : 'from-header-bg'} to-transparent pointer-events-none`} />
                 )}
               </div>
             )}
@@ -188,32 +201,62 @@ const ChatMessageBubble = React.memo<{
             {appMode === 'build' && msg.data?.suggested_features && msg.data.suggested_features.length > 0 && (
               <div className="mt-3 flex flex-col gap-2 w-full">
                 <h4 className="text-[11px] font-bold opacity-80 uppercase tracking-wider">{t('aiSuggestedFeatures' as any)}</h4>
-                {msg.data.suggested_features.map((sf, idx) => {
+                {msg.data.suggested_features.map((sf: any, idx: number) => {
                   const isAdded = addedFeatures.has(idx) || addedAll;
+                  const isEdit = !!sf.id;
+                  const isDelete = sf.action === 'delete';
+                  const buttonText = isAdded ? (t('addedItem' as any) || 'Added') : (isDelete ? t('kbDelete' as any) : (isEdit ? (t('updateItem' as any) || 'Update') : t('addToKey' as any)));
+                  const buttonClass = isAdded ? 'bg-green-500/20 text-green-600 dark:text-green-400 hover:bg-red-500/20 hover:text-red-500 dark:hover:text-red-400 cursor-pointer shadow-none' : (isDelete ? 'bg-red-500 text-white hover:bg-red-600 cursor-pointer' : (isEdit ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer' : 'bg-accent text-white hover:bg-accent-hover cursor-pointer'));
                   return (
-                    <div key={idx} className={`bg-bg p-2.5 rounded-xl border border-black/5 dark:border-white/5 shadow-sm flex flex-col gap-1.5 animate-fade-in-up transition-opacity ${isAdded ? 'opacity-60' : ''}`}>
+                    <div key={idx} className={`bg-bg p-2.5 rounded-xl border border-black/5 dark:border-white/5 shadow-sm flex flex-col gap-1.5 animate-fade-in-up transition-opacity ${isAdded ? 'opacity-60' : ''} ${isDelete ? 'border-red-500/30 bg-red-500/5' : ''}`}>
                       <div className="flex justify-between items-start gap-2">
-                        <span className="font-bold text-sm text-accent leading-tight">{sf.name}</span>
+                        <span className={`font-bold text-sm leading-tight ${isDelete ? 'text-red-500 line-through' : 'text-accent'}`}>{sf.name}</span>
                         <button
                           onClick={() => {
                             if (!isAdded) {
                               window.dispatchEvent(new CustomEvent('add-draft-feature', { detail: sf }));
                               setAddedFeatures(prev => new Set(prev).add(idx));
+                            } else {
+                              handleUndo();
                             }
                           }}
-                          disabled={isAdded}
-                          className={`shrink-0 text-[11px] px-2 py-1 rounded-md transition-colors font-semibold shadow-sm flex items-center gap-1 ${isAdded ? 'bg-green-500/20 text-green-600 dark:text-green-400 cursor-default shadow-none' : 'bg-accent text-white hover:bg-accent-hover cursor-pointer'}`}
+                          className={`shrink-0 text-[11px] px-2 py-1 rounded-md transition-colors font-semibold shadow-sm flex items-center gap-1 group ${buttonClass}`}
                         >
-                          <Icon name={isAdded ? "Check" : "Plus"} size={12} /> {isAdded ? (t('addedItem' as any) || 'Added') : t('addToKey' as any)}
+                          <Icon name={isAdded ? "Check" : (isDelete ? "Trash2" : (isEdit ? "RefreshCw" : "Plus"))} size={12} className={isAdded ? "group-hover:hidden" : ""} />
+                          {isAdded && <Icon name="Undo" size={12} className="hidden group-hover:block" />}
+                          <span className={isAdded ? "group-hover:hidden" : ""}>{buttonText}</span>
+                          {isAdded && <span className="hidden group-hover:block">{t('kbUndo' as any)}</span>}
                         </button>
                       </div>
                       {sf.description && <span className="text-xs opacity-75 leading-snug">{sf.description}</span>}
                       {sf.type === 'state' && sf.states && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {sf.states.map(s => <span key={s} className="text-[10px] px-1.5 py-0.5 bg-black/5 dark:bg-white/10 rounded-md font-medium opacity-90">{s}</span>)}
+                        <div className="flex flex-col gap-1 mt-1">
+                          {sf.states.map((s: any, sIdx: number) => (
+                            <div key={typeof s === 'string' ? s : (s.name || sIdx)} className="text-[10px] px-2 py-1 bg-black/5 dark:bg-white/10 rounded-md flex flex-col">
+                              <span className={`font-bold opacity-90 ${s.action === 'delete' ? 'text-red-500 line-through' : ''}`}>
+                                {typeof s === 'string' ? s : s.name}
+                                {s.action === 'delete' && <span className="ml-1 opacity-70 font-normal">({t('kbDelete' as any)})</span>}
+                              </span>
+                              {s.description && <span className="opacity-75 font-normal mt-0.5">{s.description}</span>}
+                              {s.values && s.values.length > 0 && (
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  {s.values.map((v: any, vIdx: number) => <span key={vIdx} className={`px-1.5 py-0.5 rounded bg-black/10 dark:bg-white/10 text-[9px] ${v.action === 'delete' ? 'line-through text-red-500' : ''}`}>{v.name}</span>)}
+                                </div>
+                              )}
+                            </div>
+                          ))}
                         </div>
                       )}
-                      {sf.type === 'numeric' && <div className="text-[10px] px-1.5 py-0.5 bg-black/5 dark:bg-white/10 rounded-md font-medium opacity-90 w-fit mt-1">{t('kbTypeNumeric' as any)}</div>}
+                      {sf.type === 'numeric' && (
+                        <div className="flex flex-wrap gap-1.5 mt-1 items-center">
+                          <div className="text-[10px] px-1.5 py-0.5 bg-black/5 dark:bg-white/10 rounded-md font-medium opacity-90 w-fit">{t('kbTypeNumeric' as any)}</div>
+                          {((sf.base_unit && sf.base_unit !== 'none') || (sf.unit_prefix && sf.unit_prefix !== 'none')) && (
+                            <div className="text-[10px] px-1.5 py-0.5 bg-accent/10 text-accent rounded-md font-medium w-fit border border-accent/20">
+                              {[sf.unit_prefix !== 'none' ? sf.unit_prefix : '', sf.base_unit !== 'none' ? sf.base_unit : ''].filter(Boolean).join(' ')}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )
                 })}
@@ -223,26 +266,51 @@ const ChatMessageBubble = React.memo<{
             {appMode === 'build' && msg.data?.suggested_entities && msg.data.suggested_entities.length > 0 && (
               <div className="mt-3 flex flex-col gap-2 w-full">
                 <h4 className="text-[11px] font-bold opacity-80 uppercase tracking-wider">{t('aiSuggestedEntities' as any)}</h4>
-                {msg.data.suggested_entities.map((se, idx) => {
+                {msg.data.suggested_entities.map((se: any, idx: number) => {
                   const isAdded = addedEntities.has(idx) || addedAll;
+                  const isEdit = !!se.id;
+                  const isDelete = se.action === 'delete';
+                  const buttonText = isAdded ? (t('addedItem' as any) || 'Added') : (isDelete ? t('kbDelete' as any) : (isEdit ? (t('updateItem' as any) || 'Update') : t('addToKey' as any)));
+                  const buttonClass = isAdded ? 'bg-green-500/20 text-green-600 dark:text-green-400 hover:bg-red-500/20 hover:text-red-500 dark:hover:text-red-400 cursor-pointer shadow-none' : (isDelete ? 'bg-red-500 text-white hover:bg-red-600 cursor-pointer' : (isEdit ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer' : 'bg-accent text-white hover:bg-accent-hover cursor-pointer'));
                   return (
-                    <div key={idx} className={`bg-bg p-2.5 rounded-xl border border-black/5 dark:border-white/5 shadow-sm flex flex-col gap-1.5 animate-fade-in-up transition-opacity ${isAdded ? 'opacity-60' : ''}`}>
+                    <div key={idx} className={`bg-bg p-2.5 rounded-xl border border-black/5 dark:border-white/5 shadow-sm flex flex-col gap-1.5 animate-fade-in-up transition-opacity ${isAdded ? 'opacity-60' : ''} ${isDelete ? 'border-red-500/30 bg-red-500/5' : ''}`}>
                       <div className="flex justify-between items-start gap-2">
-                        <span className="font-bold text-sm text-accent leading-tight">{se.name}</span>
+                        <span className={`font-bold text-sm leading-tight ${isDelete ? 'text-red-500 line-through' : 'text-accent'}`}>{se.name}</span>
                         <button
                           onClick={() => {
                             if (!isAdded) {
                               window.dispatchEvent(new CustomEvent('add-draft-entity', { detail: se }));
                               setAddedEntities(prev => new Set(prev).add(idx));
+                            } else {
+                              handleUndo();
                             }
                           }}
-                          disabled={isAdded}
-                          className={`shrink-0 text-[11px] px-2 py-1 rounded-md transition-colors font-semibold shadow-sm flex items-center gap-1 ${isAdded ? 'bg-green-500/20 text-green-600 dark:text-green-400 cursor-default shadow-none' : 'bg-accent text-white hover:bg-accent-hover cursor-pointer'}`}
+                          className={`shrink-0 text-[11px] px-2 py-1 rounded-md transition-colors font-semibold shadow-sm flex items-center gap-1 group ${buttonClass}`}
                         >
-                          <Icon name={isAdded ? "Check" : "Plus"} size={12} /> {isAdded ? (t('addedItem' as any) || 'Added') : t('addToKey' as any)}
+                          <Icon name={isAdded ? "Check" : (isDelete ? "Trash2" : (isEdit ? "RefreshCw" : "Plus"))} size={12} className={isAdded ? "group-hover:hidden" : ""} />
+                          {isAdded && <Icon name="Undo" size={12} className="hidden group-hover:block" />}
+                          <span className={isAdded ? "group-hover:hidden" : ""}>{buttonText}</span>
+                          {isAdded && <span className="hidden group-hover:block">{t('kbUndo' as any)}</span>}
                         </button>
                       </div>
                       {se.description && <span className="text-xs opacity-75 leading-snug">{se.description}</span>}
+                      {(se.clear_scores || se.action === 'clear_scores') && (
+                        <div className="flex items-center gap-1 mt-1.5 text-[10px] text-red-500 dark:text-red-400 font-bold bg-red-500/10 w-fit px-1.5 py-0.5 rounded-md">
+                          <Icon name="Eraser" size={10} />
+                          <span>{t('clearScores' as any) || 'Clear existing scores'}</span>
+                        </div>
+                      )}
+                      {se.scores && se.scores.length > 0 && (
+                        <div className="flex flex-col gap-1 mt-1.5 border-t border-black/5 dark:border-white/5 pt-1.5">
+                          <span className="text-[9px] font-bold opacity-60 uppercase tracking-wider">Suggested Scores</span>
+                          {se.scores.map((sc: any, sidx: number) => (
+                            <div key={sidx} className="flex justify-between items-center text-[10px] bg-black/5 dark:bg-white/10 px-1.5 py-1 rounded-md">
+                              <span className="font-medium opacity-90">{sc.feature_name}{sc.state_name ? ` > ${sc.state_name}` : ''}</span>
+                              <span className="opacity-80 italic">{sc.score_value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )
                 })}
@@ -256,12 +324,18 @@ const ChatMessageBubble = React.memo<{
                     if (!addedAll) {
                       window.dispatchEvent(new CustomEvent('add-all-draft-items', { detail: { features: msg.data?.suggested_features, entities: msg.data?.suggested_entities } }));
                       setAddedAll(true);
+                      if (msg.data?.suggested_features) setAddedFeatures(new Set(msg.data.suggested_features.map((_, i) => i)));
+                      if (msg.data?.suggested_entities) setAddedEntities(new Set(msg.data.suggested_entities.map((_, i) => i)));
+                    } else {
+                      handleUndo();
                     }
                   }}
-                  disabled={addedAll}
-                  className={`text-xs px-3 py-1.5 rounded-lg transition-colors shadow-sm font-bold flex items-center gap-1.5 ${addedAll ? 'bg-green-500/20 text-green-600 dark:text-green-400 cursor-default shadow-none' : 'bg-accent text-white hover:bg-accent-hover cursor-pointer'}`}
+                  className={`text-xs px-3 py-1.5 rounded-lg transition-colors shadow-sm font-bold flex items-center gap-1.5 group ${addedAll ? 'bg-green-500/20 text-green-600 dark:text-green-400 hover:bg-red-500/20 hover:text-red-500 dark:hover:text-red-400 cursor-pointer shadow-none' : (hasEdits ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer' : 'bg-accent text-white hover:bg-accent-hover cursor-pointer')}`}
                 >
-                  <Icon name={addedAll ? "Check" : "Plus"} size={14} /> {addedAll ? (t('addedItem' as any) || 'Added') : t('addAllToKey' as any)}
+                  <Icon name={addedAll ? "Check" : (hasEdits ? "RefreshCw" : "Plus")} size={14} className={addedAll ? "group-hover:hidden" : ""} />
+                  {addedAll && <Icon name="Undo" size={14} className="hidden group-hover:block" />}
+                  <span className={addedAll ? "group-hover:hidden" : ""}>{addedAll ? (t('addedItem' as any) || 'Added') : (hasEdits ? t('updateAllToKey' as any) || 'Update All' : t('addAllToKey' as any))}</span>
+                  {addedAll && <span className="hidden group-hover:block">{t('kbUndo' as any)}</span>}
                 </button>
               </div>
             )}
@@ -271,7 +345,7 @@ const ChatMessageBubble = React.memo<{
         {/* Read More Toggle */}
         {isLong && !isEditing && (
           <div className="mt-1">
-            <button onClick={() => setIsExpanded(!isExpanded)} className="text-xs text-accent font-semibold hover:underline focus:outline-none">
+            <button onClick={() => setIsExpanded(!isExpanded)} className={`text-xs font-semibold hover:underline focus:outline-none ${msg.sender === 'user' ? 'text-white/90 hover:text-white' : 'text-accent'}`}>
               {isExpanded ? t('readLess') : t('readMore')}
             </button>
           </div>
@@ -347,9 +421,6 @@ const ChatMessageBubble = React.memo<{
               {hasFeatures && (
                 <div className="mb-2 last:mb-0"><h4 className="text-xs font-semibold mb-1 opacity-80 uppercase tracking-wider">{t('aiFeaturesConsidered')}</h4><ul className="list-disc list-inside text-xs space-y-1 opacity-90">{msg.data!.features_used.map(f => { const feature = keyData!.allFeatures.get(f.id); const featureName = feature ? (feature.parentName ? `${feature.parentName}: ${feature.name}` : feature.name) : f.description; return { f, featureName }; }).sort((a, b) => a.featureName.localeCompare(b.featureName)).map(({ f, featureName }) => <li key={f.id}>{featureName}</li>)}</ul></div>
               )}
-              {hasEntities && (
-                <div className="mb-2 last:mb-0"><h4 className="text-xs font-semibold mb-1 opacity-80 uppercase tracking-wider">{t('aiEntitiesConsidered')}</h4><ul className="list-disc list-inside text-xs space-y-1 opacity-90">{[...msg.data!.entities_used].sort((a, b) => a.name.localeCompare(b.name)).map(e => (<li key={e.id}>{e.name}</li>))}</ul></div>
-              )}
             </div>
           </div>
         </div>
@@ -377,6 +448,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
   const backdropRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const mentionRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const shouldScrollToBottom = useRef(true);
 
   const [mentionState, setMentionState] = useState<{ active: boolean; search: string; startIndex: number }>({ active: false, search: '', startIndex: -1 });
   const [mentionSelectedIndex, setMentionSelectedIndex] = useState(0);
@@ -572,6 +644,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
         sender: 'ai',
         content,
         data: msg.data,
+        draftSnapshot: msg.draftSnapshot,
         versions: msg.versions,
         currentVersionIndex: msg.currentVersionIndex
       };
@@ -579,7 +652,10 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
   }, [rawChatHistory, t, keyData, appMode]);
 
   useEffect(() => {
-    chatHistoryRef.current?.scrollTo(0, chatHistoryRef.current.scrollHeight);
+    if (shouldScrollToBottom.current) {
+      chatHistoryRef.current?.scrollTo(0, chatHistoryRef.current.scrollHeight);
+    }
+    shouldScrollToBottom.current = true;
   }, [chatHistory]);
 
   const handleEntityClick = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -653,29 +729,43 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
     // Find entities and features referenced in the most recent AI response to maintain conversational context
     const lastAiMessage = currentHistory.slice().reverse().find(m => m.sender === 'ai' && m.data);
     const previousEntityNames = (lastAiMessage?.data?.entities_used || []).map(e => e.name.toLowerCase());
-    const previousFeatureIds = (lastAiMessage?.data?.features_used || []).map(f => f.id);
+    const previousFeaturesUsed = lastAiMessage?.data?.features_used || [];
 
-    const relevantEntityProfiles = keyData ? Array.from(keyData.entityProfiles.values())
-      .filter(ep => lowerInput.includes(ep.name.toLowerCase()) || previousEntityNames.includes(ep.name.toLowerCase()))
-      .map(ep => ({
+    // Compute the entities that are currently matching based on the previously mapped features
+    const matchingEntities = keyData ? findMatchingEntities(previousFeaturesUsed as GeminiFeatureMatch[], keyData) : [];
+    const matchingEntityIds = matchingEntities.map(e => e.id);
+    const isSmallMatchSet = matchingEntities.length > 0 && matchingEntities.length <= 10;
+
+    const relevantEntityProfiles = keyData ? Array.from(keyData.entityProfiles.entries())
+      .filter(([id, ep]) => 
+        lowerInput.includes(ep.name.toLowerCase()) || 
+        previousEntityNames.includes(ep.name.toLowerCase()) ||
+        (isSmallMatchSet && matchingEntityIds.includes(id))
+      )
+      .map(([id, ep]) => ({
         name: ep.name,
         characteristics: ep.characteristics.map(c => `${c.parent ? c.parent + ': ' : ''}${c.text}`)
       })) : [];
 
-    // Pre-search the feature list using keyword matching to reduce payload size
-    const fullSearchContext = (consolidatedDescription.current + " " + text).toLowerCase();
-    const relevantFeatures = currentImage || !keyData ? (keyData?.featureListForAI || []) : keyData.featureListForAI.filter(f => {
-      if (previousFeatureIds.includes(f.id)) return true; // keep previously used features context
-
-      // Include CJK full-width punctuation in the split (e.g., 、 。 ！ ？ 「 」 【 】)
-      const words = f.description.toLowerCase().split(/[\s:\-,()。、！？「」【】]+/);
-      return words.some(word => {
-        // Include Korean Hangul (\uAC00-\uD7AF, \u3130-\u318F)
-        const isCJK = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uF900-\uFAFF\uFF66-\uFF9F\uAC00-\uD7AF\u3130-\u318F]/.test(word);
-        return (isCJK ? word.length >= 1 : word.length > 3) && fullSearchContext.includes(word);
-      });
+    // We send all features to the AI so it can perform semantic matching (e.g. mapping "square" to "rectangular")
+    const featuresToSend = (keyData?.featureListForAI || []).map(f => {
+      if (!keyData) return f;
+      const findNode = (nodes: any[], id: string): any => {
+        for (const n of nodes) {
+          if (n.id === id) return n;
+          if (n.children) {
+            const found = findNode(n.children, id);
+            if (found) return found;
+          }
+        }
+        return null;
+      };
+      const node = findNode(keyData.featureTree, f.id);
+      if (node && node.children && node.children.length > 0 && node.children[0].isState) {
+        return { ...f, states: node.children.map((c: any) => ({ id: c.id, name: c.name })) };
+      }
+      return f;
     });
-    const featuresToSend = relevantFeatures.length > 0 ? relevantFeatures : (keyData?.featureListForAI || []);
 
     const languageNames: Record<string, string> = {
       'en': 'English',
@@ -698,8 +788,15 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
     const targetLanguage = languageNames[lang] || 'English';
 
     const draft = getCurrentDraft?.();
-    const existingFeatures = draft?.features.map((f: any) => f.name).join(', ') || 'None';
-    const existingEntities = draft?.entities.map((e: any) => e.name).join(', ') || 'None';
+    const compactFeatures = draft?.features.map((f: any) => ({ 
+      id: f.id, 
+      name: f.name, 
+      type: f.type, 
+      base_unit: f.base_unit,
+      unit_prefix: f.unit_prefix,
+      states: f.states?.map((s:any) => ({ id: s.id, name: s.name, values: s.values?.map((v:any) => ({ id: v.id, name: v.name })) })) 
+    })) || [];
+    const compactEntities = draft?.entities.map((e: any) => ({ id: e.id, name: e.name })) || [];
 
     const systemInstruction = appMode === 'identify' ? `You are an expert taxonomist assisting a user with a Lucid identification key.
 
@@ -709,13 +806,15 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
 - Description: ${keyData?.keyDescription}
 
 **Instructions:**
-1. Determine if the user is describing a specimen for identification OR asking an informational question about the key, its features, or its entities.
+1. Determine if the user is describing a specimen for identification OR asking an informational question. Treat all inputs as "Identifying a Specimen" UNLESS the user is explicitly asking a direct question.
 2. **If Identifying a Specimen:**
-   - Read the "Current Description", "New User Message", and analyze any provided images. Synthesize them into an "updated_description" (e.g., adding newly observed visual traits, or replacing corrected ones).
-   - Map the traits based ONLY on the "updated_description" (which now includes your visual analysis) to the provided "Feature List". Populate "features_used".
-   - Try your best to identify the exact entities based on the description and images, and include your best matches from the Entity Profiles in "entities_used". Leave "answer" empty.
+   - Read the "Current Description" and "New User Message". Synthesize them into an "updated_description". ACCUMULATE traits (e.g., if the user adds a new location or feature, keep the previous ones too). Only replace traits if the user corrects them, and completely clear previous traits ONLY if the user explicitly wants to start over.
+   - Map the traits based ONLY on the "updated_description" (which now includes your visual analysis) to the provided "Feature List". Semantically match user descriptions to the most appropriate feature states. Populate "features_used" with ALL currently active features. DO NOT drop previous features unless corrected/started over.
+   - Try your best to identify the exact entities based on the description and images, and include your best matches from the Entity Profiles in "entities_used".
+   - **CRITICAL:** When identifying, you MUST leave "answer" as an empty string (""). You MUST leave "suggested_features" and "suggested_entities" as empty arrays ([]). Do NOT provide conversational text. The system handles the interaction.
 3. **If Asking a Question:**
    - Provide a helpful, professional, and concise response based STRICTLY on the Key Metadata, Feature List, or Entity Profiles in the "answer" field.
+   - **Summarize Entity Details:** When asked about an entity, provide a brief, high-level summary of its most distinctive traits. Do NOT list every single characteristic unless the user explicitly asks for all details.
    - **Structure:** Start with a direct answer, followed by supporting details using bullet points if applicable.
    - **Constraints:** Do not invent or hallucinate information outside of the provided data. Only answer questions related to taxonomy, specimen identification, or the provided key data. If the answer is not in the data or the question is off-topic, politely state that you cannot answer it based on the available information. Use Markdown to format your response.
    - Set "updated_description" to exactly match the "Current Description".
@@ -723,22 +822,34 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
 4. **Language:** Always formulate your conversational "answer" and the "updated_description" in ${targetLanguage}.
 5. **JSON Output:** Respond ONLY with a single JSON object with this structure:
     - \`updated_description\`: (string) The running description of the entity.
-    - \`features_used\`: (array of objects) With \`id\`, \`description\`, and optionally \`value\`.
+    - \`features_used\`: (array of objects) With \`id\`, \`description\`, and optionally \`value\`. For categorical features, ALWAYS use the specific state's \`id\` instead of the parent feature's \`id\`.
     - \`entities_used\`: (array of objects) With \`id\` and \`name\` of entities explicitly mentioned.
-    - \`answer\`: (string) Your conversational answer to a question (leave empty if identifying).
+    - \`answer\`: (string) Your conversational answer to a question (MUST be empty if identifying a specimen).
+    - \`suggested_features\`: (array) ALWAYS empty [] in this mode.
+    - \`suggested_entities\`: (array) ALWAYS empty [] in this mode.
 ` : `You are an expert taxonomist assisting a user in building an identification key from scratch.
 
 **Instructions:**
 1. The user will ask for suggestions for taxonomic features or entities, or describe a domain.
 2. Provide helpful suggestions using the "suggested_features" and "suggested_entities" arrays.
-3. For features, provide a "name", "description", "type" ("state" or "numeric"), and if "state", a "states" array of possible categorical strings.
-4. For entities, provide a "name" and "description".
-5. Respond with a helpful conversational answer in the "answer" field explaining your suggestions.
-6. Leave "updated_description", "features_used", and "entities_used" empty.
-7. **Language:** Always formulate your "answer", names, descriptions, and states in ${targetLanguage}.
-8. **JSON Output:** Respond ONLY with a single JSON object matching the required schema.
-9. **IMPORTANT Context:** The user already has the following features in their draft: [${existingFeatures}]. Do NOT suggest these again.
-10. **IMPORTANT Context:** The user already has the following entities in their draft: [${existingEntities}]. Do NOT suggest these again.`;
+3. For features, provide a "name", "description", "type" ("state" or "numeric"). If "state", provide a "states" array with "name" and "description" for each categorical state.
+4. For entities, provide a "name", "description", and optionally "scores" mapping the entity to features.
+5. In "scores", use "feature_name", "state_name" (if categorical), and "score_value" (e.g. "Common", "Rare", "Uncertain" for states, or a numeric range like "10-20" for numeric features).
+6. Respond with a helpful conversational answer in the "answer" field explaining your suggestions.
+7. Leave "updated_description", "features_used", and "entities_used" empty.
+8. **Language:** Always formulate your "answer", names, descriptions, and states in ${targetLanguage}.
+9. **JSON Output:** Respond ONLY with a single JSON object matching the required schema.
+10. **Context (Current Draft):**
+Features: ${JSON.stringify(compactFeatures)}
+Entities: ${JSON.stringify(compactEntities)}
+11. **Suggesting vs Editing:**
+- To suggest a NEW item, omit the "id" field in your JSON.
+- To EDIT an existing item (e.g. to add descriptions, change names, or add states/scores), include its exact "id" from the Context. When editing a categorical feature, include the "id" of any existing states you want to preserve or modify.
+- To REMOVE an item, state, or state value, include its "id" and set "action" to "delete".
+- To modify a state's score types (values), include the "values" array in the state. By default, states have Common, Rare, Uncertain, etc. You can provide a new array of values to override them, or use "action": "delete" on specific value objects.
+- To CLEAR ALL SCORES from an entity, you MUST set "clear_scores": true (Example: {"id": "ent1", "clear_scores": true}). Do NOT delete scores one by one.
+- To remove a single specific score, provide it in the "scores" array with "action": "delete".
+- For numeric features, you can optionally include "base_unit" (e.g., metre, square metre, cubic metre, litre, degrees celcius, degrees planar, none) and "unit_prefix" (e.g., kilo, hecto, deca, deci, centi, milli, micro, none). To remove them, set to "none".`;
 
     const prompt = appMode === 'identify' ? `**Data:**
 
@@ -748,11 +859,14 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
 **New User Message:**
 "${[text, currentImage ? '[Image Attached]' : ''].filter(Boolean).join(' ')}"
 
-**Feature List (id, type, description):**
+**Feature List (id, type, description, states?):**
 ${JSON.stringify(featuresToSend)}
 
-**Entity Profiles (name, characteristics):**
-${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `No specific entities cited. Available entities in this key: ${keyData ? Array.from(keyData.allEntities.values()).map(e => e.name).join(', ') : ''}`}` : `**User Request:**
+**Currently Matching Entities:**
+${matchingEntities.length > 0 ? (matchingEntities.length <= 100 ? matchingEntities.map(e => e.name).join(', ') : `${matchingEntities.length} matches`) : 'None'}
+
+**Relevant Entity Profiles (name, characteristics):**
+${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `No specific profiles loaded. Available entities in this key: ${keyData ? Array.from(keyData.allEntities.values()).map(e => e.name).join(', ') : ''}`}` : `**User Request:**
 "${[text, currentImage ? '[Image Attached]' : ''].filter(Boolean).join(' ')}"`;
 
     // Format previous chat history for the API to provide multi-turn context.
@@ -763,25 +877,41 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
         role: (msg.sender === 'user' ? 'user' : 'model') as 'user' | 'model',
         parts: [{
           text: msg.sender === 'user'
-            ? [msg.content, (msg as any).imageUrl ? '[Image Attached]' : ''].filter(Boolean).join(' ')
-            : JSON.stringify(msg.data) // Pass the AI's previous JSON responses back to it
+            ? ([msg.content, (msg as any).imageUrl ? '[Image Attached]' : ''].filter(Boolean).join(' ') || ' ')
+            : (JSON.stringify(msg.data) || '{}') // Pass the AI's previous JSON responses back to it
         }]
       }));
 
     const imagePayload = currentImage ? { mimeType: currentImage.mimeType, data: currentImage.base64 } : undefined;
     const model = currentImage ? 'gemini-flash-latest' : 'gemini-3.1-flash-lite-preview';
 
+    console.log("=== AI Request Debug ===");
+    console.log("System Instruction:", systemInstruction);
+    console.log("History Payload:", JSON.stringify(historyPayload, null, 2));
+    console.log("Prompt:", prompt);
+
     try {
       let response;
       try {
         response = await callGeminiAPI(prompt, model, geminiApiKey, systemInstruction, historyPayload, imagePayload);
       } catch (err) {
-        if (model !== 'gemini-3.1-flash-lite-preview') {
-          response = await callGeminiAPI(prompt, 'gemini-3.1-flash-lite-preview', geminiApiKey, systemInstruction, historyPayload, imagePayload);
-        } else {
-          throw err;
+        try {
+          if (model !== 'gemini-3.1-flash-lite-preview') {
+            response = await callGeminiAPI(prompt, 'gemini-3.1-flash-lite-preview', geminiApiKey, systemInstruction, historyPayload, imagePayload);
+          } else {
+            throw err;
+          }
+        } catch (fallbackErr) {
+          try {
+            response = await callGeminiAPI(prompt, 'gemini-2.5-flash-lite', geminiApiKey, systemInstruction, historyPayload, imagePayload);
+          } catch (secondFallbackErr) {
+            response = await callGeminiAPI(prompt, 'gemini-2.5-flash', geminiApiKey, systemInstruction, historyPayload, imagePayload);
+          }
         }
       }
+
+      console.log("=== AI Response Debug ===");
+      console.log("Response:", JSON.stringify(response, null, 2));
 
       // Stop "thinking" indicator
       setIsThinking(false);
@@ -789,17 +919,19 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
       // Delay showing the response to make it feel less abrupt
       setTimeout(() => {
         consolidatedDescription.current = response.updated_description;
+        const currentSnapshot = getCurrentDraft?.();
         if (regenerateAiIndex !== undefined && regenerateAiIndex !== -1) {
           setRawChatHistory(prev => {
             const newHistory = [...prev];
             const targetMsg = newHistory[regenerateAiIndex];
-            const newVersion: AiMessageVersion = { aiType: 'response', data: response };
-            const versions = targetMsg.versions ? [...targetMsg.versions] : [{ aiType: targetMsg.aiType!, data: targetMsg.data, errorText: targetMsg.errorText }];
+            const newVersion: AiMessageVersion = { aiType: 'response', data: response, draftSnapshot: currentSnapshot };
+            const versions = targetMsg.versions ? [...targetMsg.versions] : [{ aiType: targetMsg.aiType!, data: targetMsg.data, errorText: targetMsg.errorText, draftSnapshot: targetMsg.draftSnapshot }];
             versions.push(newVersion);
             newHistory[regenerateAiIndex] = {
               ...targetMsg,
               aiType: 'response',
               data: response,
+              draftSnapshot: currentSnapshot,
               errorText: undefined,
               versions,
               currentVersionIndex: versions.length - 1
@@ -811,7 +943,8 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
             sender: 'ai',
             aiType: 'response',
             data: response,
-            versions: [{ aiType: 'response', data: response }],
+            draftSnapshot: currentSnapshot,
+            versions: [{ aiType: 'response', data: response, draftSnapshot: currentSnapshot }],
             currentVersionIndex: 0
           };
           setRawChatHistory(prev => [...prev, aiMessage]);
@@ -881,6 +1014,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
   };
 
   const handleVersionChange = (index: number, newVersionIndex: number) => {
+    shouldScrollToBottom.current = false;
     setRawChatHistory(prev => {
       const newHistory = [...prev];
       const msg = newHistory[index];
@@ -890,6 +1024,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
           ...msg,
           aiType: version.aiType,
           data: version.data,
+          draftSnapshot: version.draftSnapshot,
           errorText: version.errorText,
           currentVersionIndex: newVersionIndex
         };

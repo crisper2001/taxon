@@ -177,7 +177,7 @@ html, body {
     @apply text-text hover:bg-hover-bg/80 bg-panel-bg/50 backdrop-blur-sm border border-white/20 dark:border-white/10 px-3 py-1.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-sm hover:shadow-md;
   }
   .btn-danger {
-    @apply text-red-500 hover:bg-red-500/95 hover:backdrop-blur-md hover:text-white border border-red-500/30 hover:border-white/20 px-3 py-1.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-sm hover:shadow-md hover:shadow-red-500/30;
+    @apply text-red-500 hover:bg-red-500/95 hover:backdrop-blur-md hover:text-white border border-red-500/30 hover:border-white/20 px-3 py-1.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-sm hover:shadow-md;
   }
 }
 

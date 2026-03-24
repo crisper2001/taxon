@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { Icon } from '../Icon';
 import type { DraftKeyData } from '../../types';
 import { CustomSelect } from '../common/CustomSelect';
-import { Modal } from '../modals/Modal';
+import { Modal, ConfirmModal } from '../modals';
 
 const flattenHierarchy = <T extends { id: string, parentId?: string }>(items: T[]): { item: T, depth: number }[] => {
   const result: { item: T, depth: number }[] = [];
@@ -31,6 +31,7 @@ interface BuilderScoringTabProps {
 
 export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({ draftKey, updateDraftKey, t }) => {
   const [editingNumeric, setEditingNumeric] = useState<{entityId: string, featureId: string, min: string, max: string} | null>(null);
+  const [isClearMatrixModalOpen, setIsClearMatrixModalOpen] = useState(false);
   const lastEditingNumeric = useRef<{entityId: string, featureId: string, min: string, max: string} | null>(null);
   if (editingNumeric) lastEditingNumeric.current = editingNumeric;
   const currentEditingNumeric = editingNumeric || lastEditingNumeric.current;
@@ -99,6 +100,14 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
       })
     }));
   };
+
+  const clearAllScores = useCallback(() => {
+    updateDraftKey(prev => ({
+      ...prev,
+      entities: prev.entities.map(e => ({ ...e, scores: {} }))
+    }));
+    setIsClearMatrixModalOpen(false);
+  }, [updateDraftKey]);
 
   const getDefaultStateValues = (t: any) => [
     { id: '1', name: t('kbScoreCommon') || 'Common' },
@@ -173,6 +182,9 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
           <Icon name="Target" size={20} className="text-accent" />
           <h3 className="text-xl font-bold text-accent tracking-tight">{t('kbScoring')}</h3>
         </div>
+        <button onClick={() => setIsClearMatrixModalOpen(true)} className="px-3 py-1.5 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-lg text-sm font-bold transition-colors shadow-sm flex items-center gap-1 cursor-pointer">
+          <Icon name="Eraser" size={14} /> <span className="hidden sm:inline">{t('kbClearMatrix' as any) || 'Clear Matrix'}</span>
+        </button>
       </div>
       <div className="flex-1 overflow-auto bg-bg/30 relative custom-scrollbar min-w-0 min-h-0">
         <table 
@@ -334,6 +346,22 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
            );
          })()}
       </Modal>
+
+      <ConfirmModal
+        isOpen={isClearMatrixModalOpen}
+        onClose={() => setIsClearMatrixModalOpen(false)}
+        onConfirm={clearAllScores}
+        title={t('kbClearMatrix' as any) || 'Clear Matrix'}
+        message={
+          <div className="flex items-start gap-3 text-red-500 bg-red-500/10 p-4 rounded-xl border border-red-500/20">
+            <Icon name="TriangleAlert" size={24} className="shrink-0 mt-0.5" />
+            <p className="text-sm font-medium leading-relaxed">{t('kbConfirmClearMatrix' as any) || 'Are you sure you want to clear all scores from the matrix? This action cannot be undone.'}</p>
+          </div>
+        }
+        confirmText={t('kbClearMatrix' as any) || 'Clear Matrix'}
+        cancelText={t('cancel')}
+        isDestructive={true}
+      />
     </div>
   );
 });

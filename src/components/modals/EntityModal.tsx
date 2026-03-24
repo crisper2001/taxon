@@ -407,7 +407,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
 
         <button
           onClick={scrollToTop}
-          className={`absolute md:bottom-6 bottom-20 right-8 p-3 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-full shadow-lg shadow-accent/30 hover:bg-accent-hover transition-all duration-300 z-10 ${showBackToTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 pointer-events-none'}`}
+          className={`absolute md:bottom-6 bottom-20 right-8 p-3 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-full shadow-lg hover:bg-accent-hover transition-all duration-300 z-10 ${showBackToTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 pointer-events-none'}`}
         >
           <Icon name="ArrowUp" size={20} />
         </button>

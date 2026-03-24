@@ -71,7 +71,7 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **FR3.5:** The AI must support conversational Q&A about the key's metadata, available features, and entity characteristics. The AI must structure its responses predictably (e.g., direct answer followed by bullet points) and explicitly reject off-topic questions.
 * **FR3.6:** The system must gracefully handle AI API errors, specifically alerting the user when an API key is invalid or when the API quota has been exceeded.
 * **FR3.7:** The system must display a disclaimer indicating that AI-generated answers may contain incorrect information.
-* **FR3.8:** The system must pre-filter the entity profiles and feature list based on user input (including proper tokenization/matching for CJK languages) before sending them to the AI context to optimize token usage and minimize hallucinations.
+* **FR3.8:** The system must pre-filter the entity profiles sent to the AI context to optimize token usage. Profiles are dynamically included if they match the user's direct input, were referenced by the AI in the previous conversational turn, or if the overall remaining match pool is narrow enough (≤10 entities) to warrant full analytical consideration. The feature list is intentionally sent in its entirety to allow the AI to perform semantic matching (e.g., mapping user synonyms to existing features).
 * **FR3.9:** The AI must formulate any conversational answers or descriptions in the application's currently selected language, regardless of the language used in the user's input.
 * **FR3.10:** The system must supply core persona rules and constraints via the API's dedicated system instructions payload to ensure strong instruction adherence and reduce the risk of prompt injection.
 * **FR3.11:** The chat interface must allow users to copy the plain text content of AI responses to the system clipboard, stripping out any internal interactive markup.
@@ -85,6 +85,7 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **FR3.19:** The system must automatically process, resize (max 1024x1024 pixels), and compress uploaded images to JPEG via an HTML Canvas before transmission to optimize token usage and bandwidth.
 * **FR3.20:** The system must support drag-and-drop, clipboard paste, and manual file selection for uploading images to the AI assistant.
 * **FR3.21:** The system must dynamically select a vision-optimized AI model when an image is attached, and provide an automatic fallback to a lighter model if the primary model request fails.
+* **FR3.22:** The chat interface must include an inline `@` mention system, allowing the user to search and explicitly tag specific features and entities within their prompt to enforce context.
 
 ### 2.4. User Interface & Display
 * **FR4.1:** The application must provide a dedicated Welcome Screen allowing users to branch into either "Identify" or "Create" modes before loading the main interface.
@@ -96,6 +97,7 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **FR4.7:** The application must be fully responsive for mobile devices, dynamically transforming the desktop multi-pane grid layout into horizontally swipeable tab views anchored by a persistent bottom navigation bar.
 * **FR4.8:** Media lightboxes and modal image viewers must support native-feeling mobile touch gestures, allowing users to smoothly swipe horizontally to navigate between images with visual edge-resistance.
 * **FR4.9:** The system must utilize custom-styled UI form elements (such as glassmorphic dropdown menus, text inputs, and checkboxes) consistently across all modes and modals to maintain visual cohesion, replacing default native browser elements.
+* **FR4.10:** The application must dynamically generate and update the browser's Favicon (via an inline SVG data URI) and `theme-color` meta tag to perfectly synchronize with the user's selected UI theme and active accent color.
 
 ### 2.5. Search and Filtering
 * **FR5.1:** Tree components must support text-based search filtering, automatically expanding parent groups to reveal matching child nodes.
@@ -126,6 +128,6 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **FR8.9:** The system must support exporting the constructed key data into a custom JSON format.
 * **FR8.10:** The system must preserve the active draft key locally (via `localStorage`) to prevent accidental data loss across browser refreshes, while still allowing the user to seamlessly navigate between the builder and the Main Menu.
 * **FR8.11:** The system must provide a "Test Key" function that instantly loads the working draft into the Identification Engine for real-time testing without requiring file exports.
-* **FR8.12:** The system must integrate the AI Assistant within the Builder Mode to provide and directly ingest taxonomic feature and entity suggestions based on user domain descriptions. The AI context must dynamically include the draft's existing features and entities to prevent the assistant from suggesting duplicates.
+* **FR8.12:** The system must integrate the AI Assistant within the Builder Mode to provide and directly ingest taxonomic feature and entity suggestions. The AI context must dynamically include the draft's existing features and entities to prevent duplicates. Additionally, AI message blocks must store deep state snapshots to provide a contextual "Undo" button, allowing users to instantly cleanly revert complex, multi-item taxonomy ingestions.
 * **FR8.13:** The system must provide a safe "New Key" workflow that prompts the user to export their current draft before wiping the active builder state.
 * **FR8.14:** The system must provide a dedicated, horizontally-scrollable Scoring Matrix interface that plots entities against features/states. The matrix must support interactive crosshair highlighting for row/column tracking, allow setting numeric range bounds (`min`/`max`) via modals, and support left-click (quick cycle) and right-click (dropdown selection) interactions for categorical state assignments.

@@ -160,6 +160,7 @@ export interface AiMessageVersion {
   aiType: AiMessageType;
   data?: GeminiResponse;
   errorText?: string;
+  draftSnapshot?: DraftKeyData;
 }
 
 export interface RawChatMessage {
@@ -170,6 +171,7 @@ export interface RawChatMessage {
   errorText?: string; // for 'error' type
   versions?: AiMessageVersion[];
   currentVersionIndex?: number;
+  draftSnapshot?: DraftKeyData;
 }
 
 // Re-export from Icon component to make it available elsewhere
