@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from './Modal';
 import { Icon } from '../Icon';
 import { translations } from '../../constants';
@@ -40,6 +40,12 @@ interface PreferencesModalProps {
 export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onClose, currentPrefs, onPreferenceChange, t, availableLanguages, onClearData }) => {
     const [activeTab, setActiveTab] = useState<'general' | 'interface' | 'ai' | 'about'>('general');
 
+    useEffect(() => {
+        if (isOpen) {
+            setActiveTab('general');
+        }
+    }, [isOpen]);
+
     const prefButtonClasses = (isSelected: boolean) =>
         `px-4 py-3 rounded-2xl border transition-all duration-300 flex items-center gap-2 justify-center w-full font-bold
         ${isSelected
@@ -60,6 +66,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                                 onChange={(val) => onPreferenceChange('lang', val as Language)}
                                 options={availableLanguages.map(langCode => ({ value: langCode, label: languageNames[langCode] || langCode }))}
                                 className="input-base w-full font-semibold cursor-pointer"
+                                dropdownClassName="max-h-48 overflow-y-auto"
                             />
                         </div>
                         
@@ -137,7 +144,11 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                 {activeTab === 'about' && (
                     <div className="space-y-6 text-center flex flex-col items-center justify-center h-full pt-4">
                         <h2 className="text-5xl font-black flex items-center justify-center gap-3 mb-2 text-accent tracking-tight">
-                            <Icon name="Leaf" size={48} /> Taxon
+                            <Icon name="Leaf" size={48} />
+                            <span className="flex items-start gap-2">
+                                Taxon
+                                <span className="text-[10px] font-bold bg-accent/10 text-accent px-1.5 py-0.5 rounded-md border border-accent/20 uppercase tracking-widest mt-1.5">Beta</span>
+                            </span>
                         </h2>
                         <div className="text-xs text-text/60 font-semibold bg-panel-bg/60 backdrop-blur-sm px-3 py-1 rounded-full border border-black/10 dark:border-white/10 shadow-sm">
                             {t('version' as any) || 'Version'} {packageJson.version}

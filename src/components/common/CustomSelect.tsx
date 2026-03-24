@@ -11,13 +11,14 @@ interface CustomSelectProps {
   options: Option[];
   onChange: (value: string) => void;
   className?: string;
+  dropdownClassName?: string;
   hideChevron?: boolean;
   customTrigger?: React.ReactNode;
   onTriggerClick?: (e: React.MouseEvent<HTMLButtonElement>, toggleOpen: () => void) => void;
   onTriggerContextMenu?: (e: React.MouseEvent<HTMLButtonElement>, toggleOpen: () => void) => void;
 }
 
-export const CustomSelect: React.FC<CustomSelectProps> = ({ value, options, onChange, className = '', hideChevron = false, customTrigger, onTriggerClick, onTriggerContextMenu }) => {
+export const CustomSelect: React.FC<CustomSelectProps> = ({ value, options, onChange, className = '', dropdownClassName = 'max-h-96 overflow-y-auto', hideChevron = false, customTrigger, onTriggerClick, onTriggerContextMenu }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -68,7 +69,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({ value, options, onCh
         )}
       </button>
       
-      <div className={`absolute z-[100] min-w-max w-full bg-panel-bg/95 backdrop-blur-xl border rounded-2xl shadow-2xl ${hideChevron ? 'left-1/2 -translate-x-1/2' : 'left-0'} transition-all duration-300 origin-top ${isOpen ? 'mt-2 border-white/20 dark:border-white/10 py-1.5 max-h-96 overflow-y-auto opacity-100 scale-y-100 pointer-events-auto' : 'mt-0 border-transparent py-0 max-h-0 overflow-hidden opacity-0 scale-y-95 pointer-events-none'}`}>
+      <div className={`absolute z-100 min-w-max w-full bg-panel-bg border rounded-2xl shadow-2xl ${hideChevron ? 'left-1/2 -translate-x-1/2' : 'left-0'} transition-all duration-300 origin-top ${isOpen ? `mt-2 border-white/20 dark:border-white/10 py-1.5 opacity-100 scale-y-100 pointer-events-auto ${dropdownClassName}` : 'mt-0 border-transparent py-0 max-h-0 overflow-hidden opacity-0 scale-y-95 pointer-events-none'}`}>
         {options.map(option => (
           <button
             key={option.value}

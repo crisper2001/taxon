@@ -557,8 +557,8 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
       <ActionButton onClick={() => setKeyPromptMode('new')} title={t('kbNewKey' as any)} icon="FilePlus" />
       <ActionButton onClick={() => setKeyPromptMode('open')} title={t('openNativeKey')} icon="FolderOpen" />
       <ActionButton onClick={exportJson} title={t('exportJson')} icon="Download" />
-      <ActionButton onClick={() => onTestKey?.(draftKey)} title={t('kbTestKey' as any)} icon="Play" iconClass="text-accent" />
       <ActionButton onClick={() => setShowMetadataModal(true)} title={t('kbMetadata')} icon="Info" />
+      <ActionButton onClick={() => onTestKey?.(draftKey)} title={t('kbTestKey' as any)} icon="Play" iconClass="text-accent" />
       <ActionButton onClick={openPreferences} title={t('preferences')} icon="Settings2" />
       <div className="w-px h-6 bg-border mx-1 opacity-50" />
       <ActionButton onClick={undo} disabled={historyIndex <= 0} title={t('kbUndo')} icon="Undo" />

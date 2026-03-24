@@ -194,7 +194,7 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
   if (!isRendered || !media || media.length === 0) return null;
 
   return (
-    <div onClick={onClose} className={`fixed inset-0 bg-black/80 backdrop-blur-2xl z-[70] flex flex-col items-center justify-center p-4 transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+    <div onClick={onClose} className={`fixed inset-0 bg-black/80 backdrop-blur-2xl z-70 flex flex-col items-center justify-center p-4 transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
       <button onClick={onClose} className="absolute top-6 right-6 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full p-2.5 transition-all duration-300 z-20 backdrop-blur-md cursor-pointer border border-white/10 shadow-lg hover:shadow-xl">
         <Icon name="X" size={28} />
       </button>

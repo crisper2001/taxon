@@ -704,7 +704,11 @@ const App: React.FC = () => {
             <div className={`absolute inset-0 z-50 flex items-center justify-center w-full bg-bg transition-all duration-500 ease-in-out ${isHome ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
               <div className={`relative z-10 flex flex-col items-center justify-center w-full p-8 transition-transform duration-500 ease-in-out ${isHome ? 'scale-100' : 'scale-[1.02]'}`}>
                 <h2 className="text-6xl font-black flex items-center justify-center gap-4 mb-12 animate-fade-in-up text-accent tracking-tight">
-                  <Icon name="Leaf" size={60} /> Taxon
+                  <Icon name="Leaf" size={60} /> 
+                  <span className="flex items-start gap-3">
+                    Taxon
+                    <span className="text-xs font-bold bg-accent/10 text-accent px-2 py-0.5 rounded-lg border border-accent/20 uppercase tracking-widest mt-2">Beta</span>
+                  </span>
                 </h2>
                 <div className="flex flex-col md:flex-row gap-6 w-full max-w-2xl mb-8">
                   <HomeButton 
