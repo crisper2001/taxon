@@ -1,12 +1,12 @@
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        - GEMINI_API_KEY=${GEMINI_API_KEY}
+    build: .
     ports:
-      - "8080:80"
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
     environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-    restart: unless-stopped
+      # Polling is often required for file watching to work across file systems (Host -> Docker)
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true

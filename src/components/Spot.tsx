@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 
 // Define the component's props using a TypeScript type or interface.
 // We also extend the standard SVG props to allow passing width, className, etc.
@@ -74,13 +74,21 @@ const Body = ({ primaryColor, secondaryColor }: Pick<SpotProps, 'primaryColor' |
  * The component can render either the full body or just the head.
  */
 const Spot: React.FC<SpotProps> = ({
-    primaryColor,
-    secondaryColor,
+    primaryColor = '#000000',
+    secondaryColor = '#f8fafb',
     mode = 'body',
     ...props
 }) => {
     const isHeadOnly = mode === 'head';
     const viewBox = isHeadOnly ? '0 0 586 406' : '0 0 303 641';
+    const uniqueId = useId().replace(/:/g, '');
+    const primaryGradId = `spot-prim-${uniqueId}`;
+    const secondaryGradId = `spot-sec-${uniqueId}`;
+    
+    const primaryWhiteMix = isHeadOnly ? '15%' : '30%';
+    const primaryBlackMix = isHeadOnly ? '10%' : '20%';
+    const secondaryWhiteMix = isHeadOnly ? '10%' : '20%';
+    const secondaryBlackMix = isHeadOnly ? '5%' : '10%';
 
     return (
         <svg
@@ -89,20 +97,23 @@ const Spot: React.FC<SpotProps> = ({
             viewBox={viewBox}
             {...props} // Allows overriding width, height, className, etc.
         >
+            <defs>
+                <linearGradient id={primaryGradId} x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor={primaryColor} style={{ stopColor: `color-mix(in srgb, ${primaryColor}, white ${primaryWhiteMix})` }} />
+                    <stop offset="100%" stopColor={primaryColor} style={{ stopColor: `color-mix(in srgb, ${primaryColor}, black ${primaryBlackMix})` }} />
+                </linearGradient>
+                <linearGradient id={secondaryGradId} x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor={secondaryColor} style={{ stopColor: `color-mix(in srgb, ${secondaryColor}, white ${secondaryWhiteMix})` }} />
+                    <stop offset="100%" stopColor={secondaryColor} style={{ stopColor: `color-mix(in srgb, ${secondaryColor}, black ${secondaryBlackMix})` }} />
+                </linearGradient>
+            </defs>
             {isHeadOnly ? (
-                <Head primaryColor={primaryColor} secondaryColor={secondaryColor} />
+                <Head primaryColor={`url(#${primaryGradId})`} secondaryColor={`url(#${secondaryGradId})`} />
             ) : (
-                <Body primaryColor={primaryColor} secondaryColor={secondaryColor} />
+                <Body primaryColor={`url(#${primaryGradId})`} secondaryColor={`url(#${secondaryGradId})`} />
             )}
         </svg>
     );
-};
-
-// Default props are still useful for setting default values.
-Spot.defaultProps = {
-    primaryColor: '#000000',
-    secondaryColor: '#f8fafb',
-    mode: 'body',
 };
 
 export default Spot;

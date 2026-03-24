@@ -1,7 +1,10 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Panel } from './Panel';
 import type { KeyData, ChosenFeature, FeatureNode } from '../../types';
 import { RenderFeatureNode } from './FeatureNodeRenderer';
+import { useAppContext } from '../../context/AppContext';
+import { Icon } from '../Icon';
+import { useSearchAutoScroll } from '../../hooks/useSearchAutoScroll';
 
 // --- ChosenFeaturesPanel ---
 interface ChosenFeaturesPanelProps {
@@ -16,6 +19,12 @@ export const ChosenFeaturesPanel: React.FC<ChosenFeaturesPanelProps> = ({ chosen
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedNodes, setExpandedNodes] = useState(new Set<string>());
   const [matchingIds, setMatchingIds] = useState<Set<string> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  const [matchCount, setMatchCount] = useState(0);
+  const { resetKey } = useAppContext();
+  const [isFooterVisible, setIsFooterVisible] = useState(false);
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleToggleNode = (id: string) => {
     setExpandedNodes(prev => {
@@ -25,6 +34,27 @@ export const ChosenFeaturesPanel: React.FC<ChosenFeaturesPanelProps> = ({ chosen
       return newSet;
     });
   };
+
+  const showFooter = () => {
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+    }
+    setIsFooterVisible(true);
+  };
+
+  const hideFooter = () => {
+    hideTimeoutRef.current = setTimeout(() => {
+      setIsFooterVisible(false);
+    }, 300);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // 1. Create a new tree containing only chosen features and their ancestors
   const chosenTree = useMemo(() => {
@@ -46,7 +76,9 @@ export const ChosenFeaturesPanel: React.FC<ChosenFeaturesPanelProps> = ({ chosen
   useEffect(() => {
     if (!searchTerm) {
       setMatchingIds(null);
-      setExpandedNodes(new Set());
+      if (matchingIds !== null) {
+        setExpandedNodes(prev => prev.size > 0 ? new Set() : prev);
+      }
       return;
     }
 
@@ -62,12 +94,16 @@ export const ChosenFeaturesPanel: React.FC<ChosenFeaturesPanelProps> = ({ chosen
         if (node.isState || node.type === 'numeric') {
           if (selfMatches) subtreeHasMatch = true;
         } else {
-          childrenMatch = findMatches(node.children, [...parents, node.id]);
+          parents.push(node.id);
+          childrenMatch = findMatches(node.children, parents);
+          parents.pop();
         }
 
+        if (selfMatches) {
+          newMatching.add(node.id);
+        }
         if (selfMatches || childrenMatch) {
           subtreeHasMatch = true;
-          newMatching.add(node.id);
           parents.forEach(p => newExpanded.add(p));
         }
       }
@@ -79,7 +115,14 @@ export const ChosenFeaturesPanel: React.FC<ChosenFeaturesPanelProps> = ({ chosen
     setExpandedNodes(newExpanded);
   }, [searchTerm, chosenTree]);
 
-  // 3. Calculate the count of unique features (not states)
+  // Reset match index when search changes
+  useEffect(() => {
+    setCurrentMatchIndex(0);
+  }, [searchTerm, matchingIds]);
+
+  useSearchAutoScroll(containerRef, searchTerm, matchingIds, currentMatchIndex, setCurrentMatchIndex, setMatchCount);
+
+  // 2. Calculate the count of unique features (not states)
   const featureCount = useMemo(() => {
     const uniqueFeatures = new Set<string>();
     for (const id of chosenFeatures.keys()) {
@@ -94,22 +137,48 @@ export const ChosenFeaturesPanel: React.FC<ChosenFeaturesPanelProps> = ({ chosen
     return uniqueFeatures.size;
   }, [chosenFeatures, keyData.allFeatures]);
 
+  const clearButton = chosenFeatures.size > 0 ? (
+    <div 
+      onMouseEnter={showFooter} 
+      onMouseLeave={hideFooter}
+      className={`transition-opacity duration-300 ${isFooterVisible ? 'opacity-100 pointer-events-auto' : 'max-md:opacity-100 max-md:pointer-events-auto opacity-0 pointer-events-none'}`}
+    >
+      <div className="view-controls flex items-center bg-header-bg/85 backdrop-blur-md rounded-xl p-1 shadow-md border border-white/20 dark:border-white/10">
+        <button onClick={resetKey} title={t('clearFeatures')} className="p-1.5 rounded-lg transition-all duration-300 hover:bg-red-500 hover:text-white hover:shadow-sm text-gray-500 cursor-pointer flex items-center justify-center">
+          <Icon name="Trash2" size={16} />
+        </button>
+      </div>
+    </div>
+  ) : undefined;
+
   return (
-    <Panel title={t('featuresChosen')} icon="ListChecks" count={featureCount} onSearch={setSearchTerm}>
-      {chosenTree.map(node => (
-        <RenderFeatureNode
-          key={node.id}
-          node={node}
-          keyData={keyData}
-          chosenFeatures={chosenFeatures}
-          onFeatureChange={onFeatureChange}
-          onImageClick={onImageClick}
-          t={t}
-          expandedNodes={expandedNodes}
-          onToggleNode={handleToggleNode}
-          matchingIds={matchingIds}
-        />
-      ))}
+    <Panel 
+      title={t('featuresChosen')} 
+      icon="ListChecks" 
+      count={featureCount} 
+      onSearch={setSearchTerm}
+      currentMatchIndex={currentMatchIndex}
+      matchCount={matchCount}
+      onPrevMatch={() => setCurrentMatchIndex(prev => prev - 1)}
+      onNextMatch={() => setCurrentMatchIndex(prev => prev + 1)}
+      footer={clearButton}
+    >
+      <div ref={containerRef} onMouseEnter={showFooter} onMouseLeave={hideFooter} className="h-full min-h-[50px]">
+        {chosenTree.map(node => (
+          <RenderFeatureNode
+            key={node.id}
+            node={node}
+            keyData={keyData}
+            chosenFeatures={chosenFeatures}
+            onFeatureChange={onFeatureChange}
+            onImageClick={onImageClick}
+            t={t}
+            expandedNodes={expandedNodes}
+            onToggleNode={handleToggleNode}
+            matchingIds={matchingIds}
+          />
+        ))}
+      </div>
     </Panel>
   );
 };

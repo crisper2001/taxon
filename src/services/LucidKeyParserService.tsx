@@ -1,5 +1,5 @@
 import JSZip from 'jszip';
-import type { KeyData, FeatureNode, Feature, Score, StateScore, NumericScore, EntityProfile, FeatureType, ScoreType, Media, EntityNode } from '../types';
+import type { KeyData, FeatureNode, Feature, Score, StateScore, NumericScore, EntityProfile, FeatureType, ScoreType, Media, EntityNode, DraftKeyData } from '../types';
 
 // --- Lucid Key Parser Service ---
 
@@ -39,7 +39,7 @@ export class LucidKeyParser {
       this.zip = await jszip.loadAsync(zipFile);
     } catch (e) {
       console.error("JSZip failed to load the file:", e);
-      throw new Error("The selected file could not be read. It might be corrupted or not a valid Lucid key (zip, lk4, lk5) file.");
+      throw new Error("errCorruptedFile");
     }
 
     this.keyName = zipFile.name.replace(/\.(zip|lk4|lk5)$/i, '');
@@ -49,7 +49,7 @@ export class LucidKeyParser {
       (file as any).dir && (file as any).name.toLowerCase().replace(/\\/g, '/').endsWith('data/')
     );
     if (!dataDirEntry) {
-      throw new Error('Invalid Lucid key zip: "Data" directory not found.');
+      throw new Error('errDataDirNotFound');
     }
     this.dataDirPath = (dataDirEntry as any).name;
     this.rootPath = this.dataDirPath.substring(0, this.dataDirPath.toLowerCase().indexOf('data/'));
@@ -57,7 +57,7 @@ export class LucidKeyParser {
     const innerDataZipPath = `${this.dataDirPath}${this.keyName}.data`;
     const keyDataXml = await this.readFromInnerZip(this.zip, innerDataZipPath, 'key.data');
     if (!keyDataXml) {
-      throw new Error(`Could not find or read "key.data" from the nested archive "${innerDataZipPath}".`);
+      throw new Error('errKeyDataNotFound');
     }
 
     const keyData: KeyData = {
@@ -92,8 +92,16 @@ export class LucidKeyParser {
       if (type === 'text') return;
       const id = el.getAttribute('item_id');
       if (id) {
-        const parentNode = (el.closest('feature_node')?.parentNode as Element)?.closest('feature_node');
-        const parentName = parentNode?.querySelector(':scope > feature_item')?.getAttribute('item_name') ?? undefined;
+        const parentNodes: string[] = [];
+        let currNode = el.closest('feature_node')?.parentNode as Element | null;
+        while (currNode) {
+          const pNode = currNode.closest('feature_node');
+          if (!pNode) break;
+          const pName = pNode.querySelector(':scope > feature_item')?.getAttribute('item_name');
+          if (pName) parentNodes.unshift(pName);
+          currNode = pNode.parentNode as Element | null;
+        }
+        const parentName = parentNodes.length > 0 ? parentNodes.join(' > ') : undefined;
         const name = el.getAttribute('item_name') || 'Unknown Feature';
         const featureInfo: Feature = {
           id, name, type, isState, parentName,
@@ -239,7 +247,8 @@ export class LucidKeyParser {
 
           const profile = keyData.entityProfiles.get(entityId);
           if (profile) {
-            profile.characteristics.push({ text: `${range.min} - ${range.max} ${getUnitSymbol(featureInfo)}`, parent: featureInfo.name, type: 'numeric' });
+            const parentPath = featureInfo.parentName ? `${featureInfo.parentName} > ${featureInfo.name}` : featureInfo.name;
+            profile.characteristics.push({ text: `${range.min} - ${range.max} ${getUnitSymbol(featureInfo)}`, parent: parentPath, type: 'numeric' });
           }
         }
       });
@@ -298,5 +307,116 @@ export class LucidKeyParser {
         console.warn(`Could not load media from zip path: ${pathFromXml}`, e);
       }
     }
+  }
+
+  public processDraftKey(draftKey: DraftKeyData): KeyData {
+    const keyData: KeyData = {
+      keyTitle: draftKey.title || 'Untitled Key',
+      keyAuthors: draftKey.authors || '',
+      keyDescription: draftKey.description || '',
+      allEntities: new Map(), entityTree: [], allFeatures: new Map(),
+      entityMedia: new Map(), featureMedia: new Map(),
+      featureTree: [], entityScores: new Map(),
+      entityProfiles: new Map(), totalFeaturesCount: 0, parsingErrors: [],
+      featureListForAI: [],
+    };
+
+    const entityNodes = new Map<string, EntityNode>();
+    draftKey.entities.forEach(e => {
+      keyData.allEntities.set(e.id, { id: e.id, name: e.name });
+      keyData.entityScores.set(e.id, new Map());
+      keyData.entityProfiles.set(e.id, { name: e.name, description: e.description, characteristics: [] });
+      entityNodes.set(e.id, { id: e.id, name: e.name, children: [], isGroup: false });
+      if (e.media && e.media.length > 0) {
+        keyData.entityMedia.set(e.id, e.media);
+      }
+    });
+
+    draftKey.entities.forEach(e => {
+      const node = entityNodes.get(e.id)!;
+      if (e.parentId && entityNodes.has(e.parentId)) {
+        const parentNode = entityNodes.get(e.parentId)!;
+        parentNode.children.push(node);
+        parentNode.isGroup = true;
+      } else {
+        keyData.entityTree.push(node);
+      }
+    });
+
+    const featureNodes = new Map<string, FeatureNode>();
+    draftKey.features.forEach(f => {
+      const featureType: FeatureType = f.type === 'state' ? 'state' : 'numeric';
+      keyData.allFeatures.set(f.id, {
+        id: f.id,
+        name: f.name,
+        type: featureType,
+        isState: false,
+        description: f.description,
+        base_unit: f.base_unit,
+        unit_prefix: f.unit_prefix,
+      });
+      keyData.featureListForAI.push({ id: f.id, type: featureType, description: f.description ? `${f.name} - ${f.description}` : f.name });
+
+      const featureNode: FeatureNode = {
+        id: f.id,
+        name: f.name,
+        type: featureType,
+        isState: false,
+        children: []
+      };
+
+      if (f.media && f.media.length > 0) {
+        keyData.featureMedia.set(f.id, f.media);
+      }
+      featureNodes.set(f.id, featureNode);
+    });
+
+    draftKey.features.forEach(f => {
+      const featureNode = featureNodes.get(f.id)!;
+      if (f.type === 'state') {
+        f.states.forEach(s => {
+          keyData.allFeatures.set(s.id, { id: s.id, name: s.name, type: 'state', isState: true, parentName: f.name });
+          featureNode.children.push({ id: s.id, name: s.name, type: 'state', isState: true, children: [] });
+
+          if (s.media && s.media.length > 0) {
+            keyData.featureMedia.set(s.id, s.media);
+          }
+          draftKey.entities.forEach(e => {
+            const score = e.scores[s.id] as string;
+            if (score) {
+              const vals = (s as any).values || [
+                { id: '1', name: 'Common' }, { id: '2', name: 'Rare' }, { id: '3', name: 'Uncertain' }, { id: '4', name: 'Common (misinterpreted)' }, { id: '5', name: 'Rare (misinterpreted)' }
+              ];
+              const scoreDef = vals.find((v: any) => v.id === score);
+              keyData.entityScores.get(e.id)?.set(s.id, { value: score as ScoreType });
+              keyData.entityProfiles.get(e.id)?.characteristics.push({ text: s.name, parent: f.name, type: 'state', score: score as ScoreType, scoreName: scoreDef ? scoreDef.name : undefined, scoreColor: scoreDef ? scoreDef.color : undefined, scoreIcon: scoreDef ? scoreDef.iconType : undefined } as any);
+            }
+          });
+        });
+      } else if (f.type === 'numeric') {
+        draftKey.entities.forEach(e => {
+          const score = e.scores[f.id];
+          if (score && typeof score === 'object' && 'min' in score) {
+            keyData.entityScores.get(e.id)?.set(f.id, { min: score.min, max: score.max });
+            keyData.entityProfiles.get(e.id)?.characteristics.push({ text: `${score.min} - ${score.max}`, parent: f.name, type: 'numeric' });
+          }
+        });
+      }
+
+      if (f.parentId && featureNodes.has(f.parentId)) {
+        const parentNode = featureNodes.get(f.parentId)!;
+        parentNode.children.push(featureNode);
+        const parentFeature = keyData.allFeatures.get(f.parentId);
+        if (parentFeature) {
+          keyData.allFeatures.get(f.id)!.parentName = parentFeature.name;
+        }
+      } else {
+        keyData.featureTree.push(featureNode);
+      }
+    });
+
+    keyData.totalFeaturesCount = this.countAvailableFeatures(keyData.featureTree);
+
+    return keyData;
   }
 }

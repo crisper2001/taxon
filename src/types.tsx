@@ -27,6 +27,7 @@ export interface Feature {
   type: FeatureType;
   isState: boolean;
   parentName?: string;
+  description?: string;
   base_unit?: string;
   unit_prefix?: string;
 }
@@ -38,6 +39,9 @@ export interface FeatureNode {
   isState: boolean;
   children: FeatureNode[];
 }
+
+export type Language = 'en' | 'pt-br' | 'pt-pt' | 'es' | 'ru' | 'zh' | 'ja' | 'ko' | 'fr' | 'de' | 'la' | 'it' | 'el' | 'hi' | 'ar' | 'he';
+export type Theme = 'light' | 'dark';
 
 export interface StateScore {
   value: ScoreType;
@@ -59,6 +63,7 @@ export interface Characteristic {
 
 export interface EntityProfile {
   name: string;
+  description?: string;
   characteristics: Characteristic[];
 }
 
@@ -83,13 +88,49 @@ export interface ChosenFeature {
   value?: string | number; // value for numeric features
 }
 
+export interface DraftState {
+  id: string;
+  name: string;
+  media?: Media[];
+}
+
+export interface DraftFeature {
+  id: string;
+  name: string;
+  description?: string;
+  parentId?: string;
+  type: 'numeric' | 'state';
+  states: DraftState[];
+  media?: Media[];
+  base_unit?: string;
+  unit_prefix?: string;
+}
+
+export interface DraftEntity {
+  id: string;
+  name: string;
+  description?: string;
+  parentId?: string;
+  scores: Record<string, string | { min: number; max: number }>;
+  media?: Media[];
+}
+
+export interface DraftKeyData {
+  title: string;
+  authors: string;
+  description: string;
+  features: DraftFeature[];
+  entities: DraftEntity[];
+}
+
 export type ModalState = 
   | { type: 'none' }
   | { type: 'entity'; entityId: string }
-  | { type: 'featureImage'; featureId: string }
+  | { type: 'feature'; featureId: string }
   | { type: 'keyInfo' }
   | { type: 'preferences' }
-  | { type: 'lightbox'; media: Media[]; startIndex: number };
+  | { type: 'lightbox'; media: Media[]; startIndex: number }
+  | { type: 'confirmClear' };
 
 export interface GeminiFeatureMatch {
   id: string;
@@ -106,16 +147,31 @@ export interface GeminiEntityMatch {
 export interface GeminiResponse {
   updated_description: string;
   features_used: GeminiFeatureMatch[];
+  entities_used?: { id: string; name: string }[];
+  answer?: string;
+  suggested_features?: { name: string; description: string; type: 'state' | 'numeric'; states?: string[] }[];
+  suggested_entities?: { name: string; description: string }[];
 }
 
 // Raw message structure for storing in state
 export type AiMessageType = 'ready' | 'response' | 'error' | 'no_features';
+
+export interface AiMessageVersion {
+  aiType: AiMessageType;
+  data?: GeminiResponse;
+  errorText?: string;
+  draftSnapshot?: DraftKeyData;
+}
+
 export interface RawChatMessage {
   sender: 'user' | 'ai';
   content?: string; // For user messages
   aiType?: AiMessageType;
   data?: GeminiResponse; // For 'response' type
   errorText?: string; // for 'error' type
+  versions?: AiMessageVersion[];
+  currentVersionIndex?: number;
+  draftSnapshot?: DraftKeyData;
 }
 
 // Re-export from Icon component to make it available elsewhere

@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Panel } from './Panel';
 import type { KeyData, ChosenFeature, FeatureNode } from '../../types';
 import { RenderFeatureNode } from './FeatureNodeRenderer';
+import { useSearchAutoScroll } from '../../hooks/useSearchAutoScroll';
 
 // --- FeaturesPanel ---
 interface FeaturesPanelProps {
@@ -15,6 +16,10 @@ export const FeaturesPanel: React.FC<FeaturesPanelProps> = ({ keyData, chosenFea
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedNodes, setExpandedNodes] = useState(new Set<string>());
   const [matchingIds, setMatchingIds] = useState<Set<string> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  const [matchCount, setMatchCount] = useState(0);
+  // Note: we require `FeatureNodeRenderer.tsx` to bind data-search-match="true" for full support.
 
   const handleToggleNode = (id: string) => {
     setExpandedNodes(prev => {
@@ -28,7 +33,9 @@ export const FeaturesPanel: React.FC<FeaturesPanelProps> = ({ keyData, chosenFea
   useEffect(() => {
     if (!searchTerm) {
       setMatchingIds(null);
-      setExpandedNodes(new Set());
+      if (matchingIds !== null) {
+        setExpandedNodes(prev => prev.size > 0 ? new Set() : prev);
+      }
       return;
     }
 
@@ -44,12 +51,16 @@ export const FeaturesPanel: React.FC<FeaturesPanelProps> = ({ keyData, chosenFea
         if (node.isState || node.type === 'numeric') {
           if (selfMatches) subtreeHasMatch = true;
         } else {
-          childrenMatch = findMatches(node.children, [...parents, node.id]);
+          parents.push(node.id);
+          childrenMatch = findMatches(node.children, parents);
+          parents.pop();
         }
 
+        if (selfMatches) {
+          newMatching.add(node.id);
+        }
         if (selfMatches || childrenMatch) {
           subtreeHasMatch = true;
-          newMatching.add(node.id);
           parents.forEach(p => newExpanded.add(p));
         }
       }
@@ -61,22 +72,40 @@ export const FeaturesPanel: React.FC<FeaturesPanelProps> = ({ keyData, chosenFea
     setExpandedNodes(newExpanded);
   }, [searchTerm, keyData.featureTree]);
 
+  // Reset match index when search changes
+  useEffect(() => {
+    setCurrentMatchIndex(0);
+  }, [searchTerm, matchingIds]);
+
+  useSearchAutoScroll(containerRef, searchTerm, matchingIds, currentMatchIndex, setCurrentMatchIndex, setMatchCount);
+
   return (
-    <Panel title={t('features')} icon="ListFilter" count={keyData.totalFeaturesCount} onSearch={setSearchTerm}>
-      {keyData.featureTree.map(node => (
-        <RenderFeatureNode
-          key={node.id}
-          node={node}
-          keyData={keyData}
-          chosenFeatures={chosenFeatures}
-          onFeatureChange={onFeatureChange}
-          onImageClick={onImageClick}
-          t={t}
-          expandedNodes={expandedNodes}
-          onToggleNode={handleToggleNode}
-          matchingIds={matchingIds}
-        />
-      ))}
+    <Panel 
+      title={t('features')} 
+      icon="ListFilter" 
+      count={keyData.totalFeaturesCount} 
+      onSearch={setSearchTerm}
+      currentMatchIndex={currentMatchIndex}
+      matchCount={matchCount}
+      onPrevMatch={() => setCurrentMatchIndex(prev => prev - 1)}
+      onNextMatch={() => setCurrentMatchIndex(prev => prev + 1)}
+    >
+      <div ref={containerRef} className="p-3 space-y-0.5">
+        {keyData.featureTree.map(node => (
+          <RenderFeatureNode
+            key={node.id}
+            node={node}
+            keyData={keyData}
+            chosenFeatures={chosenFeatures}
+            onFeatureChange={onFeatureChange}
+            onImageClick={onImageClick}
+            t={t}
+            expandedNodes={expandedNodes}
+            onToggleNode={handleToggleNode}
+            matchingIds={matchingIds}
+          />
+        ))}
+      </div>
     </Panel>
   );
 };
