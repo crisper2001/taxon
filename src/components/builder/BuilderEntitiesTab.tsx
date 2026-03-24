@@ -141,27 +141,33 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
                     }}
                     onTouchCancel={treeDnd.onTouchCancel}
                     onClick={() => setSelectedEntityId(e.id)}
-                    className={`rounded-xl transition-all relative group/item flex items-center gap-2 py-2 pr-2 border cursor-pointer ${selectedEntityId === e.id ? 'bg-accent/95 backdrop-blur-md text-white shadow-md border-white/20 z-10' : 'hover:bg-hover-bg/80 hover:shadow-sm text-text border-transparent hover:border-white/10 dark:hover:border-white/5'} ${dragOverId === e.id ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${draggedItem?.id === e.id ? 'opacity-50' : ''}`}
+                    className={`entity-item flex items-center gap-2 p-1.5 rounded-xl transition-all duration-300 relative group/item cursor-pointer hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm ${selectedEntityId === e.id ? 'bg-accent/20 shadow-inner ring-2 ring-accent' : 'border border-transparent'} ${dragOverId === e.id ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${draggedItem?.id === e.id ? 'opacity-50' : ''}`}
                     style={{ paddingLeft: `calc(${1.5 + depth * 1.5}rem + 0.5rem)`, touchAction: draggedItem ? 'none' : 'auto' }}
                 >
                     {children.length > 0 && (
                         <button 
                             onClick={(ev) => { ev.stopPropagation(); toggleEntityCollapse(e.id); }} 
-                            className={`w-7 h-7 flex items-center justify-center rounded-md cursor-pointer absolute z-20 transition-colors ${selectedEntityId === e.id ? 'text-white/80 hover:text-white hover:bg-white/20' : 'text-gray-500 hover:bg-black/10 dark:hover:bg-white/10'}`}
+                            className={`w-7 h-7 flex items-center justify-center rounded-md cursor-pointer absolute z-20 transition-colors ${selectedEntityId === e.id ? 'text-accent hover:bg-accent/10' : 'text-gray-500 hover:bg-black/10 dark:hover:bg-white/10'}`}
                             style={{ left: `calc(${depth * 1.5}rem)` }}
                         >
-                            <Icon name="ChevronDown" size={16} className={`transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`} />
+                            <Icon name="ChevronRight" size={16} className={`transition-transform duration-200 ${!isCollapsed ? 'rotate-90' : ''}`} />
                         </button>
                     )}
 
-                    <Icon name="Leaf" size={14} className={`shrink-0 ${selectedEntityId === e.id ? 'opacity-100' : 'opacity-60'}`} />
+                    {e.media && e.media.length > 0 ? (
+                      <img src={e.media[0].url} alt={e.name} className="w-10 h-10 object-cover rounded-lg shadow-sm shrink-0" />
+                    ) : (
+                      <div className="w-10 h-10 bg-header-bg/80 rounded-lg shadow-sm shrink-0 flex items-center justify-center text-gray-400">
+                        <Icon name="Leaf" size={20} className={`shrink-0 ${selectedEntityId === e.id ? 'opacity-100 text-accent' : 'opacity-60'}`} />
+                      </div>
+                    )}
                     <span className="truncate flex-1 text-sm font-medium">{e.name || t('kbUnnamedEntity' as any)}</span>
                     
-                    <div className="max-md:hidden opacity-0 group-hover/item:opacity-100 flex items-center gap-0.5 transition-opacity z-20 shrink-0">
-                        <button onClick={(ev) => { ev.stopPropagation(); duplicateEntity(e.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedEntityId === e.id ? 'text-white/70 hover:text-white hover:bg-white/20' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbDuplicate')}>
+                    <div className="max-md:hidden opacity-0 group-hover/item:opacity-100 flex items-center gap-0.5 transition-opacity z-20 shrink-0 pr-1">
+                        <button onClick={(ev) => { ev.stopPropagation(); duplicateEntity(e.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedEntityId === e.id ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbDuplicate')}>
                             <Icon name="Copy" size={14} />
                         </button>
-                        <button onClick={(ev) => { ev.stopPropagation(); setDeleteTarget({ type: 'entity', id: e.id }); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedEntityId === e.id ? 'text-white/70 hover:text-white hover:bg-red-500/80' : 'text-red-400 hover:text-red-500 hover:bg-red-500/10'}`} title={t('kbDelete')}>
+                        <button onClick={(ev) => { ev.stopPropagation(); setDeleteTarget({ type: 'entity', id: e.id }); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedEntityId === e.id ? 'text-red-500 hover:bg-red-500/10' : 'text-red-400 hover:text-red-500 hover:bg-red-500/10'}`} title={t('kbDelete')}>
                             <Icon name="Trash2" size={14} />
                         </button>
                     </div>
@@ -179,19 +185,18 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
 
   return (
     <div className="flex flex-col w-full h-full animate-fade-in">
-      <div className="w-full h-full border-white/10 dark:border-white/5 flex flex-col bg-panel-bg/50 backdrop-blur-sm z-10 shrink-0">
-        <div className="p-4 border-b border-white/10 dark:border-white/5 flex justify-between items-center bg-header-bg/85 backdrop-blur-md shadow-sm rounded-tl-3xl md:rounded-tr-3xl">
-          <div className="flex items-center gap-2 font-bold text-text">
-            <Icon name="List" size={18} className="opacity-70"/> 
-            {t('kbEntities')}
+        <div className="p-3.5 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-header-bg/85 backdrop-blur-md shadow-sm shrink-0 z-10">
+          <div className="panel-title font-bold flex items-center gap-2 text-lg tracking-tight min-w-0 pr-2">
+            <Icon name="List" size={20} className="shrink-0 text-accent" /> 
+            <span className="truncate text-accent">{t('kbEntities')}</span>
             <span className="bg-accent text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-sm shrink-0">
               {draftKey.entities.length}
             </span>
           </div>
-          <button onClick={addEntity} className="px-3 py-1.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-lg hover:bg-accent-hover transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg flex items-center gap-1 cursor-pointer" title={t('kbAddEntity')}><Icon name="Plus" size={14} /> {t('kbAdd' as any)}</button>
+          <button onClick={addEntity} className="shrink-0 px-3 py-1.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-lg hover:bg-accent-hover transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg flex items-center gap-1 cursor-pointer" title={t('kbAddEntity')}><Icon name="Plus" size={14} /> <span className="hidden sm:inline">{t('kbAdd' as any)}</span></button>
         </div>
         <div 
-          className={`overflow-y-auto flex-1 p-3 space-y-0.5 rounded-b-xl transition-colors ${dragOverId === 'root' ? 'bg-accent/5 ring-2 ring-inset ring-accent' : ''}`}
+          className={`panel-content grow p-3 space-y-0.5 overflow-y-auto transition-colors ${dragOverId === 'root' ? 'bg-accent/5 ring-2 ring-inset ring-accent' : ''}`}
           data-root-drop="true"
           onDragOver={(e) => {
               e.preventDefault();
@@ -204,7 +209,6 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
         >
           {renderEntityList()}
         </div>
-      </div>
 
       <BuilderEntityModal
         isOpen={!!selectedEntityId && !!selectedEntity}

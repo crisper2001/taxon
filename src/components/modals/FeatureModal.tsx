@@ -71,17 +71,17 @@ export const FeatureModal: React.FC<FeatureModalProps> = ({ isOpen, onClose, fea
                                     <div className="flex flex-col gap-4">
                                         {feature.description && (
                                             <div className="bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
-                                                <div className="w-full font-bold text-accent flex items-center gap-2 mb-3 text-left tracking-tight">
-                                                    <Icon name="FileText" size={18} />
-                                                    <span className="grow text-base">{t('kbDescription')}</span>
+                                                <div className="w-full font-bold flex items-center gap-2 mb-3 text-left tracking-tight">
+                                                    <Icon name="FileText" size={18} className="text-accent" />
+                                                    <span className="grow text-base text-accent">{t('kbDescription')}</span>
                                                 </div>
                                                 <Markdown content={feature.description} className="text-sm opacity-90" />
                                             </div>
                                         )}
                                         <div className="bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
-                                            <div className="w-full font-bold text-accent flex items-center gap-2 mb-3 text-left tracking-tight">
-                                                <Icon name="Info" size={18} />
-                                                <span className="grow text-base">{t('kbMetadata')}</span>
+                                            <div className="w-full font-bold flex items-center gap-2 mb-3 text-left tracking-tight">
+                                                <Icon name="Info" size={18} className="text-accent" />
+                                                <span className="grow text-base text-accent">{t('kbMetadata')}</span>
                                             </div>
                                             <div className="text-sm opacity-90 flex flex-col gap-2 text-text">
                                                 {!feature.isState ? (

@@ -394,32 +394,38 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
             }}
             onTouchCancel={featureTreeDnd.onTouchCancel}
             onClick={() => setSelectedFeatureId(f.id)}
-            className={`rounded-xl transition-all relative group/item flex items-center gap-2 py-2 pr-2 border cursor-pointer ${selectedFeatureId === f.id ? 'bg-accent/95 backdrop-blur-md text-white shadow-md border-white/20 z-10' : 'hover:bg-hover-bg/80 hover:shadow-sm text-text border-transparent hover:border-white/10 dark:hover:border-white/5'} ${dragOverId === f.id ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${draggedItem?.id === f.id ? 'opacity-50' : ''}`}
+            className={`feature-item flex items-center gap-2 p-1.5 rounded-xl transition-all duration-300 relative group/item cursor-pointer hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm ${selectedFeatureId === f.id ? 'bg-accent/20 shadow-inner ring-2 ring-accent' : 'border border-transparent'} ${dragOverId === f.id ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${draggedItem?.id === f.id ? 'opacity-50' : ''}`}
             style={{ paddingLeft: `calc(${1.5 + depth * 1.5}rem + 0.5rem)`, touchAction: draggedItem ? 'none' : 'auto' }}
           >
             {hasChildren && (
               <button
                 onClick={(e) => { e.stopPropagation(); toggleFeatureCollapse(f.id); }}
-                className={`w-7 h-7 flex items-center justify-center rounded-md cursor-pointer absolute z-20 transition-colors ${selectedFeatureId === f.id ? 'text-white/80 hover:text-white hover:bg-white/20' : 'text-gray-500 hover:bg-black/10 dark:hover:bg-white/10'}`}
+                className={`w-7 h-7 flex items-center justify-center rounded-md cursor-pointer absolute z-20 transition-colors ${selectedFeatureId === f.id ? 'text-accent hover:bg-accent/10' : 'text-gray-500 hover:bg-black/10 dark:hover:bg-white/10'}`}
                 style={{ left: `calc(${depth * 1.5}rem)` }}
               >
-                <Icon name="ChevronDown" size={16} className={`transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`} />
+                <Icon name="ChevronRight" size={16} className={`transition-transform duration-200 ${!isCollapsed ? 'rotate-90' : ''}`} />
               </button>
             )}
 
-            <Icon name={iconName} size={14} className={`shrink-0 ${selectedFeatureId === f.id ? 'opacity-100' : 'opacity-60'}`} />
+            {f.media && f.media.length > 0 ? (
+              <img src={f.media[0].url} alt={f.name} className="w-10 h-10 object-cover rounded-lg shadow-sm shrink-0" />
+            ) : (
+              <div className="w-10 h-10 bg-header-bg/80 rounded-lg shadow-sm shrink-0 flex items-center justify-center text-gray-400">
+                <Icon name={iconName} size={20} className={`shrink-0 ${selectedFeatureId === f.id ? 'opacity-100 text-accent' : 'opacity-60'}`} />
+              </div>
+            )}
             <span className="truncate flex-1 text-sm font-medium">{f.name || t('kbUnnamedFeature')}</span>
             
-            <div className="max-md:hidden opacity-0 group-hover/item:opacity-100 flex items-center gap-0.5 transition-opacity z-20 shrink-0">
+            <div className="max-md:hidden opacity-0 group-hover/item:opacity-100 flex items-center gap-0.5 transition-opacity z-20 shrink-0 pr-1">
               {f.type === 'state' && (
-                <button onClick={(e) => { e.stopPropagation(); addState(f.id); if (collapsedFeatures.has(f.id)) toggleFeatureCollapse(f.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedFeatureId === f.id ? 'text-white/70 hover:text-white hover:bg-white/20' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbAddState')}>
+                <button onClick={(e) => { e.stopPropagation(); addState(f.id); if (collapsedFeatures.has(f.id)) toggleFeatureCollapse(f.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedFeatureId === f.id ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbAddState')}>
                   <Icon name="Plus" size={14} />
                 </button>
               )}
-              <button onClick={(e) => { e.stopPropagation(); duplicateFeature(f.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedFeatureId === f.id ? 'text-white/70 hover:text-white hover:bg-white/20' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbDuplicate')}>
+              <button onClick={(e) => { e.stopPropagation(); duplicateFeature(f.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedFeatureId === f.id ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbDuplicate')}>
                 <Icon name="Copy" size={14} />
               </button>
-              <button onClick={(e) => { e.stopPropagation(); setDeleteTarget({ type: 'feature', id: f.id }); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedFeatureId === f.id ? 'text-white/70 hover:text-white hover:bg-red-500/80' : 'text-red-400 hover:text-red-500 hover:bg-red-500/10'}`} title={t('kbDelete')}>
+              <button onClick={(e) => { e.stopPropagation(); setDeleteTarget({ type: 'feature', id: f.id }); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedFeatureId === f.id ? 'text-red-500 hover:bg-red-500/10' : 'text-red-400 hover:text-red-500 hover:bg-red-500/10'}`} title={t('kbDelete')}>
                 <Icon name="Trash2" size={14} />
               </button>
             </div>
@@ -429,7 +435,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
               {children.map(c => renderNode(c.id, depth + 1))}
               {f.type === 'state' && f.states.map(s => (
                 <div key={s.id} 
-                  className={`rounded-xl transition-all relative group/state flex items-center gap-2 py-1.5 pr-2 border cursor-pointer ${selectedFeatureId === s.id ? 'bg-accent/95 backdrop-blur-md text-white shadow-md border-white/20 z-10' : 'hover:bg-hover-bg/80 text-text opacity-70 hover:opacity-100 border-transparent'} ${dragOverId === s.id ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${draggedItem?.id === s.id ? 'opacity-50' : ''}`} 
+                  className={`state-item flex items-center gap-2 p-1.5 rounded-xl transition-all duration-300 relative group/state cursor-pointer hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm ${selectedFeatureId === s.id ? 'bg-accent/20 shadow-inner ring-2 ring-accent' : 'border border-transparent opacity-80 hover:opacity-100'} ${dragOverId === s.id ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${draggedItem?.id === s.id ? 'opacity-50' : ''}`} 
                   onClick={(e) => { e.stopPropagation(); setSelectedFeatureId(s.id); }} 
                   style={{ paddingLeft: `calc(${1.5 + (depth + 1) * 1.5}rem + 0.5rem)`, touchAction: draggedItem ? 'none' : 'auto' }}
                   draggable
@@ -569,14 +575,20 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
                     setDragOverId(null);
                   }}
                 >
-                  <span className={`w-1 h-1 rounded-full shrink-0 ${selectedFeatureId === s.id ? 'bg-white' : 'bg-text opacity-50'}`}></span>
+                  {s.media && s.media.length > 0 ? (
+                    <img src={s.media[0].url} alt={s.name} className="w-8 h-8 object-cover rounded-lg shadow-sm shrink-0" />
+                  ) : (
+                    <div className="w-8 h-8 bg-header-bg/80 rounded-lg shadow-sm shrink-0 flex items-center justify-center text-gray-400">
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${selectedFeatureId === s.id ? 'bg-accent' : 'bg-text opacity-50'}`}></span>
+                    </div>
+                  )}
                   <span className="truncate flex-1 text-sm font-medium">{s.name || t('kbStateName' as any) || 'Unnamed State'}</span>
                   
-                  <div className="max-md:hidden opacity-0 group-hover/state:opacity-100 flex items-center gap-0.5 transition-opacity z-20 shrink-0">
-                     <button onClick={(e) => { e.stopPropagation(); duplicateState(f.id, s.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedFeatureId === s.id ? 'text-white/70 hover:text-white hover:bg-white/20' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbDuplicate')}>
+                  <div className="max-md:hidden opacity-0 group-hover/state:opacity-100 flex items-center gap-0.5 transition-opacity z-20 shrink-0 pr-1">
+                     <button onClick={(e) => { e.stopPropagation(); duplicateState(f.id, s.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedFeatureId === s.id ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbDuplicate')}>
                         <Icon name="Copy" size={14} />
                      </button>
-                     <button onClick={(e) => { e.stopPropagation(); setDeleteTarget({ type: 'state', id: s.id, parentId: f.id }); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedFeatureId === s.id ? 'text-white/70 hover:text-white hover:bg-red-500/80' : 'text-red-400 hover:text-red-500 hover:bg-red-500/10'}`} title={t('kbDelete')}>
+                     <button onClick={(e) => { e.stopPropagation(); setDeleteTarget({ type: 'state', id: s.id, parentId: f.id }); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedFeatureId === s.id ? 'text-red-500 hover:bg-red-500/10' : 'text-red-400 hover:text-red-500 hover:bg-red-500/10'}`} title={t('kbDelete')}>
                         <Icon name="Trash2" size={14} />
                      </button>
                   </div>
@@ -592,24 +604,23 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
 
   return (
     <div className="flex flex-col w-full h-full animate-fade-in">
-      <div className="w-full h-full border-white/10 dark:border-white/5 flex flex-col bg-panel-bg/50 backdrop-blur-sm z-10 shrink-0">
-        <div className="p-4 border-b border-white/10 dark:border-white/5 flex justify-between items-center bg-header-bg/85 backdrop-blur-md shadow-sm rounded-tl-3xl md:rounded-tr-3xl">
-            <div className="flex items-center gap-2 font-bold text-text">
-              <Icon name="ListTree" size={18} className="opacity-70" />
-              {t('kbFeatures')}
-              <div className="flex items-center gap-1">
-                <span className="bg-accent text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-sm shrink-0" title={t('kbFeatures')}>
+        <div className="p-3.5 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-header-bg/85 backdrop-blur-md shadow-sm shrink-0 z-10">
+            <div className="panel-title font-bold flex items-center gap-2 text-lg tracking-tight min-w-0 pr-2">
+              <Icon name="ListTree" size={20} className="shrink-0 text-accent" />
+              <span className="truncate text-accent">{t('kbFeatures')}</span>
+              <div className="flex items-center gap-1 shrink-0">
+                <span className="bg-accent text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-sm" title={t('kbFeatures')}>
                   {draftKey.features.length}
                 </span>
-                <span className="bg-accent/20 text-accent text-xs font-bold px-2 py-0.5 rounded-full shadow-sm shrink-0" title={t('kbStates')}>
+                <span className="bg-accent/20 text-accent text-xs font-bold px-2 py-0.5 rounded-full shadow-sm" title={t('kbStates')}>
                   {draftKey.features.reduce((acc, f) => acc + (f.type === 'state' ? f.states.length : 0), 0)}
                 </span>
               </div>
             </div>
-            <button onClick={addFeature} className="px-3 py-1.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-lg hover:bg-accent-hover transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg flex items-center gap-1 cursor-pointer" title={t('kbAddFeature')}><Icon name="Plus" size={14} /> {t('kbAdd' as any)}</button>
+            <button onClick={addFeature} className="shrink-0 px-3 py-1.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-lg hover:bg-accent-hover transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg flex items-center gap-1 cursor-pointer" title={t('kbAddFeature')}><Icon name="Plus" size={14} /> <span className="hidden sm:inline">{t('kbAdd' as any)}</span></button>
           </div>
           <div
-            className={`overflow-y-auto flex-1 p-3 space-y-0.5 rounded-b-xl transition-colors ${dragOverId === 'root' ? 'bg-accent/5 ring-2 ring-inset ring-accent' : ''}`}
+            className={`panel-content grow p-3 space-y-0.5 overflow-y-auto transition-colors ${dragOverId === 'root' ? 'bg-accent/5 ring-2 ring-inset ring-accent' : ''}`}
             data-root-drop="true"
             onDragOver={(e) => {
               e.preventDefault();
@@ -622,7 +633,6 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
           >
             {renderFeatureList()}
           </div>
-        </div>
 
       <BuilderFeatureModal
         isOpen={!!selectedFeatureId && (!!selectedFeature || !!selectedState)}

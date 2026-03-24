@@ -161,7 +161,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({ title, icon, count
     >
       <div
         ref={containerRef}
-        className={`panel-content-inner ${effectiveView === 'grid' ? 'grid gap-4' : 'flex flex-col'}`}
+        className={`panel-content-inner p-3 ${effectiveView === 'grid' ? 'grid gap-4' : 'flex flex-col space-y-0.5'}`}
         style={effectiveView === 'grid' ? { gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' } : {}}
       >
         {entityTree.map(node => (
@@ -231,13 +231,13 @@ const EntityGroupNode: React.FC<RenderEntityNodeProps> = ({ node, mediaMap, onEn
           </div>
           <div onClick={() => onEntityClick(node.id)} className="flex items-center gap-2 grow cursor-pointer min-w-0">
             {hasMedia ? (
-              <img src={thumbUrl} alt={node.name} loading="lazy" className="w-32 h-32 object-cover rounded-lg shadow-sm shrink-0" />
+              <img src={thumbUrl} alt={node.name} loading="lazy" className="w-10 h-10 object-cover rounded-lg shadow-sm shrink-0" />
             ) : (
-              <div className="w-32 h-32 bg-header-bg/80 rounded-lg shadow-sm shrink-0 object-cover flex items-center justify-center text-gray-400">
-                <Icon name="ImageOff" size="32" />
+              <div className="w-10 h-10 bg-header-bg/80 rounded-lg shadow-sm shrink-0 object-cover flex items-center justify-center text-gray-400">
+                <Icon name="ImageOff" size="20" />
               </div>
             )}
-            <span className="text-md">{node.name}</span>
+            <span className={`text-md ${isList ? 'font-medium' : ''}`}>{node.name}</span>
           </div>
         </div>
         {isExpanded && (
@@ -277,7 +277,7 @@ const EntityLeafNode = React.memo<RenderEntityNodeProps>(({ node, mediaMap, onEn
   const thumbUrl = hasMedia ? media[0].url : '';
 
   const isList = view === 'list';
-  const imageClasses = `bg-header-bg/80 shadow-sm rounded-lg shrink-0 object-cover ${isList ? 'w-32 h-32' : 'w-32 aspect-square'}`;
+  const imageClasses = `bg-header-bg/80 shadow-sm rounded-lg shrink-0 object-cover ${isList ? 'w-10 h-10' : 'w-full aspect-square'}`;
 
   return (
     <div
@@ -290,7 +290,7 @@ const EntityLeafNode = React.memo<RenderEntityNodeProps>(({ node, mediaMap, onEn
         <img src={thumbUrl} alt={node.name} loading="lazy" className={imageClasses} />
       ) : (
         <div className={`${imageClasses} flex items-center justify-center text-gray-400`}>
-          <Icon name="ImageOff" size="32" />
+          <Icon name="ImageOff" size={isList ? 20 : 32} />
         </div>
       )}
       <span className="text-md">{node.name}</span>

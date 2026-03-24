@@ -21,7 +21,7 @@ const RenderFeatureGroup: React.FC<{
   getIconForChar: (char: Characteristic) => React.ReactElement;
   getBadge: (char: { type: string, score?: ScoreType }) => React.ReactElement;
 }> = ({ node, collapsedGroups, toggleGroup, getIconForChar, getBadge }) => {
-  const sortedSubgroups = Object.values(node.subgroups).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  const sortedSubgroups = (Object.values(node.subgroups) as GroupNode[]).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
   const sortedChars = [...node.chars].sort((a, b) => a.text.localeCompare(b.text, undefined, { numeric: true }));
 
   return (
@@ -37,7 +37,7 @@ const RenderFeatureGroup: React.FC<{
               <span className="shrink-0 flex items-center justify-center">
                 <Icon name="ChevronRight" size={16} className={`transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`} />
               </span>
-              <span className="text-text break-words min-w-0">{subgroup.name}</span>
+              <span className="text-text wrap-break-words min-w-0">{subgroup.name}</span>
             </button>
             {!isCollapsed && (
               <div className="border-l-2 border-border/50 ml-3.5 mb-3">
@@ -57,7 +57,7 @@ const RenderFeatureGroup: React.FC<{
         <div key={i} className="flex justify-between items-center py-2.5 border-b border-border text-sm ml-3 gap-3 pr-2">
           <div className="flex items-center gap-2 min-w-0">
             <span className="shrink-0 flex items-center justify-center">{getIconForChar(char)}</span>
-            <span className="break-words min-w-0">{char.text}</span>
+            <span className="wrap-break-words min-w-0">{char.text}</span>
           </div>
           {getBadge(char)}
         </div>
@@ -321,9 +321,9 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
                <div className="entity-modal-panel is-details max-md:bg-panel-bg/50 flex flex-col" onScroll={handleScroll}>
                  {entityHierarchy.length > 1 && (
             <div className="mb-4 shrink-0 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
-              <div className="w-full font-bold text-accent flex items-center gap-2 mb-3 text-left tracking-tight">
-                <Icon name="Network" size={18} />
-                <span className="grow text-base">{t('hierarchy')}</span>
+              <div className="w-full font-bold flex items-center gap-2 mb-3 text-left tracking-tight">
+                <Icon name="Network" size={18} className="text-accent" />
+                <span className="grow text-base text-accent">{t('hierarchy')}</span>
               </div>
               <div className="flex flex-wrap items-center text-sm text-text opacity-90">
                 {entityHierarchy.map((node, index) => {
@@ -346,9 +346,9 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
           )}
           {profile?.description && (
             <div className="mb-4 flex flex-col grow min-h-0 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
-              <div className="w-full font-bold text-accent flex items-center gap-2 mb-3 text-left tracking-tight shrink-0">
-                <Icon name="FileText" size={18} />
-                <span className="grow text-base">{t('kbDescription')}</span>
+              <div className="w-full font-bold flex items-center gap-2 mb-3 text-left tracking-tight shrink-0">
+                <Icon name="FileText" size={18} className="text-accent" />
+                <span className="grow text-base text-accent">{t('kbDescription')}</span>
               </div>
               <Markdown content={profile.description} className="text-sm opacity-90 md:max-h-[30vh] grow overflow-y-auto pr-2" />
             </div>
@@ -358,9 +358,9 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
                  {(profile?.characteristics || []).length > 0 && (
             <div className="flex flex-col grow min-h-0 mb-4 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
               <div className="flex items-center w-full mb-3 shrink-0">
-                <div className="grow font-bold text-accent flex items-center gap-2 text-left tracking-tight">
-                  <Icon name="List" size={18} />
-                  <span className="grow text-base">{t('features')}</span>
+                <div className="grow font-bold flex items-center gap-2 text-left tracking-tight">
+                  <Icon name="List" size={18} className="text-accent" />
+                  <span className="grow text-base text-accent">{t('features')}</span>
                 </div>
                 <div className="flex items-center gap-1 ml-2 text-xs font-semibold">
                   <button onClick={handleCollapseAll} className="flex items-center text-gray-500 hover:text-accent transition-colors py-1 px-2 rounded-lg hover:bg-hover-bg border border-transparent hover:border-border hover:shadow-sm cursor-pointer">

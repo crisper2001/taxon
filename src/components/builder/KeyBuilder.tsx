@@ -569,23 +569,25 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
   const builderCenterContent = (
     <div
       className="absolute flex items-center gap-2 z-10 transition-all duration-300"
-      style={{ left: isMobile ? '50%' : 'max(50vw, 590px)', transform: 'translateX(-50%)' }}
+      style={{ left: '50%', transform: 'translateX(-50%)' }}
     >
       <div className="hidden md:flex relative items-center bg-black/5 dark:bg-white/5 p-1 rounded-full border border-black/5 dark:border-white/5 shadow-inner">
         <div ref={tabBgRef} className="absolute left-0 top-1 bottom-1 bg-panel-bg rounded-full shadow-sm transition-all duration-300 ease-out pointer-events-none" />
         <button
           ref={featuresBtnRef}
           onClick={() => setActiveTab('features')}
-          className={`relative z-10 flex items-center gap-2 px-4 py-1.5 rounded-full transition-colors duration-300 cursor-pointer shrink-0 font-bold text-sm ${['features', 'entities'].includes(activeTab) ? 'text-accent' : 'text-gray-500 hover:text-text'}`}
+          title={`${t('kbFeatures')} & ${t('kbEntities')}`}
+          className={`relative z-10 flex items-center justify-center w-14 py-1.5 rounded-full transition-colors duration-300 cursor-pointer shrink-0 ${['features', 'entities'].includes(activeTab) ? 'text-accent' : 'text-gray-500 hover:text-text'}`}
         >
-          <Icon name="ListTree" size={18} /> {t('kbFeatures')} &amp; {t('kbEntities')}
+          <Icon name="ListTree" size={20} />
         </button>
         <button
           ref={scoringBtnRef}
           onClick={() => setActiveTab('scoring')}
-          className={`relative z-10 flex items-center gap-2 px-4 py-1.5 rounded-full transition-colors duration-300 cursor-pointer shrink-0 font-bold text-sm ${activeTab === 'scoring' ? 'text-accent' : 'text-gray-500 hover:text-text'}`}
+          title={t('kbScoring')}
+          className={`relative z-10 flex items-center justify-center w-14 py-1.5 rounded-full transition-colors duration-300 cursor-pointer shrink-0 ${activeTab === 'scoring' ? 'text-accent' : 'text-gray-500 hover:text-text'}`}
         >
-          <Icon name="Target" size={18} /> {t('kbScoring')}
+          <Icon name="Target" size={20} />
         </button>
       </div>
       <div className="flex md:hidden items-center gap-1">

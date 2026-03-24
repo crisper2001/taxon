@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 
 export const useSwipe = (onSwipeLeft: () => void, onSwipeRight: () => void, leftConstraint = false, rightConstraint = false) => {
     const [swipeOffset, setSwipeOffset] = useState(0);

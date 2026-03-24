@@ -131,6 +131,10 @@ export const translations = {
         kbImages: 'Images',
         clearLocalData: 'Delete Local Data',
         confirmClearLocalData: 'Are you sure you want to delete all locally saved data? This will reset all preferences and delete any active builder drafts. This action cannot be undone.',
+        prefsAbout: 'About',
+        version: 'Version',
+        createdBy: 'Created by',
+        aboutDescription: 'A web application to create, edit, and use identification keys.',
     },
     'pt-br': {
         openNativeKey: 'Abrir Chave', clearFeatures: 'Limpar Características', preferences: 'Preferências', assistant: 'Spot',
@@ -245,6 +249,10 @@ export const translations = {
         kbImages: 'Imagens',
         clearLocalData: 'Excluir Dados Locais',
         confirmClearLocalData: 'Tem certeza de que deseja excluir todos os dados salvos localmente? Isso redefinirá todas as preferências e excluirá quaisquer rascunhos ativos do construtor. Esta ação não pode ser desfeita.',
+        prefsAbout: 'Sobre',
+        version: 'Versão',
+        createdBy: 'Criado por',
+        aboutDescription: 'Um aplicativo web para criar, editar e usar chaves de identificação.',
     },
     'pt-pt': {
         openNativeKey: 'Abrir Chave', clearFeatures: 'Limpar Características', preferences: 'Preferências', assistant: 'Spot',
@@ -358,7 +366,11 @@ export const translations = {
         thumbnail: 'Miniatura',
         kbImages: 'Imagens',
         clearLocalData: 'Eliminar Dados Locais',
-        confirmClearLocalData: 'Tem a certeza de que deseja eliminar todos os dados guardados localmente? Isto irá repor todas as preferências e eliminar quaisquer rascunhos ativos do construtor. Esta ação não pode ser desfeita.'
+        confirmClearLocalData: 'Tem a certeza de que deseja eliminar todos os dados guardados localmente? Isto irá repor todas as preferências e eliminar quaisquer rascunhos ativos do construtor. Esta ação não pode ser desfeita.',
+        prefsAbout: 'Sobre',
+        version: 'Versão',
+        createdBy: 'Criado por',
+        aboutDescription: 'Uma aplicação web para criar, editar e utilizar chaves de identificação.',
     },
     'es': {
         openNativeKey: 'Abrir Clave', clearFeatures: 'Borrar Características', preferences: 'Preferencias', assistant: 'Spot',
@@ -473,6 +485,10 @@ export const translations = {
         kbImages: 'Imágenes',
         clearLocalData: 'Borrar Datos Locales',
         confirmClearLocalData: '¿Está seguro de que desea eliminar todos los datos guardados localmente? Esto restablecerá todas las preferencias y eliminará cualquier borrador activo del constructor. Esta acción no se puede deshacer.',
+        prefsAbout: 'Acerca de',
+        version: 'Versión',
+        createdBy: 'Creado por',
+        aboutDescription: 'Una aplicación web para crear, editar y usar claves de identificación.',
     },
     'ru': {
         openNativeKey: 'Открыть ключ', clearFeatures: 'Очистить признаки', preferences: 'Настройки', assistant: 'Барбос',
@@ -587,6 +603,10 @@ export const translations = {
         kbImages: 'Изображения',
         clearLocalData: 'Удалить локальные данные',
         confirmClearLocalData: 'Вы уверены, что хотите удалить все локально сохраненные данные? Это приведет к сбросу всех настроек и удалению любых активных черновиков конструктора. Это действие нельзя отменить.',
+        prefsAbout: 'О программе',
+        version: 'Версия',
+        createdBy: 'Создатель:',
+        aboutDescription: 'Веб-приложение для создания, редактирования и использования определительных ключей.',
     },
     'zh': {
         openNativeKey: '打开密钥', clearFeatures: '清除特征', preferences: '偏好设置', assistant: 'Spot',
@@ -701,6 +721,10 @@ export const translations = {
         kbImages: '图像',
         clearLocalData: '删除本地数据',
         confirmClearLocalData: '您确定要删除所有本地保存的数据吗？这将重置所有偏好设置并删除所有活动的构建器草稿。此操作无法撤消。',
+        prefsAbout: '关于',
+        version: '版本',
+        createdBy: '创建者：',
+        aboutDescription: '一个用于创建、编辑和使用鉴定密钥的网络应用程序。',
     },
     'ja': {
         openNativeKey: 'キーを開く', clearFeatures: '特徴をクリア', preferences: '設定', assistant: 'スポット',
@@ -815,6 +839,10 @@ export const translations = {
         kbImages: '画像',
         clearLocalData: 'ローカルデータを削除',
         confirmClearLocalData: 'ローカルに保存されているすべてのデータを削除してもよろしいですか？これにより、すべての設定がリセットされ、アクティブなビルダーの下書きが削除されます。この操作は元に戻せません。',
+        prefsAbout: '情報',
+        version: 'バージョン',
+        createdBy: '作成者：',
+        aboutDescription: '識別キーを作成、編集、使用するためのWebアプリケーション。',
     },
     'ko': {
         openNativeKey: '키 열기', clearFeatures: '특징 지우기', preferences: '환경설정', assistant: '스팟',
@@ -928,7 +956,11 @@ export const translations = {
         thumbnail: '썸네일',
         kbImages: '이미지',
         clearLocalData: '로컬 데이터 삭제',
-        confirmClearLocalData: '로컬에 저장된 모든 데이터를 삭제하시겠습니까? 이렇게 하면 모든 기본 설정이 초기화되고 활성 빌더 초안이 삭제됩니다. 이 작업은 실행 취소할 수 없습니다.'
+        confirmClearLocalData: '로컬에 저장된 모든 데이터를 삭제하시겠습니까? 이렇게 하면 모든 기본 설정이 초기화되고 활성 빌더 초안이 삭제됩니다. 이 작업은 실행 취소할 수 없습니다.',
+        prefsAbout: '정보',
+        version: '버전',
+        createdBy: '제작자:',
+        aboutDescription: '식별 키를 생성, 편집 및 사용하는 웹 애플리케이션입니다.',
     },
     'fr': {
         openNativeKey: 'Ouvrir la Clé', clearFeatures: 'Effacer les caractéristiques', preferences: 'Préférences', assistant: 'Spot',
@@ -1043,6 +1075,10 @@ export const translations = {
         kbImages: 'Images',
         clearLocalData: 'Supprimer les données locales',
         confirmClearLocalData: 'Êtes-vous sûr de vouloir supprimer toutes les données enregistrées localement ? Cela réinitialisera toutes les préférences et supprimera tous les brouillons actifs du constructeur. Cette action ne peut pas être annulée.',
+        prefsAbout: 'À propos',
+        version: 'Version',
+        createdBy: 'Créé par',
+        aboutDescription: 'Une application web pour créer, éditer et utiliser des clés d\'identification.',
     },
     'de': {
         openNativeKey: 'Schlüssel öffnen', clearFeatures: 'Merkmale löschen', preferences: 'Einstellungen', assistant: 'Spot',
@@ -1157,6 +1193,10 @@ export const translations = {
         kbImages: 'Bilder',
         clearLocalData: 'Lokale Daten löschen',
         confirmClearLocalData: 'Möchten Sie wirklich alle lokal gespeicherten Daten löschen? Dadurch werden alle Einstellungen zurückgesetzt und alle aktiven Builder-Entwürfe gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.',
+        prefsAbout: 'Über',
+        version: 'Version',
+        createdBy: 'Erstellt von',
+        aboutDescription: 'Eine Webanwendung zum Erstellen, Bearbeiten und Verwenden von Bestimmungsschlüsseln.',
     },
     'la': {
         openNativeKey: 'Aperi Clavem Nativam', clearFeatures: 'Proprietates Purgare', preferences: 'Praeferentiae', assistant: 'Spotus',
@@ -1270,6 +1310,10 @@ export const translations = {
         kbImages: 'Imagines',
         clearLocalData: 'Delere Data Localia',
         confirmClearLocalData: 'Certe vis omnia data localiter servata delere? Hoc omnes praeferentias restituet et ullas adumbrationes fabricatoris activas delebit. Haec actio revocari non potest.',
+        prefsAbout: 'De',
+        version: 'Versio',
+        createdBy: 'Creatum a',
+        aboutDescription: 'Applicatio telae ad creandum, emendandum et adhibendum claves identificationis.',
     },
     'it': {
         openNativeKey: 'Apri Chiave', clearFeatures: 'Cancella Caratteristiche', preferences: 'Preferenze', assistant: 'Spot',
@@ -1384,6 +1428,10 @@ export const translations = {
         kbImages: 'Immagini',
         clearLocalData: 'Elimina Dati Locali',
         confirmClearLocalData: 'Sei sicuro di voler eliminare tutti i dati salvati localmente? Questo ripristinerà tutte le preferenze ed eliminerà eventuali bozze attive del costruttore. Questa azione non può essere annullata.',
+        prefsAbout: 'Informazioni',
+        version: 'Versione',
+        createdBy: 'Creato da',
+        aboutDescription: 'Un\'applicazione web per creare, modificare e utilizzare chiavi di identificazione.',
     },
     'el': {
         openNativeKey: 'Άνοιγμα Κλειδιού', clearFeatures: 'Καθαρισμός Χαρακτηριστικών', preferences: 'Προτιμήσεις', assistant: 'Spot',
@@ -1498,6 +1546,10 @@ export const translations = {
         kbImages: 'Εικόνες',
         clearLocalData: 'Διαγραφή Τοπικών Δεδομένων',
         confirmClearLocalData: 'Είστε σίγουροι ότι θέλετε να διαγράψετε όλα τα τοπικά αποθηκευμένα δεδομένα; Αυτό θα επαναφέρει όλες τις προτιμήσεις και θα διαγράψει τυχόν ενεργά πρόχειρα. Αυτή η ενέργεια δεν μπορεί να αναιρεθεί.',
+        prefsAbout: 'Σχετικά',
+        version: 'Έκδοση',
+        createdBy: 'Δημιουργήθηκε από',
+        aboutDescription: 'Μια διαδικτυακή εφαρμογή για τη δημιουργία, επεξεργασία και χρήση κλειδιών αναγνώρισης.',
     },
     'hi': {
         openNativeKey: 'कुंजी खोलें', clearFeatures: 'विशेषताएं साफ़ करें', preferences: 'प्राथमिकताएं', assistant: 'स्पॉट',
@@ -1611,7 +1663,11 @@ export const translations = {
         thumbnail: 'थंबनेल',
         kbImages: 'छवियां',
         clearLocalData: 'स्थानीय डेटा हटाएं',
-        confirmClearLocalData: 'क्या आप वाकई स्थानीय रूप से सहेजा गया सभी डेटा हटाना चाहते हैं? यह सभी प्राथमिकताओं को रीसेट कर देगा और किसी भी सक्रिय बिल्डर ड्राफ्ट को हटा देगा। इस क्रिया को पूर्ववत नहीं किया जा सकता है।'
+        confirmClearLocalData: 'क्या आप वाकई स्थानीय रूप से सहेजा गया सभी डेटा हटाना चाहते हैं? यह सभी प्राथमिकताओं को रीसेट कर देगा और किसी भी सक्रिय बिल्डर ड्राफ्ट को हटा देगा। इस क्रिया को पूर्ववत नहीं किया जा सकता है।',
+        prefsAbout: 'के बारे में',
+        version: 'संस्करण',
+        createdBy: 'निर्माता:',
+        aboutDescription: 'पहचान कुंजियों को बनाने, संपादित करने और उपयोग करने के लिए एक वेब एप्लिकेशन।',
     },
     'ar': {
         openNativeKey: 'فتح المفتاح', clearFeatures: 'مسح الميزات', preferences: 'التفضيلات', assistant: 'سبوت',
@@ -1725,7 +1781,11 @@ export const translations = {
         thumbnail: 'صورة مصغرة',
         kbImages: 'الصور',
         clearLocalData: 'حذف البيانات المحلية',
-        confirmClearLocalData: 'هل أنت متأكد أنك تريد حذف جميع البيانات المحفوظة محليًا؟ سيؤدي هذا إلى إعادة تعيين جميع التفضيلات وحذف أي مسودات منشئ نشطة. لا يمكن التراجع عن هذا الإجراء.'
+        confirmClearLocalData: 'هل أنت متأكد أنك تريد حذف جميع البيانات المحفوظة محليًا؟ سيؤدي هذا إلى إعادة تعيين جميع التفضيلات وحذف أي مسودات منشئ نشطة. لا يمكن التراجع عن هذا الإجراء.',
+        prefsAbout: 'حول',
+        version: 'الإصدار',
+        createdBy: 'تم الإنشاء بواسطة',
+        aboutDescription: 'تطبيق ويب لإنشاء وتحرير واستخدام مفاتيح التحديد.',
     },
     'he': {
         openNativeKey: 'פתח מפתח', clearFeatures: 'נקה תכונות', preferences: 'העדפות', assistant: 'ספוט',
@@ -1839,6 +1899,10 @@ export const translations = {
         thumbnail: 'תמונה ממוזערת',
         kbImages: 'תמונות',
         clearLocalData: 'מחק נתונים מקומיים',
-        confirmClearLocalData: 'האם אתה בטוח שברצונך למחוק את כל הנתונים השמורים במכשיר? פעולה זו תאפס את כל ההעדפות ותמחק טיוטות בונה פעילות. פעולה זו אינה ניתנת לביטול.'
+        confirmClearLocalData: 'האם אתה בטוח שברצונך למחוק את כל הנתונים השמורים במכשיר? פעולה זו תאפס את כל ההעדפות ותמחק טיוטות בונה פעילות. פעולה זו אינה ניתנת לביטול.',
+        prefsAbout: 'אודות',
+        version: 'גרסה',
+        createdBy: 'נוצר על ידי',
+        aboutDescription: 'יישום רשת ליצור, לערוך ולהשתמש במפתחות זיהוי.',
     }
 };

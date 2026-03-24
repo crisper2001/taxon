@@ -200,8 +200,8 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
               </th>
               {flattenedEntities.map(({ item: e, depth }) => (
                 <th key={e.id} className="sticky top-0 z-20 bg-header-bg py-2 px-3 border-b border-r border-border w-[1%] whitespace-nowrap align-bottom text-center">
-                  <div className="inline-flex items-center justify-start font-bold text-accent h-40 relative pt-[calc(var(--depth)*0.75rem)] md:pt-[calc(var(--depth)*1.5rem)]" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', '--depth': depth } as React.CSSProperties}>
-                    <span className="truncate max-h-[140px] whitespace-nowrap" title={e.name}>{e.name || t('kbUnnamedEntity')}</span>
+                  <div className="inline-flex items-center justify-start font-bold h-40 relative pt-[calc(var(--depth)*0.75rem)] md:pt-[calc(var(--depth)*1.5rem)]" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', '--depth': depth } as React.CSSProperties}>
+                    <span className="truncate max-h-[140px] whitespace-nowrap text-accent" title={e.name}>{e.name || t('kbUnnamedEntity')}</span>
                   </div>
                 </th>
               ))}
@@ -213,8 +213,8 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
               <React.Fragment key={f.id}>
                 <tr className="transition-colors group/row bg-panel-bg" data-no-highlight={f.type === 'state'}>
                   <td className="sticky left-0 z-30 p-2 md:p-4 border-b border-border border-r-2 border-r-border transition-colors align-middle w-[140px] min-w-[140px] max-w-[140px] md:w-[250px] md:min-w-[250px] md:max-w-[250px] bg-header-bg">
-                    <div className="flex items-center gap-2 font-bold text-accent relative w-full text-sm md:text-base pl-[calc(var(--depth)*0.75rem)] md:pl-[calc(var(--depth)*1.5rem)]" style={{ '--depth': depth } as React.CSSProperties}>
-                       <span className="truncate" title={f.name}>{f.name || t('kbUnnamedFeature')}</span>
+                    <div className="flex items-center gap-2 font-bold relative w-full text-sm md:text-base pl-[calc(var(--depth)*0.75rem)] md:pl-[calc(var(--depth)*1.5rem)]" style={{ '--depth': depth } as React.CSSProperties}>
+                       <span className="truncate text-accent" title={f.name}>{f.name || t('kbUnnamedFeature')}</span>
                     </div>
                   </td>
                   {flattenedEntities.map(({ item: e }) => (
@@ -299,8 +299,8 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
            const unitSym = feature ? getUnitSymbol(feature.base_unit, feature.unit_prefix) : '';
            return (
              <div className="p-6 flex flex-col gap-4">
-               <div className="text-base text-accent mb-2">
-                 <span className="font-bold">{feature?.name}</span> &rarr; <span className="font-bold">{entity?.name}</span>
+               <div className="text-base mb-2">
+                 <span className="font-bold text-accent">{feature?.name}</span> <span className="text-accent">&rarr;</span> <span className="font-bold text-accent">{entity?.name}</span>
                </div>
                <div className="flex flex-col sm:flex-row gap-4">
                  <label className="flex flex-col gap-1.5 flex-1">

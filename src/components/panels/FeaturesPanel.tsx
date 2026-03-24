@@ -90,7 +90,7 @@ export const FeaturesPanel: React.FC<FeaturesPanelProps> = ({ keyData, chosenFea
       onPrevMatch={() => setCurrentMatchIndex(prev => prev - 1)}
       onNextMatch={() => setCurrentMatchIndex(prev => prev + 1)}
     >
-      <div ref={containerRef}>
+      <div ref={containerRef} className="p-3 space-y-0.5">
         {keyData.featureTree.map(node => (
           <RenderFeatureNode
             key={node.id}

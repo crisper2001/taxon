@@ -191,9 +191,9 @@ const ChatMessageBubble = React.memo<{
           <>
             {msg.content && (
               <div className={`relative ${!isExpanded ? 'max-h-48 overflow-hidden' : ''}`}>
-                <Markdown content={msg.content} className={`text-[15px] space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mt-1 [&_ul_ul]:list-[circle] [&_ul_ul]:mt-1 [&_li>p]:inline ${msg.sender === 'user' ? '!text-white [&_*]:!text-white' : ''}`} />
+                <Markdown content={msg.content} className={`text-[15px] space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mt-1 [&_ul_ul]:list-[circle] [&_ul_ul]:mt-1 [&_li>p]:inline ${msg.sender === 'user' ? 'text-white! **:text-white!' : ''}`} />
                 {!isExpanded && (
-                  <div className={`absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t ${msg.sender === 'user' ? 'from-accent' : 'from-header-bg'} to-transparent pointer-events-none`} />
+                  <div className={`absolute bottom-0 left-0 w-full h-12 bg-linear-to-t ${msg.sender === 'user' ? 'from-accent' : 'from-header-bg'} to-transparent pointer-events-none`} />
                 )}
               </div>
             )}
@@ -376,7 +376,7 @@ const ChatMessageBubble = React.memo<{
                     className="hover:text-accent disabled:opacity-30 cursor-pointer flex items-center justify-center transition-colors"
                     title={t('previousVersion')}
                   ><Icon name="ChevronLeft" size={14} /></button>
-                  <span className="font-medium select-none min-w-[2rem] text-center">{msg.currentVersionIndex! + 1} / {msg.versions.length}</span>
+                  <span className="font-medium select-none min-w-8 text-center">{msg.currentVersionIndex! + 1} / {msg.versions.length}</span>
                   <button
                     onClick={() => onVersionChange && onVersionChange(index, msg.currentVersionIndex! + 1)}
                     disabled={msg.currentVersionIndex === msg.versions.length - 1 || isThinking}
@@ -458,8 +458,8 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
 
   const allMentionableItems = useMemo(() => {
     if (appMode === 'build' || !keyData) return [];
-    const entities = Array.from(keyData.allEntities.values()).map(e => ({ type: 'entity' as const, id: e.id, name: e.name }));
-    const features = Array.from(keyData.allFeatures.values()).map(f => {
+    const entities = Array.from(keyData.allEntities.values()).map((e: any) => ({ type: 'entity' as const, id: e.id, name: e.name }));
+    const features = Array.from(keyData.allFeatures.values()).map((f: any) => {
       const name = f.parentName ? `${f.parentName}: ${f.name}` : f.name;
       return { type: 'feature' as const, id: f.id, name };
     });
@@ -866,7 +866,7 @@ ${JSON.stringify(featuresToSend)}
 ${matchingEntities.length > 0 ? (matchingEntities.length <= 100 ? matchingEntities.map(e => e.name).join(', ') : `${matchingEntities.length} matches`) : 'None'}
 
 **Relevant Entity Profiles (name, characteristics):**
-${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `No specific profiles loaded. Available entities in this key: ${keyData ? Array.from(keyData.allEntities.values()).map(e => e.name).join(', ') : ''}`}` : `**User Request:**
+${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `No specific profiles loaded. Available entities in this key: ${keyData ? Array.from(keyData.allEntities.values()).map((e: any) => e.name).join(', ') : ''}`}` : `**User Request:**
 "${[text, currentImage ? '[Image Attached]' : ''].filter(Boolean).join(' ')}"`;
 
     // Format previous chat history for the API to provide multi-turn context.
@@ -1143,9 +1143,9 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
       onDrop={handleDrop}
     >
       {isDragging && (
-        <div className="absolute inset-0 z-50 bg-bg/80 backdrop-blur-sm border-4 border-dashed border-accent flex flex-col items-center justify-center text-accent pointer-events-none">
-          <Icon name="Image" size={48} className="mb-4 animate-bounce" />
-          <h3 className="text-xl font-bold">{t('dropImageHere')}</h3>
+        <div className="absolute inset-0 z-50 bg-bg/80 backdrop-blur-sm border-4 border-dashed border-accent flex flex-col items-center justify-center pointer-events-none">
+          <Icon name="Image" size={48} className="mb-4 animate-bounce text-accent" />
+          <h3 className="text-xl font-bold text-accent">{t('dropImageHere')}</h3>
         </div>
       )}
 
@@ -1197,9 +1197,9 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
           {isThinking && chatHistory.length > 0 && chatHistory[chatHistory.length - 1].sender === 'user' && (
             <div className="chat-message flex animate-fade-in-up duration-300 ease-out justify-start mb-2">
               <div className="msg-content w-3/4 p-4 rounded-3xl shadow-sm bg-header-bg/90 backdrop-blur-md rounded-bl-sm border border-white/20 dark:border-white/10">
-                <div className="flex items-center gap-2 mb-3 text-accent opacity-70">
-                  <Icon name="LoaderCircle" className="animate-spin w-4 h-4" />
-                  <span className="text-xs font-medium uppercase tracking-wider">{t('aiAnalyzing')}</span>
+                <div className="flex items-center gap-2 mb-3 opacity-70">
+                  <Icon name="LoaderCircle" className="animate-spin w-4 h-4 text-accent" />
+                  <span className="text-xs font-medium uppercase tracking-wider text-accent">{t('aiAnalyzing')}</span>
                 </div>
                 <div className="space-y-2 animate-pulse">
                   <div className="h-3 bg-border rounded w-full"></div>
@@ -1228,7 +1228,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
             ))}
           </div>
         )}
-        <div className={`relative flex items-center w-full border border-white/20 dark:border-white/10 rounded-3xl bg-bg/80 backdrop-blur-md shadow-inner transition-all focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20 ${(!isEnabled || isThinking || !geminiApiKey) ? 'opacity-60 grayscale-[30%]' : ''}`}>
+        <div className={`relative flex items-center w-full border border-white/20 dark:border-white/10 rounded-3xl bg-bg/80 backdrop-blur-md shadow-inner transition-all focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20 ${(!isEnabled || isThinking || !geminiApiKey) ? 'opacity-60 grayscale-30' : ''}`}>
           <div className="pl-1.5 shrink-0 flex items-center justify-center">
             <input type="file" ref={imageInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
             <button type="button" onClick={() => imageInputRef.current?.click()} disabled={!isEnabled || isThinking || !geminiApiKey} className="w-9 h-9 text-gray-500 hover:text-accent rounded-full flex items-center justify-center transition-colors cursor-pointer disabled:cursor-not-allowed disabled:hover:text-gray-500 hover:bg-hover-bg" title={t('uploadImage')}>
@@ -1249,7 +1249,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
             <div className="relative w-full">
               <div
                 ref={backdropRef}
-                className="absolute inset-0 w-full h-full pt-3 pb-2 px-3 text-[15px] pointer-events-none whitespace-pre-wrap break-words overflow-y-auto font-sans text-text leading-relaxed"
+                className="absolute inset-0 w-full h-full pt-3 pb-2 px-3 text-[15px] pointer-events-none whitespace-pre-wrap wrap-break-words overflow-y-auto font-sans text-text leading-relaxed"
                 style={{ maxHeight: '120px' }}
                 aria-hidden="true"
               >

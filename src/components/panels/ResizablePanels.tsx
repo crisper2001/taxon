@@ -27,6 +27,8 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
         }
         return { rows: `60fr ${RESIZER_SIZE}px 40fr`, cols: `33.333fr ${RESIZER_SIZE}px 66.667fr` };
     });
+    const childrenArray = React.Children.toArray(children);
+    const numPanels = childrenArray.length;
     const containerRef = useRef<HTMLDivElement>(null);
     const resizingType = useRef<null | 'v' | 'h'>(null);
     const dragOffset = useRef(0);
@@ -153,8 +155,8 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
                 className={`panels-grid-layout grow min-h-0 md:overflow-hidden ${isResizing ? `select-none is-resizing ${resizingType.current === 'v' ? 'cursor-col-resize' : 'cursor-row-resize'}` : ''} ${isSwiping ? 'is-swiping' : ''}`}
                 style={{ 
                   contain: 'strict',
-                  '--grid-rows': layout.rows,
-                  '--grid-cols': layout.cols,
+                  '--grid-rows': numPanels === 2 ? '100%' : layout.rows,
+                  '--grid-cols': numPanels === 2 ? (layout.cols.includes('33.333') ? `50fr ${RESIZER_SIZE}px 50fr` : layout.cols) : layout.cols,
                   '--mobile-tab-offset': `-${mobileTab * 100}%`,
                   '--swipe-offset': `${swipeOffset}px`
                 } as React.CSSProperties}
@@ -162,17 +164,24 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
             >
-                <div style={{ gridArea: '1 / 1 / 2 / 2' }} className="panel-wrapper min-h-0 min-w-0 h-full">{children[0]}</div>
+                <div style={{ gridArea: '1 / 1 / 2 / 2' }} className="panel-wrapper min-h-0 min-w-0 h-full">{childrenArray[0]}</div>
+                {numPanels >= 2 && (
+                  <>
                 <div 
                     onMouseDown={(e) => handleMouseDown(e, 'v')} 
-                    onDoubleClick={() => setLayout(prev => ({ ...prev, cols: `33.333fr ${RESIZER_SIZE}px 66.667fr` }))} 
-                    style={{ gridArea: '1 / 2 / 4 / 3' }} 
+                    onDoubleClick={() => setLayout(prev => ({ ...prev, cols: numPanels === 2 ? `50fr ${RESIZER_SIZE}px 50fr` : `33.333fr ${RESIZER_SIZE}px 66.667fr` }))} 
+                    style={{ gridArea: numPanels === 2 ? '1 / 2 / 2 / 3' : '1 / 2 / 4 / 3' }} 
                     className={`cursor-col-resize items-center justify-center group hidden md:flex`}
                     title={t('doubleClickToReset' as any)}
                 >
                     <div className={`w-1 h-full rounded-full transition-all duration-300 ${isResizing && resizingType.current === 'v' ? 'bg-accent shadow-md shadow-accent/50 scale-x-150' : 'bg-transparent group-hover:bg-accent/50 group-hover:scale-x-150'}`}></div>
                 </div>
-                <div style={{ gridArea: '1 / 3 / 2 / 4' }} className="panel-wrapper min-h-0 min-w-0 h-full">{children[1]}</div>
+                <div style={{ gridArea: '1 / 3 / 2 / 4' }} className="panel-wrapper min-h-0 min-w-0 h-full">{childrenArray[1]}</div>
+                  </>
+                )}
+                
+                {numPanels >= 4 && (
+                    <>
                 <div 
                     onMouseDown={(e) => handleMouseDown(e, 'h')} 
                     onDoubleClick={() => setLayout(prev => ({ ...prev, rows: `60fr ${RESIZER_SIZE}px 40fr` }))} 
@@ -182,8 +191,10 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
                 >
                     <div className={`h-1 w-full rounded-full transition-all duration-300 ${isResizing && resizingType.current === 'h' ? 'bg-accent shadow-md shadow-accent/50 scale-y-150' : 'bg-transparent group-hover:bg-accent/50 group-hover:scale-y-150'}`}></div>
                 </div>
-                <div style={{ gridArea: '3 / 1 / 4 / 2' }} className="panel-wrapper min-h-0 min-w-0 h-full">{children[2]}</div>
-                <div style={{ gridArea: '3 / 3 / 4 / 4' }} className="panel-wrapper min-h-0 min-w-0 h-full">{children[3]}</div>
+                <div style={{ gridArea: '3 / 1 / 4 / 2' }} className="panel-wrapper min-h-0 min-w-0 h-full">{childrenArray[2]}</div>
+                <div style={{ gridArea: '3 / 3 / 4 / 4' }} className="panel-wrapper min-h-0 min-w-0 h-full">{childrenArray[3]}</div>
+                    </>
+                )}
             </div>
 
             {/* Mobile Bottom Bar */}

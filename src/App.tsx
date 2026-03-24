@@ -325,7 +325,7 @@ const App: React.FC = () => {
   const handleGlobalDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
     if (e.dataTransfer.types.includes('Files')) {
-      const isImageDrag = Array.from(e.dataTransfer.items).some(item => item.type.startsWith('image/'));
+      const isImageDrag = Array.from(e.dataTransfer.items).some((item: DataTransferItem) => item.type.startsWith('image/'));
       // Don't show the global key drop overlay if the user is dragging images
       if (!isImageDrag) {
         dragCounter.current += 1;
@@ -337,7 +337,7 @@ const App: React.FC = () => {
   const handleGlobalDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     if (e.dataTransfer.types.includes('Files')) {
-      const isImageDrag = Array.from(e.dataTransfer.items).some(item => item.type.startsWith('image/'));
+      const isImageDrag = Array.from(e.dataTransfer.items).some((item: DataTransferItem) => item.type.startsWith('image/'));
       if (!isImageDrag) {
         dragCounter.current -= 1;
         if (dragCounter.current <= 0) {
@@ -517,11 +517,11 @@ const App: React.FC = () => {
       onDrop={handleGlobalDrop}
     >
       {isGlobalDragging && !isHome && (
-        <div className="absolute inset-0 z-100 bg-bg/80 backdrop-blur-sm flex flex-col items-center justify-center text-accent pointer-events-none transition-all duration-300">
+        <div className="absolute inset-0 z-100 bg-bg/80 backdrop-blur-sm flex flex-col items-center justify-center pointer-events-none transition-all duration-300">
           <div className="border-4 border-dashed border-accent rounded-3xl p-12 flex flex-col items-center justify-center bg-panel-bg shadow-2xl animate-fade-in-up">
-             <Icon name="FolderOpen" size={64} className="mb-6 animate-bounce" />
-             <h3 className="text-3xl font-black tracking-tight">{t('openNativeKey')}</h3>
-             <p className="text-lg opacity-80 mt-2 font-medium">{t('dropKeyHere' as any)}</p>
+             <Icon name="FolderOpen" size={64} className="mb-6 animate-bounce text-accent" />
+             <h3 className="text-3xl font-black tracking-tight text-accent">{t('openNativeKey')}</h3>
+             <p className="text-lg opacity-80 mt-2 font-medium text-accent">{t('dropKeyHere' as any)}</p>
           </div>
         </div>
       )}
