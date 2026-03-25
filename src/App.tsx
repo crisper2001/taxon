@@ -472,14 +472,14 @@ const App: React.FC = () => {
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
-      className={`flex-1 flex flex-col items-center gap-4 p-8 bg-panel-bg border rounded-3xl transition-all group cursor-pointer shadow-sm ${isDragOver ? 'border-accent shadow-xl scale-105 bg-accent/5' : 'border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-lg'}`}
+      className={`flex-1 flex flex-col items-center gap-3 md:gap-4 p-6 md:p-8 bg-panel-bg border rounded-3xl transition-all group cursor-pointer shadow-sm ${isDragOver ? 'border-accent shadow-xl scale-105 bg-accent/5' : 'border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-lg'}`}
     >
-      <div className="w-16 h-16 bg-accent/10 rounded-2xl flex items-center justify-center text-accent group-hover:scale-110 transition-transform pointer-events-none">
-        <Icon name={icon} size={32} />
+      <div className="w-14 h-14 md:w-16 md:h-16 bg-accent/10 rounded-2xl flex items-center justify-center text-accent group-hover:scale-110 transition-transform pointer-events-none">
+        <Icon name={icon} className="w-7 h-7 md:w-8 md:h-8" />
       </div>
       <div className="text-center pointer-events-none">
-        <h3 className="text-xl font-bold text-text mb-2">{title}</h3>
-        <p className="text-sm text-gray-500 line-clamp-2">{desc}</p>
+        <h3 className="text-lg md:text-xl font-bold text-text mb-1 md:mb-2">{title}</h3>
+        <p className="text-xs md:text-sm text-gray-500 line-clamp-2">{desc}</p>
       </div>
     </button>
   );
@@ -526,7 +526,7 @@ const App: React.FC = () => {
           </div>
         )}
         {/* Global SVG Gradients for Icons */}
-        <svg width="0" height="0" className="absolute pointer-events-none" aria-hidden="true">
+        <svg width="0" height="0" className="absolute pointer-events-none" aria-hidden="true" style={{ visibility: 'hidden' }}>
           <defs>
             <linearGradient id="accent-gradient" x1="0%" y1="0%" x2="100%" y2="100%" gradientUnits="userSpaceOnUse">
               <stop offset="0%" stopColor="var(--color-accent, var(--accent-color))" style={{ stopColor: 'color-mix(in srgb, var(--color-accent, var(--accent-color)), white 15%)' }} />
@@ -609,10 +609,14 @@ const App: React.FC = () => {
         />
 
         {/* --- Sidebar --- */}
-        <Sidebar
-          isOpen={isSidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-        />
+        {appMode !== 'build' && (
+          <div className={`transition-all duration-300 ${isSidebarOpen ? 'visible' : 'invisible'}`}>
+            <Sidebar
+              isOpen={isSidebarOpen}
+              onClose={() => setSidebarOpen(false)}
+            />
+          </div>
+        )}
 
 
         <div className={`content-wrapper flex grow min-h-0 transition-all duration-300 ease-in-out ml-0`}>
@@ -703,11 +707,11 @@ const App: React.FC = () => {
             ) : (
               <div className={`absolute inset-0 z-50 flex items-center justify-center w-full bg-bg transition-all duration-500 ease-in-out ${isHome ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
                 <div className={`relative z-10 flex flex-col items-center justify-center w-full p-8 transition-transform duration-500 ease-in-out ${isHome ? 'scale-100' : 'scale-[1.02]'}`}>
-                  <h2 className="text-6xl font-black flex items-center justify-center gap-4 mb-12 animate-fade-in-up text-accent tracking-tight">
-                    <Icon name="Leaf" size={60} />
-                    <span className="flex items-start gap-3">
+                  <h2 className="text-5xl md:text-6xl font-black flex items-center justify-center gap-3 md:gap-4 mb-8 md:mb-12 animate-fade-in-up text-accent tracking-tight">
+                    <Icon name="Leaf" size="1em" />
+                    <span className="flex items-start gap-2 md:gap-3">
                       Taxon
-                      <span className="text-xs font-bold bg-accent/10 text-accent px-2 py-0.5 rounded-lg border border-accent/20 uppercase tracking-widest mt-2">Beta</span>
+                      <span className="text-[10px] md:text-xs font-bold bg-accent/10 text-accent px-2 py-0.5 rounded-lg border border-accent/20 uppercase tracking-widest mt-1 md:mt-2">Beta</span>
                     </span>
                   </h2>
                   <div className="flex flex-col md:flex-row gap-6 w-full max-w-2xl mb-8">

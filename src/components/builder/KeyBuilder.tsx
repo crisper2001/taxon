@@ -610,8 +610,10 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
 
   return (
     <div className="flex flex-col h-full w-full bg-bg">
-      {/* Mobile Sidebar */}
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} onExit={onExit} actions={sidebarActions} />
+      {/* Mobile Sidebar - wrapped to control visibility and prevent shadow bleed */}
+      <div className={`transition-all duration-300 ${isSidebarOpen ? 'visible' : 'invisible'}`}>
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} onExit={onExit} actions={sidebarActions} />
+      </div>
 
       <Header
         isSidebarOpen={isSidebarOpen}
