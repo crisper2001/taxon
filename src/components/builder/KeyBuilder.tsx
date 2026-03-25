@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAppContext } from '../../context/AppContext';
-import { Icon } from '../Icon';
+import { Icon } from '../common/Icon';
 import { ConfirmModal, Modal } from '../modals';
 import type { DraftKeyData, Media } from '../../types';
 import { BuilderMetadataTab } from './BuilderMetadataTab';
 import { BuilderFeaturesTab } from './BuilderFeaturesTab';
 import { BuilderEntitiesTab } from './BuilderEntitiesTab';
 import { BuilderScoringTab } from './BuilderScoringTab';
-import { Header } from '../Header';
-import { useSwipe } from '../../hooks/useSwipe';
-import { Sidebar, type SidebarAction } from '../Sidebar';
+import { Header } from '../layout';
+import { useSwipe } from '../../hooks';
+import { Sidebar, type SidebarAction } from '../layout';
 
 interface KeyBuilderProps {
   onExit: () => void;

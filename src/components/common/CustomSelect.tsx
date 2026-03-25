@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Icon } from '../Icon';
+import { Icon } from './Icon';
 
 interface Option {
   value: string;
@@ -33,7 +33,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({ value, options, onCh
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setIsOpen(false);
     };
-    
+
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleEscape);
     return () => {
@@ -49,16 +49,16 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({ value, options, onCh
         className={`flex items-center ${hideChevron && !customTrigger ? 'justify-center' : 'justify-between text-left'} ${className}`}
         onClick={(e) => {
           e.preventDefault();
-        if (onTriggerClick) {
-          onTriggerClick(e, () => setIsOpen(!isOpen));
-        } else {
-          setIsOpen(!isOpen);
-        }
-      }}
-      onContextMenu={(e) => {
-        if (onTriggerContextMenu) {
-          onTriggerContextMenu(e, () => setIsOpen(!isOpen));
-        }
+          if (onTriggerClick) {
+            onTriggerClick(e, () => setIsOpen(!isOpen));
+          } else {
+            setIsOpen(!isOpen);
+          }
+        }}
+        onContextMenu={(e) => {
+          if (onTriggerContextMenu) {
+            onTriggerContextMenu(e, () => setIsOpen(!isOpen));
+          }
         }}
       >
         {customTrigger ? customTrigger : (
@@ -68,7 +68,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({ value, options, onCh
           </>
         )}
       </button>
-      
+
       <div className={`absolute z-100 min-w-max w-full bg-panel-bg border rounded-2xl shadow-2xl ${hideChevron ? 'left-1/2 -translate-x-1/2' : 'left-0'} transition-all duration-300 origin-top ${isOpen ? `mt-2 border-white/20 dark:border-white/10 py-1.5 opacity-100 scale-y-100 pointer-events-auto ${dropdownClassName}` : 'mt-0 border-transparent py-0 max-h-0 overflow-hidden opacity-0 scale-y-95 pointer-events-none'}`}>
         {options.map(option => (
           <button

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Icon } from '../Icon';
+import { Icon } from '../common/Icon';
 import type { Media } from '../../types';
 import { useAppContext } from '../../context/AppContext';
 
@@ -204,14 +204,14 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
           <button onClick={handlePrev} className="hidden md:flex absolute left-6 top-1/2 -translate-y-1/2 bg-black/20 text-white/70 hover:text-white rounded-full w-14 h-14 items-center justify-center hover:bg-black/40 z-20 transition-all duration-300 backdrop-blur-md cursor-pointer border border-white/10 shadow-lg hover:shadow-xl"><Icon name="ChevronLeft" size={36} /></button>
         )}
 
-        <div 
+        <div
           className="relative flex grow h-full w-full overflow-hidden"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           style={{ touchAction: 'none' }}
         >
-          <div 
+          <div
             className="flex h-full w-full"
             style={{
               transform: `translateX(calc(-${currentIndex * 100}% + ${swipeOffset}px))`,

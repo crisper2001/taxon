@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Modal } from './Modal';
-import { Icon } from '../Icon';
+import { Icon } from '../common/Icon';
 
 interface ConfirmModalProps {
   isOpen: boolean;

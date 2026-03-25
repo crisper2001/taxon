@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Icon, type IconName } from '../Icon';
+import { Icon, type IconName } from '../common/Icon';
 import { useAppContext } from '../../context/AppContext';
 
 interface ResizablePanelsProps {

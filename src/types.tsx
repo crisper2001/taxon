@@ -123,7 +123,7 @@ export interface DraftKeyData {
   entities: DraftEntity[];
 }
 
-export type ModalState = 
+export type ModalState =
   | { type: 'none' }
   | { type: 'entity'; entityId: string }
   | { type: 'feature'; featureId: string }
@@ -174,5 +174,12 @@ export interface RawChatMessage {
   draftSnapshot?: DraftKeyData;
 }
 
-// Re-export from Icon component to make it available elsewhere
-export type { IconName } from './components/Icon';
+export interface ChatMessage {
+  sender: 'user' | 'ai';
+  content: string;
+  data?: GeminiResponse;
+  versions?: AiMessageVersion[];
+  currentVersionIndex?: number;
+  imageUrl?: string;
+  draftSnapshot?: DraftKeyData;
+}

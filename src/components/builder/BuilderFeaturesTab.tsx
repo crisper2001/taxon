@@ -1,9 +1,9 @@
 import React, { useRef, useState } from 'react';
-import { Icon } from '../Icon';
+import { Icon } from '../common/Icon';
 import type { DraftKeyData, DraftFeature } from '../../types';
 import { ConfirmModal, BuilderFeatureModal } from '../modals';
 import { processImage } from '../../utils/imageUtils';
-import { useTreeDragAndDrop } from '../../hooks/useTreeDragAndDrop';
+import { useTreeDragAndDrop } from '../../hooks';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -51,7 +51,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
     { id: '5', name: t('scoreRareMisinterpret') || 'Rare (misinterpreted)' }
   ];
 
-  const [typeChangeConfirm, setTypeChangeConfirm] = useState<{featureId: string, newType: 'numeric' | 'state'} | null>(null);
+  const [typeChangeConfirm, setTypeChangeConfirm] = useState<{ featureId: string, newType: 'numeric' | 'state' } | null>(null);
 
   const requestTypeChange = (featureId: string, newType: 'numeric' | 'state') => {
     const feature = draftKey.features.find(f => f.id === featureId);
@@ -264,10 +264,10 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
       ...prev,
       features: prev.features.map(f => {
         if (f.id === featureId && f.media) {
-           const newMedia = [...f.media];
-           const [moved] = newMedia.splice(from, 1);
-           newMedia.splice(to, 0, moved);
-           return { ...f, media: newMedia };
+          const newMedia = [...f.media];
+          const [moved] = newMedia.splice(from, 1);
+          newMedia.splice(to, 0, moved);
+          return { ...f, media: newMedia };
         }
         return f;
       })
@@ -284,10 +284,10 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
             ...f,
             states: f.states.map(s => {
               if (s.id === stateId && s.media) {
-                 const newMedia = [...s.media];
-                 const [moved] = newMedia.splice(from, 1);
-                 newMedia.splice(to, 0, moved);
-                 return { ...s, media: newMedia };
+                const newMedia = [...s.media];
+                const [moved] = newMedia.splice(from, 1);
+                newMedia.splice(to, 0, moved);
+                return { ...s, media: newMedia };
               }
               return s;
             })
@@ -327,7 +327,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
     if (files.length === 0) return;
     const processed = await Promise.all(files.map(f => processImage(f)));
     const newMedia = processed.map(p => ({ url: `data:${p.mimeType};base64,${p.base64}` }));
-    
+
     if (targetType === 'feature') {
       const feature = draftKey.features.find(f => f.id === id);
       updateFeature(id, { media: [...(feature?.media || []), ...newMedia] });
@@ -415,7 +415,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
               </div>
             )}
             <span className="truncate flex-1 text-sm font-medium">{f.name || t('kbUnnamedFeature')}</span>
-            
+
             <div className="max-md:hidden opacity-0 group-hover/item:opacity-100 flex items-center gap-0.5 transition-opacity z-20 shrink-0 pr-1">
               {f.type === 'state' && (
                 <button onClick={(e) => { e.stopPropagation(); addState(f.id); if (collapsedFeatures.has(f.id)) toggleFeatureCollapse(f.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedFeatureId === f.id ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbAddState')}>
@@ -434,9 +434,9 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
             <div className="relative">
               {children.map(c => renderNode(c.id, depth + 1))}
               {f.type === 'state' && f.states.map(s => (
-                <div key={s.id} 
-                  className={`state-item flex items-center gap-2 p-1.5 rounded-xl transition-all duration-300 relative group/state cursor-pointer hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm ${selectedFeatureId === s.id ? 'bg-accent/20 shadow-inner ring-2 ring-accent' : 'border border-transparent opacity-80 hover:opacity-100'} ${dragOverId === s.id ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${draggedItem?.id === s.id ? 'opacity-50' : ''}`} 
-                  onClick={(e) => { e.stopPropagation(); setSelectedFeatureId(s.id); }} 
+                <div key={s.id}
+                  className={`state-item flex items-center gap-2 p-1.5 rounded-xl transition-all duration-300 relative group/state cursor-pointer hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm ${selectedFeatureId === s.id ? 'bg-accent/20 shadow-inner ring-2 ring-accent' : 'border border-transparent opacity-80 hover:opacity-100'} ${dragOverId === s.id ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${draggedItem?.id === s.id ? 'opacity-50' : ''}`}
+                  onClick={(e) => { e.stopPropagation(); setSelectedFeatureId(s.id); }}
                   style={{ paddingLeft: `calc(${1.5 + (depth + 1) * 1.5}rem + 0.5rem)`, touchAction: draggedItem ? 'none' : 'auto' }}
                   draggable
                   data-state-id={s.id}
@@ -509,7 +509,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
                     const el = document.elementFromPoint(touch.clientX, touch.clientY);
                     const targetState = el?.closest('[data-state-id]');
                     const targetFeature = el?.closest('[data-feature-id]');
-                    
+
                     if (targetState) {
                       const id = targetState.getAttribute('data-state-id');
                       const parentId = targetState.getAttribute('data-parent-id');
@@ -519,7 +519,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
                         const fid = targetFeature.getAttribute('data-feature-id');
                         const targetFeatType = draftKey.features.find(x => x.id === fid)?.type;
                         if (fid && targetFeatType === 'state' && fid !== f.id && draggedItem.type === 'state') {
-                           if (dragOverId !== fid) setDragOverId(fid);
+                          if (dragOverId !== fid) setDragOverId(fid);
                         }
                       }
                     } else if (targetFeature) {
@@ -538,32 +538,32 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
                     if (draggedItem && draggedItem.type === 'state') {
                       if (e.cancelable) e.preventDefault();
                       if (dragOverId) {
-                         const targetFeature = draftKey.features.find(x => x.id === dragOverId);
-                         if (targetFeature && targetFeature.type === 'state') {
-                            moveStateToFeature(draggedItem.id, draggedItem.parentId!, dragOverId);
-                         } else if (dragOverId !== s.id) {
-                            const targetParentFeat = draftKey.features.find(x => x.states?.some(st => st.id === dragOverId));
-                            if (targetParentFeat && targetParentFeat.id === f.id && draggedItem.parentId === f.id) {
-                              updateDraftKey(prev => ({
-                                ...prev,
-                                features: prev.features.map(feat => {
-                                  if (feat.id === f.id) {
-                                    const fromIdx = feat.states.findIndex(st => st.id === draggedItem.id);
-                                    const toIdx = feat.states.findIndex(st => st.id === dragOverId);
-                                    if (fromIdx !== -1 && toIdx !== -1) {
-                                      const newStates = [...feat.states];
-                                      const [moved] = newStates.splice(fromIdx, 1);
-                                      newStates.splice(toIdx, 0, moved);
-                                      return { ...feat, states: newStates };
-                                    }
+                        const targetFeature = draftKey.features.find(x => x.id === dragOverId);
+                        if (targetFeature && targetFeature.type === 'state') {
+                          moveStateToFeature(draggedItem.id, draggedItem.parentId!, dragOverId);
+                        } else if (dragOverId !== s.id) {
+                          const targetParentFeat = draftKey.features.find(x => x.states?.some(st => st.id === dragOverId));
+                          if (targetParentFeat && targetParentFeat.id === f.id && draggedItem.parentId === f.id) {
+                            updateDraftKey(prev => ({
+                              ...prev,
+                              features: prev.features.map(feat => {
+                                if (feat.id === f.id) {
+                                  const fromIdx = feat.states.findIndex(st => st.id === draggedItem.id);
+                                  const toIdx = feat.states.findIndex(st => st.id === dragOverId);
+                                  if (fromIdx !== -1 && toIdx !== -1) {
+                                    const newStates = [...feat.states];
+                                    const [moved] = newStates.splice(fromIdx, 1);
+                                    newStates.splice(toIdx, 0, moved);
+                                    return { ...feat, states: newStates };
                                   }
-                                  return feat;
-                                })
-                              }));
-                            } else if (targetParentFeat && targetParentFeat.id !== draggedItem.parentId) {
-                               moveStateToFeature(draggedItem.id, draggedItem.parentId!, targetParentFeat.id);
-                            }
-                         }
+                                }
+                                return feat;
+                              })
+                            }));
+                          } else if (targetParentFeat && targetParentFeat.id !== draggedItem.parentId) {
+                            moveStateToFeature(draggedItem.id, draggedItem.parentId!, targetParentFeat.id);
+                          }
+                        }
                       }
                       setDraggedItem(null);
                       setDragOverId(null);
@@ -583,14 +583,14 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
                     </div>
                   )}
                   <span className="truncate flex-1 text-sm font-medium">{s.name || t('kbStateName' as any) || 'Unnamed State'}</span>
-                  
+
                   <div className="max-md:hidden opacity-0 group-hover/state:opacity-100 flex items-center gap-0.5 transition-opacity z-20 shrink-0 pr-1">
-                     <button onClick={(e) => { e.stopPropagation(); duplicateState(f.id, s.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedFeatureId === s.id ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbDuplicate')}>
-                        <Icon name="Copy" size={14} />
-                     </button>
-                     <button onClick={(e) => { e.stopPropagation(); setDeleteTarget({ type: 'state', id: s.id, parentId: f.id }); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedFeatureId === s.id ? 'text-red-500 hover:bg-red-500/10' : 'text-red-400 hover:text-red-500 hover:bg-red-500/10'}`} title={t('kbDelete')}>
-                        <Icon name="Trash2" size={14} />
-                     </button>
+                    <button onClick={(e) => { e.stopPropagation(); duplicateState(f.id, s.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedFeatureId === s.id ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbDuplicate')}>
+                      <Icon name="Copy" size={14} />
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); setDeleteTarget({ type: 'state', id: s.id, parentId: f.id }); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedFeatureId === s.id ? 'text-red-500 hover:bg-red-500/10' : 'text-red-400 hover:text-red-500 hover:bg-red-500/10'}`} title={t('kbDelete')}>
+                      <Icon name="Trash2" size={14} />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -604,35 +604,35 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
 
   return (
     <div className="flex flex-col w-full h-full animate-fade-in">
-        <div className="p-3.5 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-header-bg/85 backdrop-blur-md shadow-sm shrink-0 z-10">
-            <div className="panel-title font-bold flex items-center gap-2 text-lg tracking-tight min-w-0 pr-2">
-              <Icon name="ListTree" size={20} className="shrink-0 text-accent" />
-              <span className="truncate text-accent">{t('kbFeatures')}</span>
-              <div className="flex items-center gap-1 shrink-0">
-                <span className="bg-accent text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-sm" title={t('kbFeatures')}>
-                  {draftKey.features.length}
-                </span>
-                <span className="bg-accent/20 text-accent text-xs font-bold px-2 py-0.5 rounded-full shadow-sm" title={t('kbStates')}>
-                  {draftKey.features.reduce((acc, f) => acc + (f.type === 'state' ? f.states.length : 0), 0)}
-                </span>
-              </div>
-            </div>
-            <button onClick={addFeature} className="shrink-0 px-3 py-1.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-lg hover:bg-accent-hover transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg flex items-center gap-1 cursor-pointer" title={t('kbAddFeature')}><Icon name="Plus" size={14} /> <span className="hidden sm:inline">{t('kbAdd' as any)}</span></button>
+      <div className="p-3.5 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-header-bg/85 backdrop-blur-md shadow-sm shrink-0 z-10">
+        <div className="panel-title font-bold flex items-center gap-2 text-lg tracking-tight min-w-0 pr-2">
+          <Icon name="ListTree" size={20} className="shrink-0 text-accent" />
+          <span className="truncate text-accent">{t('kbFeatures')}</span>
+          <div className="flex items-center gap-1 shrink-0">
+            <span className="bg-accent text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-sm" title={t('kbFeatures')}>
+              {draftKey.features.length}
+            </span>
+            <span className="bg-accent/20 text-accent text-xs font-bold px-2 py-0.5 rounded-full shadow-sm" title={t('kbStates')}>
+              {draftKey.features.reduce((acc, f) => acc + (f.type === 'state' ? f.states.length : 0), 0)}
+            </span>
           </div>
-          <div
-            className={`panel-content grow p-3 space-y-0.5 overflow-y-auto transition-colors ${dragOverId === 'root' ? 'bg-accent/5 ring-2 ring-inset ring-accent' : ''}`}
-            data-root-drop="true"
-            onDragOver={(e) => {
-              e.preventDefault();
-              if (draggedItem?.type === 'feature' && dragOverId !== 'root') setDragOverId('root');
-            }}
-            onDragLeave={() => {
-              if (dragOverId === 'root') setDragOverId(null);
-            }}
-            onDrop={featureTreeDnd.onRootDrop}
-          >
-            {renderFeatureList()}
-          </div>
+        </div>
+        <button onClick={addFeature} className="shrink-0 px-3 py-1.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-lg hover:bg-accent-hover transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg flex items-center gap-1 cursor-pointer" title={t('kbAddFeature')}><Icon name="Plus" size={14} /> <span className="hidden sm:inline">{t('kbAdd' as any)}</span></button>
+      </div>
+      <div
+        className={`panel-content grow p-3 space-y-0.5 overflow-y-auto transition-colors ${dragOverId === 'root' ? 'bg-accent/5 ring-2 ring-inset ring-accent' : ''}`}
+        data-root-drop="true"
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (draggedItem?.type === 'feature' && dragOverId !== 'root') setDragOverId('root');
+        }}
+        onDragLeave={() => {
+          if (dragOverId === 'root') setDragOverId(null);
+        }}
+        onDrop={featureTreeDnd.onRootDrop}
+      >
+        {renderFeatureList()}
+      </div>
 
       <BuilderFeatureModal
         isOpen={!!selectedFeatureId && (!!selectedFeature || !!selectedState)}
@@ -687,9 +687,9 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
             <div className="bg-panel-bg/95 backdrop-blur-xl border border-accent/50 shadow-2xl rounded-xl px-4 py-2 flex items-center gap-2 font-bold text-accent text-sm">
               <Icon name={draggedItem.type === 'state' ? 'List' : (draftKey.features.find(f => f.id === draggedItem.id)?.type === 'state' ? 'ListTree' : 'Hash')} size={16} />
               <span className="truncate max-w-[150px]">
-                {draggedItem.type === 'state' ? 
+                {draggedItem.type === 'state' ?
                   (draftKey.features.find(f => f.id === draggedItem.parentId)?.states.find(s => s.id === draggedItem.id)?.name || t('kbStateName' as any) || 'Unnamed State')
-                : (draftKey.features.find(f => f.id === draggedItem.id)?.name || t('kbUnnamedFeature'))}
+                  : (draftKey.features.find(f => f.id === draggedItem.id)?.name || t('kbUnnamedFeature'))}
               </span>
             </div>
           ) : draggedMedia ? (

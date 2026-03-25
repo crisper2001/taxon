@@ -1,8 +1,8 @@
 import React from 'react';
 import { Modal } from './Modal';
-import { Icon } from '../Icon';
+import { Icon } from '../common/Icon';
 import type { KeyData } from '../../types';
-import { Markdown } from '../common/Markdown';
+import { Markdown } from '../common';
 
 // --- KeyInfoModal ---
 interface KeyInfoModalProps {

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from './Modal';
-import { Icon } from '../Icon';
+import { Icon } from '../common/Icon';
 import { translations } from '../../constants';
-import Spot from '../Spot';
-import { CustomSelect } from '../common/CustomSelect';
+import { Spot } from '../common/Spot';
+import { CustomSelect } from '../common';
 import type { Language, Theme } from '../../types';
 import packageJson from '../../../package.json';
 

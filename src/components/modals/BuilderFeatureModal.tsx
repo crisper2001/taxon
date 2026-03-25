@@ -1,8 +1,8 @@
 import React, { MutableRefObject, useState, useEffect } from 'react';
-import { Icon } from '../Icon';
+import { Icon } from '../common/Icon';
 import { Modal } from './Modal';
-import { MarkdownInput } from '../common/MarkdownInput';
-import { CustomSelect } from '../common/CustomSelect';
+import { MarkdownInput } from '../common';
+import { CustomSelect } from '../common';
 import type { DraftFeature, DraftState } from '../../types';
 
 const reorderArray = <T,>(arr: T[], from: number, to: number): T[] => {
@@ -166,7 +166,7 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
                 <Icon name="Image" size={18} />
                 <span className="grow text-base">{t('kbImages' as any) || 'Images'}</span>
               </div>
-              <div 
+              <div
                 className={`flex gap-3 overflow-x-auto pb-2 pt-2 px-2 -mx-2 rounded-xl transition-all min-h-[116px] ${dragOverId === 'feature-images' ? 'bg-accent/10 ring-2 ring-accent ring-inset' : ''}`}
                 onDragEnter={(e) => {
                   if (e.dataTransfer.types.includes('Files')) {
@@ -340,7 +340,7 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
                 <Icon name="Image" size={18} />
                 <span className="grow text-base">{t('kbImages' as any) || 'Images'}</span>
               </div>
-              <div 
+              <div
                 className={`flex gap-3 overflow-x-auto pb-2 pt-2 px-2 -mx-2 rounded-xl transition-all min-h-[116px] ${dragOverId === `state-images-${stateToRender.id}` ? 'bg-accent/10 ring-2 ring-accent ring-inset' : ''}`}
                 onDragEnter={(e) => {
                   if (e.dataTransfer.types.includes('Files')) {
@@ -607,7 +607,7 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
                 })}
               </div>
             </div>
-            
+
             <div className="flex justify-between items-center mt-2 pt-2">
               <button onClick={() => duplicateState(stateParentToRender.id, stateToRender.id)} className="px-4 py-2 text-gray-500 hover:text-accent bg-panel-bg/50 hover:bg-hover-bg rounded-xl border border-border shadow-sm transition-all font-semibold flex items-center gap-2 cursor-pointer">
                 <Icon name="Copy" size={16} /> {t('kbDuplicate')}

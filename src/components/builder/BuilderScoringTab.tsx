@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
-import { Icon } from '../Icon';
+import { Icon } from '../common/Icon';
 import type { DraftKeyData } from '../../types';
-import { CustomSelect } from '../common/CustomSelect';
+import { CustomSelect } from '../common';
 import { Modal, ConfirmModal } from '../modals';
 
 const flattenHierarchy = <T extends { id: string, parentId?: string }>(items: T[]): { item: T, depth: number }[] => {
@@ -30,9 +30,9 @@ interface BuilderScoringTabProps {
 }
 
 export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({ draftKey, updateDraftKey, t }) => {
-  const [editingNumeric, setEditingNumeric] = useState<{entityId: string, featureId: string, min: string, max: string} | null>(null);
+  const [editingNumeric, setEditingNumeric] = useState<{ entityId: string, featureId: string, min: string, max: string } | null>(null);
   const [isClearMatrixModalOpen, setIsClearMatrixModalOpen] = useState(false);
-  const lastEditingNumeric = useRef<{entityId: string, featureId: string, min: string, max: string} | null>(null);
+  const lastEditingNumeric = useRef<{ entityId: string, featureId: string, min: string, max: string } | null>(null);
   if (editingNumeric) lastEditingNumeric.current = editingNumeric;
   const currentEditingNumeric = editingNumeric || lastEditingNumeric.current;
   const tableRef = useRef<HTMLTableElement>(null);
@@ -53,10 +53,10 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
     const td = target.closest('td, th') as HTMLTableCellElement;
     const table = tableRef.current;
     if (!td || !table) return clearHighlight();
-    
+
     const tr = td.closest('tr') as HTMLTableRowElement;
     if (!tr) return clearHighlight();
-    
+
     const targetCol = td.cellIndex;
     const targetRow = tr.rowIndex;
 
@@ -75,9 +75,9 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
       // Highlight strictly upwards in the same column, including the header
       for (let r = 0; r < targetRow; r++) {
         const row = rows[r];
-        if (row && row.cells[targetCol]) { 
-           row.cells[targetCol].classList.add('matrix-highlight'); 
-           lastHighlighted.current.push(row.cells[targetCol]); 
+        if (row && row.cells[targetCol]) {
+          row.cells[targetCol].classList.add('matrix-highlight');
+          lastHighlighted.current.push(row.cells[targetCol]);
         }
       }
     }
@@ -120,19 +120,19 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
   const renderScoreSymbol = (v: any) => {
     const isDefault = ['1', '2', '3', '4', '5'].includes(v.id);
     const getSymbolBg = (id: string) => {
-       switch(id) {
-         case '1': return 'bg-blue-500/10 text-blue-500';
-         case '2': return 'bg-green-500/10 text-green-500';
-         case '3': return 'bg-gray-500/10 text-text';
-         case '4': return 'bg-red-500/10 text-red-500';
-         case '5': return 'bg-yellow-500/10 text-yellow-500';
-         default: return '';
-       }
+      switch (id) {
+        case '1': return 'bg-blue-500/10 text-blue-500';
+        case '2': return 'bg-green-500/10 text-green-500';
+        case '3': return 'bg-gray-500/10 text-text';
+        case '4': return 'bg-red-500/10 text-red-500';
+        case '5': return 'bg-yellow-500/10 text-yellow-500';
+        default: return '';
+      }
     };
     const renderCustomIcon = (iconType: string, color: string) => {
-       if (iconType === 'question') return <span className="font-bold text-[14px] leading-none" style={{ color }}>?</span>;
-       if (iconType === 'exclamation') return <span className="font-bold text-[14px] leading-none" style={{ color }}>!</span>;
-       return <Icon name="Check" size={14} style={{ color }} />;
+      if (iconType === 'question') return <span className="font-bold text-[14px] leading-none" style={{ color }}>?</span>;
+      if (iconType === 'exclamation') return <span className="font-bold text-[14px] leading-none" style={{ color }}>!</span>;
+      return <Icon name="Check" size={14} style={{ color }} />;
     };
 
     if (isDefault) {
@@ -187,8 +187,8 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
         </button>
       </div>
       <div className="flex-1 overflow-auto bg-bg/30 relative custom-scrollbar min-w-0 min-h-0">
-        <table 
-          id="scoring-matrix-table" 
+        <table
+          id="scoring-matrix-table"
           ref={tableRef}
           onMouseOver={handleMouseOver}
           onMouseLeave={clearHighlight}
@@ -210,55 +210,55 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
           <tbody>
             {flattenedFeatures.map(({ item: f, depth }) => {
               return (
-              <React.Fragment key={f.id}>
-                <tr className="transition-colors group/row bg-panel-bg" data-no-highlight={f.type === 'state'}>
-                  <td className="sticky left-0 z-30 p-2 md:p-4 border-b border-border border-r-2 border-r-border transition-colors align-middle w-[140px] min-w-[140px] max-w-[140px] md:w-[250px] md:min-w-[250px] md:max-w-[250px] bg-header-bg">
-                    <div className="flex items-center gap-2 font-bold relative w-full text-sm md:text-base pl-[calc(var(--depth)*0.75rem)] md:pl-[calc(var(--depth)*1.5rem)]" style={{ '--depth': depth } as React.CSSProperties}>
-                       <span className="truncate text-accent" title={f.name}>{f.name || t('kbUnnamedFeature')}</span>
-                    </div>
-                  </td>
-                  {flattenedEntities.map(({ item: e }) => (
-                    <td key={e.id} className={`p-2 border-b border-border align-middle w-[1%] whitespace-nowrap ${f.type === 'state' ? 'bg-black/10 dark:bg-black/3' : 'border-r'}`}>
-                      {f.type === 'numeric' && (
-                        (() => {
-                          const score = e.scores[f.id] as { min: number, max: number } | undefined;
-                          const hasScore = score !== undefined && score.min !== undefined && score.max !== undefined;
-                          const unitSym = getUnitSymbol(f.base_unit, f.unit_prefix);
-                          const tooltip = hasScore ? `${score.min} - ${score.max}${unitSym ? ` ${unitSym}` : ''}` : undefined;
-                          return (
-                            <div className="flex items-center justify-center w-full h-full min-h-[32px]">
-                              <button
-                                onClick={() => setEditingNumeric({ entityId: e.id, featureId: f.id, min: score?.min?.toString() ?? '', max: score?.max?.toString() ?? '' })}
-                                className={`w-full h-full min-w-[32px] rounded-md flex items-center justify-center font-bold text-lg transition-all border cursor-pointer ${hasScore ? 'bg-accent/20 text-accent border-accent/30' : 'bg-transparent text-gray-500 opacity-40 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5 border-border'}`}
-                                title={tooltip}
-                              >
-                                #
-                              </button>
-                            </div>
-                          );
-                        })()
-                      )}
-                    </td>
-                  ))}
-                </tr>
-                {f.type === 'state' && f.states.map(s => (
-                  <tr key={s.id} className="transition-colors group/row bg-panel-bg">
-                    <td className="sticky left-0 z-30 py-2 md:py-3 px-2 md:px-4 border-b border-border border-r-2 border-r-border transition-colors align-middle w-[140px] min-w-[140px] max-w-[140px] md:w-[250px] md:min-w-[250px] md:max-w-[250px] bg-header-bg text-text font-medium">
-                      <div className="flex items-center gap-2 relative w-full text-xs md:text-sm pl-[calc(var(--depth)*0.75rem)] md:pl-[calc(var(--depth)*1.5rem)]" style={{ '--depth': depth + 1 } as React.CSSProperties}>
-                         <span className="truncate opacity-90" title={s.name}>{s.name}</span>
+                <React.Fragment key={f.id}>
+                  <tr className="transition-colors group/row bg-panel-bg" data-no-highlight={f.type === 'state'}>
+                    <td className="sticky left-0 z-30 p-2 md:p-4 border-b border-border border-r-2 border-r-border transition-colors align-middle w-[140px] min-w-[140px] max-w-[140px] md:w-[250px] md:min-w-[250px] md:max-w-[250px] bg-header-bg">
+                      <div className="flex items-center gap-2 font-bold relative w-full text-sm md:text-base pl-[calc(var(--depth)*0.75rem)] md:pl-[calc(var(--depth)*1.5rem)]" style={{ '--depth': depth } as React.CSSProperties}>
+                        <span className="truncate text-accent" title={f.name}>{f.name || t('kbUnnamedFeature')}</span>
                       </div>
                     </td>
                     {flattenedEntities.map(({ item: e }) => (
-                      <td key={`${e.id}-${s.id}`} className="p-2 border-b border-r border-border align-middle w-[1%] whitespace-nowrap">
-                        {(() => {
-                          const scoreVal = e.scores[s.id] as string;
-                          const vals = (s as any).values || getDefaultStateValues(t);
-                          const selectedVal = vals.find((v: any) => v.id === scoreVal);
-                          return (
+                      <td key={e.id} className={`p-2 border-b border-border align-middle w-[1%] whitespace-nowrap ${f.type === 'state' ? 'bg-black/10 dark:bg-black/3' : 'border-r'}`}>
+                        {f.type === 'numeric' && (
+                          (() => {
+                            const score = e.scores[f.id] as { min: number, max: number } | undefined;
+                            const hasScore = score !== undefined && score.min !== undefined && score.max !== undefined;
+                            const unitSym = getUnitSymbol(f.base_unit, f.unit_prefix);
+                            const tooltip = hasScore ? `${score.min} - ${score.max}${unitSym ? ` ${unitSym}` : ''}` : undefined;
+                            return (
+                              <div className="flex items-center justify-center w-full h-full min-h-[32px]">
+                                <button
+                                  onClick={() => setEditingNumeric({ entityId: e.id, featureId: f.id, min: score?.min?.toString() ?? '', max: score?.max?.toString() ?? '' })}
+                                  className={`w-full h-full min-w-[32px] rounded-md flex items-center justify-center font-bold text-lg transition-all border cursor-pointer ${hasScore ? 'bg-accent/20 text-accent border-accent/30' : 'bg-transparent text-gray-500 opacity-40 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5 border-border'}`}
+                                  title={tooltip}
+                                >
+                                  #
+                                </button>
+                              </div>
+                            );
+                          })()
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                  {f.type === 'state' && f.states.map(s => (
+                    <tr key={s.id} className="transition-colors group/row bg-panel-bg">
+                      <td className="sticky left-0 z-30 py-2 md:py-3 px-2 md:px-4 border-b border-border border-r-2 border-r-border transition-colors align-middle w-[140px] min-w-[140px] max-w-[140px] md:w-[250px] md:min-w-[250px] md:max-w-[250px] bg-header-bg text-text font-medium">
+                        <div className="flex items-center gap-2 relative w-full text-xs md:text-sm pl-[calc(var(--depth)*0.75rem)] md:pl-[calc(var(--depth)*1.5rem)]" style={{ '--depth': depth + 1 } as React.CSSProperties}>
+                          <span className="truncate opacity-90" title={s.name}>{s.name}</span>
+                        </div>
+                      </td>
+                      {flattenedEntities.map(({ item: e }) => (
+                        <td key={`${e.id}-${s.id}`} className="p-2 border-b border-r border-border align-middle w-[1%] whitespace-nowrap">
+                          {(() => {
+                            const scoreVal = e.scores[s.id] as string;
+                            const vals = (s as any).values || getDefaultStateValues(t);
+                            const selectedVal = vals.find((v: any) => v.id === scoreVal);
+                            return (
                               <div className="flex items-center justify-center w-full h-full min-h-[32px]" title={selectedVal?.name}>
-                                <CustomSelect 
-                                  value={scoreVal || ''} 
-                                  onChange={val => setScore(e.id, s.id, val || null)} 
+                                <CustomSelect
+                                  value={scoreVal || ''}
+                                  onChange={val => setScore(e.id, s.id, val || null)}
                                   hideChevron={true}
                                   customTrigger={
                                     <div className="flex items-center justify-center w-full">
@@ -273,19 +273,19 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
                                     toggle();
                                   }}
                                   options={[
-                                    { value: '', label: <span className="opacity-40 px-2">-</span> }, 
+                                    { value: '', label: <span className="opacity-40 px-2">-</span> },
                                     ...vals.map((v: any) => ({ value: v.id, label: <span className="flex items-center gap-2 px-1 whitespace-nowrap">{renderScoreSymbol(v)} <span className="text-[12px] leading-none font-bold">{v.name}</span></span> }))
-                                  ]} 
-                                  className="w-8 h-8 cursor-pointer bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-md focus:outline-none flex items-center justify-center transition-colors border border-border" 
+                                  ]}
+                                  className="w-8 h-8 cursor-pointer bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-md focus:outline-none flex items-center justify-center transition-colors border border-border"
                                 />
                               </div>
-                          );
-                        })()}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </React.Fragment>
+                            );
+                          })()}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </React.Fragment>
               );
             })}
           </tbody>
@@ -293,58 +293,58 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
       </div>
 
       <Modal isOpen={!!editingNumeric} onClose={() => setEditingNumeric(null)} title={t('kbScoring')}>
-         {currentEditingNumeric && (() => {
-           const feature = draftKey.features.find(x => x.id === currentEditingNumeric.featureId);
-           const entity = draftKey.entities.find(x => x.id === currentEditingNumeric.entityId);
-           const unitSym = feature ? getUnitSymbol(feature.base_unit, feature.unit_prefix) : '';
-           return (
-             <div className="p-6 flex flex-col gap-4">
-               <div className="text-base mb-2">
-                 <span className="font-bold text-accent">{feature?.name}</span> <span className="text-accent">&rarr;</span> <span className="font-bold text-accent">{entity?.name}</span>
-               </div>
-               <div className="flex flex-col sm:flex-row gap-4">
-                 <label className="flex flex-col gap-1.5 flex-1">
-                   <span className="text-sm font-semibold opacity-80">{t('kbMin')}</span>
-                   <div className="relative flex items-center">
-                     <input type="number" value={editingNumeric?.min ?? currentEditingNumeric.min} onChange={e => editingNumeric && setEditingNumeric({...editingNumeric, min: e.target.value})} className={`input-base text-lg font-medium w-full ${unitSym ? 'pr-10' : ''}`} />
-                     {unitSym && <span className="absolute right-3 text-gray-500 font-bold select-none pointer-events-none">{unitSym}</span>}
-                   </div>
-                 </label>
-                 <label className="flex flex-col gap-1.5 flex-1">
-                   <span className="text-sm font-semibold opacity-80">{t('kbMax')}</span>
-                   <div className="relative flex items-center">
-                     <input type="number" value={editingNumeric?.max ?? currentEditingNumeric.max} onChange={e => editingNumeric && setEditingNumeric({...editingNumeric, max: e.target.value})} className={`input-base text-lg font-medium w-full ${unitSym ? 'pr-10' : ''}`} />
-                     {unitSym && <span className="absolute right-3 text-gray-500 font-bold select-none pointer-events-none">{unitSym}</span>}
-                   </div>
-                 </label>
-               </div>
-               <div className="mt-4 flex justify-end gap-3">
-                 <button onClick={() => {
-                    if (!editingNumeric) return;
+        {currentEditingNumeric && (() => {
+          const feature = draftKey.features.find(x => x.id === currentEditingNumeric.featureId);
+          const entity = draftKey.entities.find(x => x.id === currentEditingNumeric.entityId);
+          const unitSym = feature ? getUnitSymbol(feature.base_unit, feature.unit_prefix) : '';
+          return (
+            <div className="p-6 flex flex-col gap-4">
+              <div className="text-base mb-2">
+                <span className="font-bold text-accent">{feature?.name}</span> <span className="text-accent">&rarr;</span> <span className="font-bold text-accent">{entity?.name}</span>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <label className="flex flex-col gap-1.5 flex-1">
+                  <span className="text-sm font-semibold opacity-80">{t('kbMin')}</span>
+                  <div className="relative flex items-center">
+                    <input type="number" value={editingNumeric?.min ?? currentEditingNumeric.min} onChange={e => editingNumeric && setEditingNumeric({ ...editingNumeric, min: e.target.value })} className={`input-base text-lg font-medium w-full ${unitSym ? 'pr-10' : ''}`} />
+                    {unitSym && <span className="absolute right-3 text-gray-500 font-bold select-none pointer-events-none">{unitSym}</span>}
+                  </div>
+                </label>
+                <label className="flex flex-col gap-1.5 flex-1">
+                  <span className="text-sm font-semibold opacity-80">{t('kbMax')}</span>
+                  <div className="relative flex items-center">
+                    <input type="number" value={editingNumeric?.max ?? currentEditingNumeric.max} onChange={e => editingNumeric && setEditingNumeric({ ...editingNumeric, max: e.target.value })} className={`input-base text-lg font-medium w-full ${unitSym ? 'pr-10' : ''}`} />
+                    {unitSym && <span className="absolute right-3 text-gray-500 font-bold select-none pointer-events-none">{unitSym}</span>}
+                  </div>
+                </label>
+              </div>
+              <div className="mt-4 flex justify-end gap-3">
+                <button onClick={() => {
+                  if (!editingNumeric) return;
+                  setScore(editingNumeric.entityId, editingNumeric.featureId, null);
+                  setEditingNumeric(null);
+                }} className="px-4 py-2 hover:bg-red-500/10 text-red-500 rounded-xl font-medium transition-colors cursor-pointer">{t('kbDelete')}</button>
+                <div className="flex-1"></div>
+                <button onClick={() => setEditingNumeric(null)} className="px-4 py-2 hover:bg-hover-bg/80 rounded-xl font-medium transition-colors cursor-pointer">{t('cancel')}</button>
+                <button onClick={() => {
+                  if (!editingNumeric) return;
+                  const minVal = parseFloat(editingNumeric.min);
+                  const maxVal = parseFloat(editingNumeric.max);
+                  if (!isNaN(minVal) && !isNaN(maxVal)) {
+                    setScore(editingNumeric.entityId, editingNumeric.featureId, { min: minVal, max: maxVal });
+                  } else if (!isNaN(minVal)) {
+                    setScore(editingNumeric.entityId, editingNumeric.featureId, { min: minVal, max: minVal });
+                  } else if (!isNaN(maxVal)) {
+                    setScore(editingNumeric.entityId, editingNumeric.featureId, { min: maxVal, max: maxVal });
+                  } else {
                     setScore(editingNumeric.entityId, editingNumeric.featureId, null);
-                    setEditingNumeric(null);
-                 }} className="px-4 py-2 hover:bg-red-500/10 text-red-500 rounded-xl font-medium transition-colors cursor-pointer">{t('kbDelete')}</button>
-                 <div className="flex-1"></div>
-                 <button onClick={() => setEditingNumeric(null)} className="px-4 py-2 hover:bg-hover-bg/80 rounded-xl font-medium transition-colors cursor-pointer">{t('cancel')}</button>
-                 <button onClick={() => {
-                    if (!editingNumeric) return;
-                    const minVal = parseFloat(editingNumeric.min);
-                    const maxVal = parseFloat(editingNumeric.max);
-                    if (!isNaN(minVal) && !isNaN(maxVal)) {
-                       setScore(editingNumeric.entityId, editingNumeric.featureId, { min: minVal, max: maxVal });
-                    } else if (!isNaN(minVal)) {
-                       setScore(editingNumeric.entityId, editingNumeric.featureId, { min: minVal, max: minVal });
-                    } else if (!isNaN(maxVal)) {
-                       setScore(editingNumeric.entityId, editingNumeric.featureId, { min: maxVal, max: maxVal });
-                    } else {
-                       setScore(editingNumeric.entityId, editingNumeric.featureId, null);
-                    }
-                    setEditingNumeric(null);
-                 }} className="px-4 py-2 bg-accent text-white rounded-xl font-bold hover:bg-accent-hover transition-colors shadow-sm cursor-pointer">{t('save')}</button>
-               </div>
-             </div>
-           );
-         })()}
+                  }
+                  setEditingNumeric(null);
+                }} className="px-4 py-2 bg-accent text-white rounded-xl font-bold hover:bg-accent-hover transition-colors shadow-sm cursor-pointer">{t('save')}</button>
+              </div>
+            </div>
+          );
+        })()}
       </Modal>
 
       <ConfirmModal

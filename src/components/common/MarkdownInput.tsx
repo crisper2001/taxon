@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { MarkdownToolbar } from './MarkdownToolbar';
-import { Icon } from '../Icon';
+import { Icon } from './Icon';
 import { useAppContext } from '../../context/AppContext';
 import { Markdown } from './Markdown';
 
@@ -25,9 +25,9 @@ export const MarkdownInput: React.FC<MarkdownInputProps> = ({ label, value, onCh
           {!isPreview && (
             <div className={`transition-opacity duration-200 ${isFocused ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}><MarkdownToolbar textareaRef={textareaRef} value={value} onChange={onChange} /></div>
           )}
-          <button 
-            type="button" 
-            onClick={() => setIsPreview(!isPreview)} 
+          <button
+            type="button"
+            onClick={() => setIsPreview(!isPreview)}
             className={`p-1.5 rounded-lg transition-all cursor-pointer shadow-sm flex items-center justify-center ${isPreview ? 'bg-accent text-white hover:bg-accent-hover border border-transparent' : 'bg-panel-bg/80 backdrop-blur-sm text-gray-500 hover:text-accent border border-white/20 dark:border-white/10 hover:bg-hover-bg hover:shadow-md'}`}
             title={isPreview ? t('edit') : t('preview')}
           >
@@ -40,14 +40,14 @@ export const MarkdownInput: React.FC<MarkdownInputProps> = ({ label, value, onCh
           {value ? <Markdown content={value} className="text-sm" /> : <span className="opacity-50 italic text-sm">{t('kbEmpty' as any)}</span>}
         </div>
       ) : (
-        <textarea 
-          ref={textareaRef} 
-          value={value} 
-          onChange={e => onChange(e.target.value)} 
+        <textarea
+          ref={textareaRef}
+          value={value}
+          onChange={e => onChange(e.target.value)}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          className="input-base text-sm resize-none" 
-          rows={rows} 
+          className="input-base text-sm resize-none"
+          rows={rows}
         />
       )}
     </div>

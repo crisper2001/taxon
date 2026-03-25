@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Modal } from './Modal';
-import { ImageViewer } from '../common/ImageViewer';
+import { ImageViewer } from '../common';
 import type { KeyData, Media, FeatureNode } from '../../types';
-import { Icon } from '../Icon';
-import { Markdown } from '../common/Markdown';
-import { useSwipe } from '../../hooks/useSwipe';
+import { Icon } from '../common/Icon';
+import { Markdown } from '../common';
+import { useSwipe } from '../../hooks';
 
 // --- FeatureModal ---
 interface FeatureModalProps {

@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Modal } from './Modal';
-import { Icon } from '../Icon';
-import { ImageViewer } from '../common/ImageViewer';
-import type { KeyData, Media, ScoreType, Characteristic, IconName, EntityNode } from '../../types';
+import { Icon } from '../common/Icon';
+import { ImageViewer } from '../common';
+import type { KeyData, Media, ScoreType, Characteristic, EntityNode } from '../../types';
 import { translations } from '../../constants';
-import { Markdown } from '../common/Markdown';
-import { useSwipe } from '../../hooks/useSwipe';
+import { Markdown } from '../common';
+import { useSwipe } from '../../hooks';
 
 interface GroupNode {
   name: string;
@@ -30,8 +30,8 @@ const RenderFeatureGroup: React.FC<{
         const isCollapsed = collapsedGroups.has(subgroup.path);
         return (
           <div key={subgroup.path} className="mb-2 pl-2">
-            <button 
-              onClick={() => toggleGroup(subgroup.path)} 
+            <button
+              onClick={() => toggleGroup(subgroup.path)}
               className="w-full text-left font-bold text-gray-500 flex items-center mb-1.5 text-sm bg-panel-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 hover:bg-hover-bg/80 transition-all py-2 px-3 rounded-xl shadow-sm hover:shadow-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent/50 gap-2"
             >
               <span className="shrink-0 flex items-center justify-center">
@@ -41,12 +41,12 @@ const RenderFeatureGroup: React.FC<{
             </button>
             {!isCollapsed && (
               <div className="border-l-2 border-border/50 ml-3.5 mb-3">
-                <RenderFeatureGroup 
-                  node={subgroup} 
-                  collapsedGroups={collapsedGroups} 
-                  toggleGroup={toggleGroup} 
-                  getIconForChar={getIconForChar} 
-                  getBadge={getBadge} 
+                <RenderFeatureGroup
+                  node={subgroup}
+                  collapsedGroups={collapsedGroups}
+                  toggleGroup={toggleGroup}
+                  getIconForChar={getIconForChar}
+                  getBadge={getBadge}
                 />
               </div>
             )}
@@ -84,7 +84,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
   const detailsRef = useRef<HTMLDivElement>(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [mobileTab, setMobileTab] = useState<'image' | 'details' | 'features'>('image');
-  
+
   const { swipeOffset, isSwiping, handleTouchStart, handleTouchMove, handleTouchEnd } = useSwipe(
     () => {
       if (mobileTab === 'image') setMobileTab('details');
@@ -143,7 +143,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
       const parts = char.parent.split(' > ');
       let current = root;
       let currentPath = '';
-      
+
       parts.forEach(part => {
         currentPath = currentPath ? `${currentPath} > ${part}` : part;
         if (!current.subgroups[part]) {
@@ -151,7 +151,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
         }
         current = current.subgroups[part];
       });
-      
+
       current.chars.push(char);
     });
     return root;
@@ -216,10 +216,10 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
       } else {
         let inner = <Icon name="Check" size={14} style={char.scoreColor ? { color: char.scoreColor } : {}} />;
         if (char.scoreIcon === 'question') {
-           inner = <span className="font-bold text-[14px] leading-none" style={char.scoreColor ? { color: char.scoreColor } : {}}>?</span>;
+          inner = <span className="font-bold text-[14px] leading-none" style={char.scoreColor ? { color: char.scoreColor } : {}}>?</span>;
         }
         if (char.scoreIcon === 'exclamation') {
-           inner = <span className="font-bold text-[14px] leading-none" style={char.scoreColor ? { color: char.scoreColor } : {}}>!</span>;
+          inner = <span className="font-bold text-[14px] leading-none" style={char.scoreColor ? { color: char.scoreColor } : {}}>!</span>;
         }
         return (
           <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 border border-border" style={{ backgroundColor: `color-mix(in srgb, ${char.scoreColor || 'var(--color-accent)'} 15%, transparent)` }}>
@@ -228,7 +228,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
         );
       }
     }
-    
+
     return (
       <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 bg-gray-500/10 text-gray-500">
         <Icon name="Check" size={14} />
@@ -305,104 +305,104 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
     <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} size="lg">
       <div className="flex flex-col h-[75vh] bg-bg/80 backdrop-blur-sm rounded-b-3xl overflow-hidden relative">
         <div className="flex md:contents flex-col grow min-h-0 overflow-hidden relative" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
-           <div className={`entity-modal-mobile-view grow ${isSwiping ? 'is-swiping' : ''}`} style={{ '--mobile-tab-offset': `-${tabIndex * 100}%`, '--swipe-offset': `${swipeOffset}px` } as React.CSSProperties}>
-              <ImageViewer
-                media={media}
-                altText={entity.name}
-                noImageText={t('noImageAvailable')}
-                onImageClick={onImageClick}
-                className="entity-modal-panel is-image md:border-r border-white/10 dark:border-white/5 bg-panel-bg/50"
-              />
-              <div 
-                ref={detailsRef}
-                onScroll={handleScroll}
-                className="entity-modal-desktop-right-pane md:bg-panel-bg/50"
-              >
-               <div className="entity-modal-panel is-details max-md:bg-panel-bg/50 flex flex-col" onScroll={handleScroll}>
-                 {entityHierarchy.length > 1 && (
-            <div className="mb-4 shrink-0 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
-              <div className="w-full font-bold flex items-center gap-2 mb-3 text-left tracking-tight">
-                <Icon name="Network" size={18} className="text-accent" />
-                <span className="grow text-base text-accent">{t('hierarchy')}</span>
+          <div className={`entity-modal-mobile-view grow ${isSwiping ? 'is-swiping' : ''}`} style={{ '--mobile-tab-offset': `-${tabIndex * 100}%`, '--swipe-offset': `${swipeOffset}px` } as React.CSSProperties}>
+            <ImageViewer
+              media={media}
+              altText={entity.name}
+              noImageText={t('noImageAvailable')}
+              onImageClick={onImageClick}
+              className="entity-modal-panel is-image md:border-r border-white/10 dark:border-white/5 bg-panel-bg/50"
+            />
+            <div
+              ref={detailsRef}
+              onScroll={handleScroll}
+              className="entity-modal-desktop-right-pane md:bg-panel-bg/50"
+            >
+              <div className="entity-modal-panel is-details max-md:bg-panel-bg/50 flex flex-col" onScroll={handleScroll}>
+                {entityHierarchy.length > 1 && (
+                  <div className="mb-4 shrink-0 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
+                    <div className="w-full font-bold flex items-center gap-2 mb-3 text-left tracking-tight">
+                      <Icon name="Network" size={18} className="text-accent" />
+                      <span className="grow text-base text-accent">{t('hierarchy')}</span>
+                    </div>
+                    <div className="flex flex-wrap items-center text-sm text-text opacity-90">
+                      {entityHierarchy.map((node, index) => {
+                        const isLast = index === entityHierarchy.length - 1;
+                        return (
+                          <React.Fragment key={node.id}>
+                            {isLast ? (
+                              <span className="font-bold text-text">{node.name}</span>
+                            ) : (
+                              <button onClick={() => handleNavigate(node.id)} className="hover:underline hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent/50 rounded-sm cursor-pointer">
+                                {node.name}
+                              </button>
+                            )}
+                            {!isLast && <Icon name="ChevronRight" size={16} className="mx-1 opacity-50" />}
+                          </React.Fragment>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {profile?.description && (
+                  <div className="mb-4 flex flex-col grow min-h-0 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
+                    <div className="w-full font-bold flex items-center gap-2 mb-3 text-left tracking-tight shrink-0">
+                      <Icon name="FileText" size={18} className="text-accent" />
+                      <span className="grow text-base text-accent">{t('kbDescription')}</span>
+                    </div>
+                    <Markdown content={profile.description} className="text-sm opacity-90 md:max-h-[30vh] grow overflow-y-auto pr-2" />
+                  </div>
+                )}
               </div>
-              <div className="flex flex-wrap items-center text-sm text-text opacity-90">
-                {entityHierarchy.map((node, index) => {
-                  const isLast = index === entityHierarchy.length - 1;
-                  return (
-                    <React.Fragment key={node.id}>
-                      {isLast ? (
-                        <span className="font-bold text-text">{node.name}</span>
-                      ) : (
-                        <button onClick={() => handleNavigate(node.id)} className="hover:underline hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent/50 rounded-sm cursor-pointer">
-                          {node.name}
+              <div className="entity-modal-panel is-features max-md:bg-panel-bg/50 flex flex-col" onScroll={handleScroll}>
+                {(profile?.characteristics || []).length > 0 && (
+                  <div className="flex flex-col grow min-h-0 mb-4 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
+                    <div className="flex items-center w-full mb-3 shrink-0">
+                      <div className="grow font-bold flex items-center gap-2 text-left tracking-tight">
+                        <Icon name="List" size={18} className="text-accent" />
+                        <span className="grow text-base text-accent">{t('features')}</span>
+                      </div>
+                      <div className="flex items-center gap-1 ml-2 text-xs font-semibold">
+                        <button onClick={handleCollapseAll} className="flex items-center text-gray-500 hover:text-accent transition-colors py-1 px-2 rounded-lg hover:bg-hover-bg border border-transparent hover:border-border hover:shadow-sm cursor-pointer">
+                          <Icon name="ChevronUp" size={14} className="mr-1" />
+                          {t('collapseAll')}
                         </button>
-                      )}
-                      {!isLast && <Icon name="ChevronRight" size={16} className="mx-1 opacity-50" />}
-                    </React.Fragment>
-                  );
-                })}
+                        <button onClick={handleExpandAll} className="flex items-center text-gray-500 hover:text-accent transition-colors py-1 px-2 rounded-lg hover:bg-hover-bg border border-transparent hover:border-border hover:shadow-sm cursor-pointer">
+                          <Icon name="ChevronDown" size={14} className="mr-1" />
+                          {t('expandAll')}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="grow overflow-y-auto pr-1 -mr-1">
+                      <RenderFeatureGroup
+                        node={featureTree}
+                        collapsedGroups={collapsedGroups}
+                        toggleGroup={toggleGroup}
+                        getIconForChar={getIconForChar}
+                        getBadge={getBadge}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          )}
-          {profile?.description && (
-            <div className="mb-4 flex flex-col grow min-h-0 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
-              <div className="w-full font-bold flex items-center gap-2 mb-3 text-left tracking-tight shrink-0">
-                <Icon name="FileText" size={18} className="text-accent" />
-                <span className="grow text-base text-accent">{t('kbDescription')}</span>
-              </div>
-              <Markdown content={profile.description} className="text-sm opacity-90 md:max-h-[30vh] grow overflow-y-auto pr-2" />
-            </div>
-                 )}
-               </div>
-               <div className="entity-modal-panel is-features max-md:bg-panel-bg/50 flex flex-col" onScroll={handleScroll}>
-                 {(profile?.characteristics || []).length > 0 && (
-            <div className="flex flex-col grow min-h-0 mb-4 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
-              <div className="flex items-center w-full mb-3 shrink-0">
-                <div className="grow font-bold flex items-center gap-2 text-left tracking-tight">
-                  <Icon name="List" size={18} className="text-accent" />
-                  <span className="grow text-base text-accent">{t('features')}</span>
-                </div>
-                <div className="flex items-center gap-1 ml-2 text-xs font-semibold">
-                  <button onClick={handleCollapseAll} className="flex items-center text-gray-500 hover:text-accent transition-colors py-1 px-2 rounded-lg hover:bg-hover-bg border border-transparent hover:border-border hover:shadow-sm cursor-pointer">
-                    <Icon name="ChevronUp" size={14} className="mr-1" />
-                    {t('collapseAll')}
-                  </button>
-                  <button onClick={handleExpandAll} className="flex items-center text-gray-500 hover:text-accent transition-colors py-1 px-2 rounded-lg hover:bg-hover-bg border border-transparent hover:border-border hover:shadow-sm cursor-pointer">
-                    <Icon name="ChevronDown" size={14} className="mr-1" />
-                    {t('expandAll')}
-                  </button>
-                </div>
-              </div>
-              <div className="grow overflow-y-auto pr-1 -mr-1">
-                  <RenderFeatureGroup 
-                    node={featureTree} 
-                    collapsedGroups={collapsedGroups} 
-                    toggleGroup={toggleGroup} 
-                    getIconForChar={getIconForChar} 
-                    getBadge={getBadge} 
-                  />
-              </div>
-            </div>
-                 )}
-               </div>
-              </div>
-           </div>
+          </div>
         </div>
 
         {/* Mobile Bottom Bar for EntityModal */}
         <div className="flex md:hidden items-center justify-around bg-panel-bg/85 backdrop-blur-xl border border-white/20 dark:border-white/10 p-2 shrink-0 z-20 shadow-lg rounded-3xl m-2 mb-3">
-            <button onClick={() => setMobileTab('image')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 ${mobileTab === 'image' ? 'text-accent bg-accent/10 shadow-inner scale-105' : 'text-gray-500 hover:text-accent hover:bg-hover-bg/50'}`}>
-              <Icon name="Image" size={22} />
-              <span className="text-[10px] font-bold text-center leading-none tracking-tight">{t('preview')}</span>
-            </button>
-            <button onClick={() => setMobileTab('details')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 ${mobileTab === 'details' ? 'text-accent bg-accent/10 shadow-inner scale-105' : 'text-gray-500 hover:text-accent hover:bg-hover-bg/50'}`}>
-              <Icon name="FileText" size={22} />
-              <span className="text-[10px] font-bold text-center leading-none tracking-tight">{t('kbDescription')}</span>
-            </button>
-            <button onClick={() => setMobileTab('features')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 ${mobileTab === 'features' ? 'text-accent bg-accent/10 shadow-inner scale-105' : 'text-gray-500 hover:text-accent hover:bg-hover-bg/50'}`}>
-              <Icon name="List" size={22} />
-              <span className="text-[10px] font-bold text-center leading-none tracking-tight">{t('features')}</span>
-            </button>
+          <button onClick={() => setMobileTab('image')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 ${mobileTab === 'image' ? 'text-accent bg-accent/10 shadow-inner scale-105' : 'text-gray-500 hover:text-accent hover:bg-hover-bg/50'}`}>
+            <Icon name="Image" size={22} />
+            <span className="text-[10px] font-bold text-center leading-none tracking-tight">{t('preview')}</span>
+          </button>
+          <button onClick={() => setMobileTab('details')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 ${mobileTab === 'details' ? 'text-accent bg-accent/10 shadow-inner scale-105' : 'text-gray-500 hover:text-accent hover:bg-hover-bg/50'}`}>
+            <Icon name="FileText" size={22} />
+            <span className="text-[10px] font-bold text-center leading-none tracking-tight">{t('kbDescription')}</span>
+          </button>
+          <button onClick={() => setMobileTab('features')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 ${mobileTab === 'features' ? 'text-accent bg-accent/10 shadow-inner scale-105' : 'text-gray-500 hover:text-accent hover:bg-hover-bg/50'}`}>
+            <Icon name="List" size={22} />
+            <span className="text-[10px] font-bold text-center leading-none tracking-tight">{t('features')}</span>
+          </button>
         </div>
 
         <button

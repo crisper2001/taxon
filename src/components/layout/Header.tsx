@@ -1,7 +1,7 @@
 import React from 'react';
-import { Icon } from './Icon';
-import Spot from './Spot';
-import { useAppContext } from '../context/AppContext';
+import { Icon } from '../common/Icon';
+import { Spot } from '../common/Spot';
+import { useAppContext } from '../../context/AppContext';
 
 interface HeaderProps {
   isSidebarOpen: boolean;
@@ -25,7 +25,7 @@ export const Header: React.FC<HeaderProps> = ({ isSidebarOpen, setSidebarOpen, l
         <button onClick={() => setSidebarOpen(!isSidebarOpen)} title={t('toggleMenu')} className="md:hidden p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center text-accent">
           <Icon name="Leaf" size={24} />
         </button>
-        
+
         {/* Desktop Brand */}
         <div onClick={handleLogoClick} title={t('closeKey' as any)} className="hidden md:flex items-center gap-2 px-3 py-1.5 shrink-0 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md">
           <Icon name="Leaf" size={24} className="text-accent" />

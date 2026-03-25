@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Icon } from '../Icon';
+import { Icon } from './Icon';
 import { useAppContext } from '../../context/AppContext';
 import type { Media } from '../../types';
 
@@ -93,19 +93,19 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ media, altText, noImag
   };
 
   return (
-    <div 
+    <div
       className={`flex flex-col items-center justify-between outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/50 ${className}`}
       tabIndex={0}
       onKeyDown={handleKeyDown}
     >
-      <div 
+      <div
         className="relative w-full grow flex items-center justify-center mb-4 min-h-[200px] overflow-hidden group"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         style={{ touchAction: 'pan-y' }}
       >
-        <div 
+        <div
           className="flex h-full w-full"
           style={{
             transform: `translateX(calc(-${currentImageIndex * 100}% + ${swipeOffset}px))`,
@@ -115,9 +115,9 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ media, altText, noImag
         >
           {media.map((m, idx) => (
             <div key={idx} className="flex-none w-full h-full flex flex-col items-center justify-center relative px-2">
-              <img 
-                src={m.url} 
-                alt={m.caption || altText} 
+              <img
+                src={m.url}
+                alt={m.caption || altText}
                 onClick={() => onImageClick(media, idx)}
                 className={`max-w-full max-h-full object-contain rounded-2xl shadow-lg cursor-pointer hover:scale-[1.02] transition-all duration-300 ${idx === currentImageIndex ? 'opacity-100' : 'opacity-40 scale-95'}`}
               />

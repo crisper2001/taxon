@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icon } from '../Icon';
+import { Icon } from '../common/Icon';
 import type { KeyData, ChosenFeature, FeatureNode } from '../../types';
 import { getUnitSymbol } from '../../utils/FeatureUtils';
 
@@ -93,7 +93,7 @@ const FeatureLeafNode = React.memo<RenderFeatureNodeProps>(({
   );
 }, (prev, next) => {
   if (prev.node !== next.node) return false;
-  
+
   const wasSelected = prev.chosenFeatures.has(prev.node.id);
   const isSelected = next.chosenFeatures.has(next.node.id);
   if (wasSelected !== isSelected) return false;

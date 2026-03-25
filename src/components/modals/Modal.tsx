@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Icon } from '../Icon';
+import { Icon } from '../common/Icon';
 
 interface ModalProps {
   isOpen: boolean;

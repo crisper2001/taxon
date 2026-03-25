@@ -6,7 +6,7 @@ export const useKeyFiltering = (keyData: KeyData | null, chosenFeatures: Map<str
     if (!keyData) {
       return { directMatches: new Set<string>(), indirectMatches: new Set<string>(), discardedEntityIds: new Set<string>(), directlyDiscarded: new Set<string>() };
     }
-    
+
     const allEntityIds = new Set(keyData.allEntities.keys());
 
     if (chosenFeatures.size === 0) {
@@ -64,7 +64,7 @@ export const useKeyFiltering = (keyData: KeyData | null, chosenFeatures: Map<str
       }
       return subtreeHasMatch;
     };
-    
+
     buildIndirectHierarchy(keyData.entityTree);
 
     // 4. Total discarded entities are everyone not in the final remaining set.

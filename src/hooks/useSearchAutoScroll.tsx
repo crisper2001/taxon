@@ -19,7 +19,7 @@ export const useSearchAutoScroll = (
             let safeIndex = currentMatchIndex;
             if (safeIndex >= matches.length) safeIndex = 0;
             if (safeIndex < 0) safeIndex = matches.length - 1;
-            
+
             if (safeIndex !== currentMatchIndex) {
               setCurrentMatchIndex(safeIndex);
             } else {

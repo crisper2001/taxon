@@ -3,8 +3,8 @@ import { Panel } from './Panel';
 import type { KeyData, ChosenFeature, FeatureNode } from '../../types';
 import { RenderFeatureNode } from './FeatureNodeRenderer';
 import { useAppContext } from '../../context/AppContext';
-import { Icon } from '../Icon';
-import { useSearchAutoScroll } from '../../hooks/useSearchAutoScroll';
+import { Icon } from '../common/Icon';
+import { useSearchAutoScroll } from '../../hooks';
 
 // --- ChosenFeaturesPanel ---
 interface ChosenFeaturesPanelProps {
@@ -138,8 +138,8 @@ export const ChosenFeaturesPanel: React.FC<ChosenFeaturesPanelProps> = ({ chosen
   }, [chosenFeatures, keyData.allFeatures]);
 
   const clearButton = chosenFeatures.size > 0 ? (
-    <div 
-      onMouseEnter={showFooter} 
+    <div
+      onMouseEnter={showFooter}
       onMouseLeave={hideFooter}
       className={`transition-opacity duration-300 ${isFooterVisible ? 'opacity-100 pointer-events-auto' : 'max-md:opacity-100 max-md:pointer-events-auto opacity-0 pointer-events-none'}`}
     >
@@ -152,10 +152,10 @@ export const ChosenFeaturesPanel: React.FC<ChosenFeaturesPanelProps> = ({ chosen
   ) : undefined;
 
   return (
-    <Panel 
-      title={t('featuresChosen')} 
-      icon="ListChecks" 
-      count={featureCount} 
+    <Panel
+      title={t('featuresChosen')}
+      icon="ListChecks"
+      count={featureCount}
       onSearch={setSearchTerm}
       currentMatchIndex={currentMatchIndex}
       matchCount={matchCount}

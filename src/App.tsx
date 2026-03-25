@@ -1,19 +1,19 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { KeyData, ChosenFeature, ModalState, Media, RawChatMessage, DraftKeyData } from './types';
-import { LucidKeyParser } from './services/LucidKeyParserService';
-import { FeaturesPanel, EntitiesPanel, ChosenFeaturesPanel } from './components/panels';
-import { AIAssistant } from './components/AIAssistant';
-import { ResizablePanels } from './components/panels/ResizablePanels';
-import { EntityModal, PreferencesModal, KeyInfoModal, FeatureModal, ImageLightboxModal, ConfirmModal } from './components/modals';
+import { LucidKeyParser } from './services';
+import { FeaturesPanel, EntitiesPanel, ChosenFeaturesPanel } from './components';
+import { AIAssistant } from './components/';
+import { ResizablePanels } from './components';
+import { EntityModal, PreferencesModal, KeyInfoModal, FeatureModal, ImageLightboxModal, ConfirmModal } from './components';
 import { translations } from './constants';
-import { useKeyFiltering } from './hooks/useKeyFiltering';
-import { useResizablePanel } from './hooks/useResizablePanel';
+import { useKeyFiltering } from './hooks';
+import { useResizablePanel } from './hooks';
 import { filterEntityTree } from './utils/treeUtils';
-import { Sidebar } from './components/Sidebar';
-import { Header } from './components/Header';
-import { Icon } from './components/Icon';
-import { KeyBuilder } from './components/builder/KeyBuilder';
-import { Toast } from './components/Toast';
+import { Sidebar } from './components';
+import { Header } from './components';
+import { Icon } from './components';
+import { KeyBuilder } from './components';
+import { Toast } from './components';
 import { AppProvider } from './context/AppContext';
 import type { Language, Theme } from './types';
 
@@ -50,13 +50,13 @@ const App: React.FC = () => {
   // AI Panel Resizing State
   const MIN_AI_PANEL_WIDTH = 350;
   const MAX_AI_PANEL_WIDTH = 700;
-  const { 
-    width: aiPanelWidth, 
-    isActivelyResizing, 
-    handleMouseDown: handleAiPanelMouseDown, 
-    setWidth: setAiPanelWidth 
+  const {
+    width: aiPanelWidth,
+    isActivelyResizing,
+    handleMouseDown: handleAiPanelMouseDown,
+    setWidth: setAiPanelWidth
   } = useResizablePanel(450, MIN_AI_PANEL_WIDTH, MAX_AI_PANEL_WIDTH, isAiPanelVisible, 'aiPanelWidth');
-  
+
   const jsonFileInputRef = useRef<HTMLInputElement>(null);
   const combinedFileInputRef = useRef<HTMLInputElement>(null);
   const currentDraftRef = useRef<DraftKeyData | null>(null);
@@ -224,7 +224,7 @@ const App: React.FC = () => {
       }
       isFeatureUpdateRef.current = false;
     }
-    
+
     prevDiscardedCountRef.current = discardedEntityIds.size;
   }, [discardedEntityIds, keyData, addToast, t, directMatches.size]);
 
@@ -404,9 +404,9 @@ const App: React.FC = () => {
       // Handle state features (booleans from checkboxes)
       if (!isNumeric) {
         if (value) {
-            newMap.set(id, { }); // State features are marked as chosen without a specific value
+          newMap.set(id, {}); // State features are marked as chosen without a specific value
         } else {
-            newMap.delete(id);
+          newMap.delete(id);
         }
         return newMap;
       }
@@ -467,7 +467,7 @@ const App: React.FC = () => {
   const activeOrUnderlying = underlyingModalState || modalState;
 
   const HomeButton = ({ onClick, onDragOver, onDragLeave, onDrop, isDragOver, icon, title, desc }: any) => (
-    <button 
+    <button
       onClick={onClick}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
@@ -509,309 +509,309 @@ const App: React.FC = () => {
 
   return (
     <AppProvider value={contextValue}>
-    <div 
-      className={`main-container flex flex-col h-dvh w-full font-sans bg-bg text-text transition-colors duration-300 overflow-hidden ${isActivelyResizing ? 'select-none cursor-col-resize' : ''}`}
-      onDragEnter={handleGlobalDragEnter}
-      onDragOver={handleGlobalDragOver}
-      onDragLeave={handleGlobalDragLeave}
-      onDrop={handleGlobalDrop}
-    >
-      {isGlobalDragging && !isHome && (
-        <div className="absolute inset-0 z-100 bg-bg/80 backdrop-blur-sm flex flex-col items-center justify-center pointer-events-none transition-all duration-300">
-          <div className="border-4 border-dashed border-accent rounded-3xl p-12 flex flex-col items-center justify-center bg-panel-bg shadow-2xl animate-fade-in-up">
-             <Icon name="FolderOpen" size={64} className="mb-6 animate-bounce text-accent" />
-             <h3 className="text-3xl font-black tracking-tight text-accent">{t('openNativeKey')}</h3>
-             <p className="text-lg opacity-80 mt-2 font-medium text-accent">{t('dropKeyHere' as any)}</p>
-          </div>
-        </div>
-      )}
-      {/* Global SVG Gradients for Icons */}
-      <svg width="0" height="0" className="absolute pointer-events-none" aria-hidden="true">
-        <defs>
-          <linearGradient id="accent-gradient" x1="0%" y1="0%" x2="100%" y2="100%" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="var(--color-accent, var(--accent-color))" style={{ stopColor: 'color-mix(in srgb, var(--color-accent, var(--accent-color)), white 15%)' }} />
-            <stop offset="100%" stopColor="var(--color-accent, var(--accent-color))" style={{ stopColor: 'color-mix(in srgb, var(--color-accent, var(--accent-color)), black 10%)' }} />
-          </linearGradient>
-          <linearGradient id="red-gradient" x1="0%" y1="0%" x2="100%" y2="100%" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#ef4444" style={{ stopColor: 'color-mix(in srgb, #ef4444, white 15%)' }} />
-            <stop offset="100%" stopColor="#ef4444" style={{ stopColor: 'color-mix(in srgb, #ef4444, black 10%)' }} />
-          </linearGradient>
-        </defs>
-      </svg>
-
-      {/* --- Modals --- */}
-      <EntityModal
-        isOpen={modalState.type === 'entity' || underlyingModalState?.type === 'entity'}
-        onClose={handleModalClose}
-        entityId={(activeOrUnderlying as any).entityId}
-        keyData={keyData}
-        t={t}
-        onImageClick={handleOpenLightbox}
-      />
-      <PreferencesModal isOpen={modalState.type === 'preferences' || underlyingModalState?.type === 'preferences'} onClose={() => setModalState({ type: 'none' })} currentPrefs={{ lang, theme, geminiApiKey, showToasts, hideAi }} onPreferenceChange={handlePreferenceChange} t={t} availableLanguages={Object.keys(translations) as Language[]} onClearData={() => { setUnderlyingModalState(modalState); setModalState({ type: 'confirmClearData' as any }); }} />
-      <KeyInfoModal isOpen={modalState.type === 'keyInfo' || underlyingModalState?.type === 'keyInfo'} onClose={() => setModalState({ type: 'none' })} keyData={keyData} t={t} />
-      <FeatureModal isOpen={modalState.type === 'feature' || underlyingModalState?.type === 'feature'} onClose={handleModalClose} featureId={(activeOrUnderlying as any).featureId} keyData={keyData} t={t} onImageClick={handleOpenLightbox} />
-      <ImageLightboxModal isOpen={modalState.type === 'lightbox'} onClose={handleModalClose} media={(modalState as any).media} startIndex={(modalState as any).startIndex ?? 0} />
-
-      <ConfirmModal
-        isOpen={modalState.type === 'confirmClear' || underlyingModalState?.type === 'confirmClear'}
-        onClose={handleModalClose}
-        onConfirm={executeReset}
-        title={t('clearFeatures')}
-        message={
-          <div className="flex items-start gap-3 text-red-500 bg-red-500/10 p-4 rounded-xl border border-red-500/20">
-            <Icon name="TriangleAlert" size={24} className="shrink-0 mt-0.5" />
-            <p className="text-sm font-medium leading-relaxed">{t('confirmClear')}</p>
-          </div>
-        }
-        confirmText={t('clearFeatures')}
-        cancelText={t('cancel')}
-        isDestructive={true}
-      />
-
-      <ConfirmModal
-        isOpen={(modalState.type as any) === 'confirmClearData' || (underlyingModalState?.type as any) === 'confirmClearData'}
-        onClose={handleModalClose}
-        onConfirm={() => { localStorage.clear(); window.location.reload(); }}
-        title={t('clearLocalData' as any)}
-        message={
-          <div className="flex items-start gap-3 text-red-500 bg-red-500/10 p-4 rounded-xl border border-red-500/20">
-            <Icon name="TriangleAlert" size={24} className="shrink-0 mt-0.5" />
-            <p className="text-sm font-medium leading-relaxed">{t('confirmClearLocalData' as any)}</p>
-          </div>
-        }
-        confirmText={t('clearLocalData' as any)}
-        cancelText={t('cancel')}
-        isDestructive={true}
-      />
-
-      <input
-        type="file"
-        ref={jsonFileInputRef}
-        onChange={handleJsonFileSelect}
-        className="hidden"
-        accept=".json"
-      />
-      <input
-        type="file"
-        ref={combinedFileInputRef}
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (!file) return;
-          if (file.name.toLowerCase().endsWith('.json')) {
-            handleJsonFileSelect(e);
-          } else {
-            handleFileSelect(e);
-          }
-        }}
-        className="hidden"
-        accept=".zip,.lk4,.lk5,.json"
-      />
-
-      {/* --- Sidebar --- */}
-      <Sidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
-
-
-      <div className={`content-wrapper flex grow min-h-0 transition-all duration-300 ease-in-out ml-0`}>
-        <div className="page-content grow flex flex-col h-full min-w-0 min-h-0 overflow-hidden relative">
-          
-          {/* --- Background Layer (Identify or Build) --- */}
-          {(!isLoading && !error && (keyData || appMode === 'build')) && (
-            <div className={`absolute inset-0 flex flex-col bg-bg transition-all duration-500 ease-in-out z-10 ${isHome ? 'scale-[0.97] opacity-0 pointer-events-none' : 'scale-100 opacity-100'}`}>
-              
-              {appMode === 'identify' && keyData && (
-                <Header isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} />
-              )}
-              
-              {appMode === 'build' ? (
-                <div className="flex grow min-h-0 relative z-10 w-full animate-screen-in">
-                  <KeyBuilder 
-                    onExit={() => {
-                      if (currentDraftRef.current) setDraftKeyData(currentDraftRef.current);
-                      setIsHome(true);
-                    }} 
-                    initialData={draftKeyData} 
-                    onChange={(draft) => currentDraftRef.current = draft} 
-                    onTestKey={(draft) => {
-                      const parser = new LucidKeyParser();
-                      setKeyData(parser.processDraftKey(draft));
-                      resetKey();
-                      setIdentifyChatHistory([]);
-                      setDraftKeyData(draft);
-                      setAppMode('identify');
-                    }}
-                    onNewKey={() => setBuildChatHistory([])}
-                  />
-                </div>
-              ) : keyData ? (
-                <div className="flex flex-col grow min-h-0 relative z-10 w-full animate-screen-in">
-                  <ResizablePanels
-                    bottomBarItems={[
-                      { id: 'features', icon: 'ListFilter', label: t('features') },
-                      { id: 'remaining', icon: 'List', label: t('entitiesRemaining'), count: directMatches.size },
-                      { id: 'chosen', icon: 'ListChecks', label: t('featuresChosen'), count: chosenFeatureCount },
-                      { id: 'discarded', icon: 'ListX', label: t('entitiesDiscarded'), count: discardedEntityIds.size }
-                    ]}
-                  >
-                    <FeaturesPanel keyData={keyData} chosenFeatures={chosenFeatures} onFeatureChange={updateFeature} onImageClick={(id) => setModalState({ type: 'feature', featureId: id })} t={t} />
-                    <EntitiesPanel
-                      title={t('entitiesRemaining')}
-                      icon="List"
-                      count={directMatches.size}                
-                      entityTree={remainingTree}
-                      directMatches={directMatches}
-                      indirectMatches={indirectMatches}
-                      mediaMap={keyData.entityMedia} onEntityClick={(id) => setModalState({ type: 'entity', entityId: id })}
-                      t={t}
-                      expandedNodes={expandedRemainingNodes}
-                      setExpandedNodes={setExpandedRemainingNodes} />
-                    <ChosenFeaturesPanel chosenFeatures={chosenFeatures} keyData={keyData} onFeatureChange={updateFeature} onImageClick={(id) => setModalState({ type: 'feature', featureId: id })} t={t} />
-                    <EntitiesPanel
-                      title={t('entitiesDiscarded')}
-                      directMatches={new Set()}
-                      indirectMatches={new Set()}
-                      count={discardedEntityIds.size}
-                      icon="ListX" entityTree={discardedTree}
-                      mediaMap={keyData.entityMedia} onEntityClick={(id) => setModalState({ type: 'entity', entityId: id })}
-                      t={t}
-                      expandedNodes={expandedDiscardedNodes}
-                      setExpandedNodes={setExpandedDiscardedNodes} />
-                  </ResizablePanels>
-                </div>
-              ) : null}
+      <div
+        className={`main-container flex flex-col h-dvh w-full font-sans bg-bg text-text transition-colors duration-300 overflow-hidden ${isActivelyResizing ? 'select-none cursor-col-resize' : ''}`}
+        onDragEnter={handleGlobalDragEnter}
+        onDragOver={handleGlobalDragOver}
+        onDragLeave={handleGlobalDragLeave}
+        onDrop={handleGlobalDrop}
+      >
+        {isGlobalDragging && !isHome && (
+          <div className="absolute inset-0 z-100 bg-bg/80 backdrop-blur-sm flex flex-col items-center justify-center pointer-events-none transition-all duration-300">
+            <div className="border-4 border-dashed border-accent rounded-3xl p-12 flex flex-col items-center justify-center bg-panel-bg shadow-2xl animate-fade-in-up">
+              <Icon name="FolderOpen" size={64} className="mb-6 animate-bounce text-accent" />
+              <h3 className="text-3xl font-black tracking-tight text-accent">{t('openNativeKey')}</h3>
+              <p className="text-lg opacity-80 mt-2 font-medium text-accent">{t('dropKeyHere' as any)}</p>
             </div>
-          )}
-
-          {/* --- Foreground Layer (Loading, Error, Home) --- */}
-          {isLoading ? (
-            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-bg p-8 animate-screen-in text-center w-full">
-              <span className="animate-pulse text-2xl font-bold text-accent tracking-tight flex items-center gap-3">
-                <Icon name="LoaderCircle" className="animate-spin" size={28} /> {statusText}
-              </span>
-            </div>
-          ) : error ? (
-            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-bg p-8 animate-screen-in text-center w-full">
-              <div className="flex flex-col items-center gap-4 max-w-md bg-red-500/10 backdrop-blur-md p-6 rounded-3xl border border-red-500/30 text-red-500 shadow-inner">
-                <Icon name="CircleAlert" size={40} />
-                <span className="text-lg font-bold tracking-tight">{statusText}</span>
-              </div>
-              <button onClick={() => { setError(null); setIsHome(true); }} className="mt-8 px-6 py-2.5 bg-panel-bg border border-white/20 dark:border-white/10 rounded-xl hover:bg-hover-bg/80 transition-all duration-300 font-bold text-text shadow-sm hover:shadow-md cursor-pointer">{t('back')}</button>
-            </div>
-          ) : (
-            <div className={`absolute inset-0 z-50 flex items-center justify-center w-full bg-bg transition-all duration-500 ease-in-out ${isHome ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
-              <div className={`relative z-10 flex flex-col items-center justify-center w-full p-8 transition-transform duration-500 ease-in-out ${isHome ? 'scale-100' : 'scale-[1.02]'}`}>
-                <h2 className="text-6xl font-black flex items-center justify-center gap-4 mb-12 animate-fade-in-up text-accent tracking-tight">
-                  <Icon name="Leaf" size={60} /> 
-                  <span className="flex items-start gap-3">
-                    Taxon
-                    <span className="text-xs font-bold bg-accent/10 text-accent px-2 py-0.5 rounded-lg border border-accent/20 uppercase tracking-widest mt-2">Beta</span>
-                  </span>
-                </h2>
-                <div className="flex flex-col md:flex-row gap-6 w-full max-w-2xl mb-8">
-                  <HomeButton 
-                    onClick={() => {
-                      setAppMode('identify');
-                      if (keyData) {
-                        setIsHome(false);
-                      } else {
-                        combinedFileInputRef.current?.click();
-                      }
-                    }}
-                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverHomeButton('identify'); }}
-                    onDragLeave={() => setDragOverHomeButton(null)}
-                    onDrop={(e) => handleHomeDrop(e, 'identify')}
-                    isDragOver={dragOverHomeButton === 'identify'}
-                    icon="FolderOpen"
-                    title={t('startOpenKey')}
-                    desc={t('startOpenKeyDesc')}
-                  />
-                  
-                  <HomeButton 
-                    onClick={() => {
-                      setAppMode('build');
-                      if (draftKeyData) {
-                        setIsHome(false);
-                      } else if (currentDraftRef.current) {
-                        setDraftKeyData(currentDraftRef.current);
-                        setIsHome(false);
-                      } else {
-                        setDraftKeyData(undefined);
-                      setBuildChatHistory([]);
-                        setIsHome(false);
-                      }
-                    }}
-                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverHomeButton('build'); }}
-                    onDragLeave={() => setDragOverHomeButton(null)}
-                    onDrop={(e) => handleHomeDrop(e, 'build')}
-                    isDragOver={dragOverHomeButton === 'build'}
-                    icon="PenTool"
-                    title={t('startCreateKey')}
-                    desc={t('startCreateKeyDesc')}
-                  />
-                </div>
-                <button 
-                  onClick={() => setModalState({ type: 'preferences' })}
-                  className="p-3 rounded-full bg-panel-bg transition-all cursor-pointer text-gray-500 hover:text-accent shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md"
-                  title={t('preferences')}
-                >
-                  <Icon name="Settings2" size={24} />
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* --- AI Panel --- */}
-        {!hideAi && (
-        <>
-          {/* Mobile AI Panel Backdrop */}
-          {isAiPanelVisible && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 md:hidden" onClick={() => setAiPanelVisible(false)} />
-          )}
-          <div
-            className="shrink-0 flex items-stretch absolute md:relative right-0 z-40 h-full max-w-[100vw]"
-            style={{
-              width: isAiPanelVisible ? `${aiPanelWidth}px` : '0px', transition: isActivelyResizing ? 'none' : 'width 300ms ease-in-out'
-            }}
-          >
-            <div
-            onMouseDown={handleAiPanelMouseDown}
-            onTouchStart={handleAiPanelMouseDown}
-            onDoubleClick={() => setAiPanelWidth && setAiPanelWidth(450)}
-            className={`absolute -left-4 top-4 bottom-4 z-20 w-4 cursor-col-resize items-center justify-center group ${!isAiPanelVisible ? 'hidden' : 'hidden md:flex'}`}
-            title={`${t('resizePanel')} ${t('doubleClickToReset' as any)}`}
-          >
-            <div className={`w-1 h-full rounded-full transition-all duration-300 ${isActivelyResizing ? 'bg-accent shadow-md scale-x-150' : 'bg-transparent group-hover:bg-accent/50 group-hover:scale-x-150'}`}></div>
           </div>
-          <div className={`ai-panel-wrapper grow min-w-0 h-full transition-all duration-300 ${isAiPanelVisible ? 'p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:p-0 md:py-4 md:pr-4' : 'p-0 overflow-hidden'}`}>
-            <AIAssistant
-              isVisible={isAiPanelVisible}
-              onClose={() => setAiPanelVisible(false)}
-              keyData={keyData}
-              onEntityClick={(id) => setModalState({ type: 'entity', entityId: id })}
-              onImageClick={(url) => handleOpenLightbox([{ url }], 0)}
-              t={t}
-              lang={lang}
-              chatHistory={appMode === 'identify' ? identifyChatHistory : buildChatHistory}
-              geminiApiKey={geminiApiKey}
-              setChatHistory={appMode === 'identify' ? setIdentifyChatHistory : setBuildChatHistory}
-              appMode={appMode}
-              getCurrentDraft={() => currentDraftRef.current}
-            />
-          </div>
-          </div>
-        </>
         )}
+        {/* Global SVG Gradients for Icons */}
+        <svg width="0" height="0" className="absolute pointer-events-none" aria-hidden="true">
+          <defs>
+            <linearGradient id="accent-gradient" x1="0%" y1="0%" x2="100%" y2="100%" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="var(--color-accent, var(--accent-color))" style={{ stopColor: 'color-mix(in srgb, var(--color-accent, var(--accent-color)), white 15%)' }} />
+              <stop offset="100%" stopColor="var(--color-accent, var(--accent-color))" style={{ stopColor: 'color-mix(in srgb, var(--color-accent, var(--accent-color)), black 10%)' }} />
+            </linearGradient>
+            <linearGradient id="red-gradient" x1="0%" y1="0%" x2="100%" y2="100%" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#ef4444" style={{ stopColor: 'color-mix(in srgb, #ef4444, white 15%)' }} />
+              <stop offset="100%" stopColor="#ef4444" style={{ stopColor: 'color-mix(in srgb, #ef4444, black 10%)' }} />
+            </linearGradient>
+          </defs>
+        </svg>
+
+        {/* --- Modals --- */}
+        <EntityModal
+          isOpen={modalState.type === 'entity' || underlyingModalState?.type === 'entity'}
+          onClose={handleModalClose}
+          entityId={(activeOrUnderlying as any).entityId}
+          keyData={keyData}
+          t={t}
+          onImageClick={handleOpenLightbox}
+        />
+        <PreferencesModal isOpen={modalState.type === 'preferences' || underlyingModalState?.type === 'preferences'} onClose={() => setModalState({ type: 'none' })} currentPrefs={{ lang, theme, geminiApiKey, showToasts, hideAi }} onPreferenceChange={handlePreferenceChange} t={t} availableLanguages={Object.keys(translations) as Language[]} onClearData={() => { setUnderlyingModalState(modalState); setModalState({ type: 'confirmClearData' as any }); }} />
+        <KeyInfoModal isOpen={modalState.type === 'keyInfo' || underlyingModalState?.type === 'keyInfo'} onClose={() => setModalState({ type: 'none' })} keyData={keyData} t={t} />
+        <FeatureModal isOpen={modalState.type === 'feature' || underlyingModalState?.type === 'feature'} onClose={handleModalClose} featureId={(activeOrUnderlying as any).featureId} keyData={keyData} t={t} onImageClick={handleOpenLightbox} />
+        <ImageLightboxModal isOpen={modalState.type === 'lightbox'} onClose={handleModalClose} media={(modalState as any).media} startIndex={(modalState as any).startIndex ?? 0} />
+
+        <ConfirmModal
+          isOpen={modalState.type === 'confirmClear' || underlyingModalState?.type === 'confirmClear'}
+          onClose={handleModalClose}
+          onConfirm={executeReset}
+          title={t('clearFeatures')}
+          message={
+            <div className="flex items-start gap-3 text-red-500 bg-red-500/10 p-4 rounded-xl border border-red-500/20">
+              <Icon name="TriangleAlert" size={24} className="shrink-0 mt-0.5" />
+              <p className="text-sm font-medium leading-relaxed">{t('confirmClear')}</p>
+            </div>
+          }
+          confirmText={t('clearFeatures')}
+          cancelText={t('cancel')}
+          isDestructive={true}
+        />
+
+        <ConfirmModal
+          isOpen={(modalState.type as any) === 'confirmClearData' || (underlyingModalState?.type as any) === 'confirmClearData'}
+          onClose={handleModalClose}
+          onConfirm={() => { localStorage.clear(); window.location.reload(); }}
+          title={t('clearLocalData' as any)}
+          message={
+            <div className="flex items-start gap-3 text-red-500 bg-red-500/10 p-4 rounded-xl border border-red-500/20">
+              <Icon name="TriangleAlert" size={24} className="shrink-0 mt-0.5" />
+              <p className="text-sm font-medium leading-relaxed">{t('confirmClearLocalData' as any)}</p>
+            </div>
+          }
+          confirmText={t('clearLocalData' as any)}
+          cancelText={t('cancel')}
+          isDestructive={true}
+        />
+
+        <input
+          type="file"
+          ref={jsonFileInputRef}
+          onChange={handleJsonFileSelect}
+          className="hidden"
+          accept=".json"
+        />
+        <input
+          type="file"
+          ref={combinedFileInputRef}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            if (file.name.toLowerCase().endsWith('.json')) {
+              handleJsonFileSelect(e);
+            } else {
+              handleFileSelect(e);
+            }
+          }}
+          className="hidden"
+          accept=".zip,.lk4,.lk5,.json"
+        />
+
+        {/* --- Sidebar --- */}
+        <Sidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
+
+
+        <div className={`content-wrapper flex grow min-h-0 transition-all duration-300 ease-in-out ml-0`}>
+          <div className="page-content grow flex flex-col h-full min-w-0 min-h-0 overflow-hidden relative">
+
+            {/* --- Background Layer (Identify or Build) --- */}
+            {(!isLoading && !error && (keyData || appMode === 'build')) && (
+              <div className={`absolute inset-0 flex flex-col bg-bg transition-all duration-500 ease-in-out z-10 ${isHome ? 'scale-[0.97] opacity-0 pointer-events-none' : 'scale-100 opacity-100'}`}>
+
+                {appMode === 'identify' && keyData && (
+                  <Header isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} />
+                )}
+
+                {appMode === 'build' ? (
+                  <div className="flex grow min-h-0 relative z-10 w-full animate-screen-in">
+                    <KeyBuilder
+                      onExit={() => {
+                        if (currentDraftRef.current) setDraftKeyData(currentDraftRef.current);
+                        setIsHome(true);
+                      }}
+                      initialData={draftKeyData}
+                      onChange={(draft) => currentDraftRef.current = draft}
+                      onTestKey={(draft) => {
+                        const parser = new LucidKeyParser();
+                        setKeyData(parser.processDraftKey(draft));
+                        resetKey();
+                        setIdentifyChatHistory([]);
+                        setDraftKeyData(draft);
+                        setAppMode('identify');
+                      }}
+                      onNewKey={() => setBuildChatHistory([])}
+                    />
+                  </div>
+                ) : keyData ? (
+                  <div className="flex flex-col grow min-h-0 relative z-10 w-full animate-screen-in">
+                    <ResizablePanels
+                      bottomBarItems={[
+                        { id: 'features', icon: 'ListFilter', label: t('features') },
+                        { id: 'remaining', icon: 'List', label: t('entitiesRemaining'), count: directMatches.size },
+                        { id: 'chosen', icon: 'ListChecks', label: t('featuresChosen'), count: chosenFeatureCount },
+                        { id: 'discarded', icon: 'ListX', label: t('entitiesDiscarded'), count: discardedEntityIds.size }
+                      ]}
+                    >
+                      <FeaturesPanel keyData={keyData} chosenFeatures={chosenFeatures} onFeatureChange={updateFeature} onImageClick={(id) => setModalState({ type: 'feature', featureId: id })} t={t} />
+                      <EntitiesPanel
+                        title={t('entitiesRemaining')}
+                        icon="List"
+                        count={directMatches.size}
+                        entityTree={remainingTree}
+                        directMatches={directMatches}
+                        indirectMatches={indirectMatches}
+                        mediaMap={keyData.entityMedia} onEntityClick={(id) => setModalState({ type: 'entity', entityId: id })}
+                        t={t}
+                        expandedNodes={expandedRemainingNodes}
+                        setExpandedNodes={setExpandedRemainingNodes} />
+                      <ChosenFeaturesPanel chosenFeatures={chosenFeatures} keyData={keyData} onFeatureChange={updateFeature} onImageClick={(id) => setModalState({ type: 'feature', featureId: id })} t={t} />
+                      <EntitiesPanel
+                        title={t('entitiesDiscarded')}
+                        directMatches={new Set()}
+                        indirectMatches={new Set()}
+                        count={discardedEntityIds.size}
+                        icon="ListX" entityTree={discardedTree}
+                        mediaMap={keyData.entityMedia} onEntityClick={(id) => setModalState({ type: 'entity', entityId: id })}
+                        t={t}
+                        expandedNodes={expandedDiscardedNodes}
+                        setExpandedNodes={setExpandedDiscardedNodes} />
+                    </ResizablePanels>
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            {/* --- Foreground Layer (Loading, Error, Home) --- */}
+            {isLoading ? (
+              <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-bg p-8 animate-screen-in text-center w-full">
+                <span className="animate-pulse text-2xl font-bold text-accent tracking-tight flex items-center gap-3">
+                  <Icon name="LoaderCircle" className="animate-spin" size={28} /> {statusText}
+                </span>
+              </div>
+            ) : error ? (
+              <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-bg p-8 animate-screen-in text-center w-full">
+                <div className="flex flex-col items-center gap-4 max-w-md bg-red-500/10 backdrop-blur-md p-6 rounded-3xl border border-red-500/30 text-red-500 shadow-inner">
+                  <Icon name="CircleAlert" size={40} />
+                  <span className="text-lg font-bold tracking-tight">{statusText}</span>
+                </div>
+                <button onClick={() => { setError(null); setIsHome(true); }} className="mt-8 px-6 py-2.5 bg-panel-bg border border-white/20 dark:border-white/10 rounded-xl hover:bg-hover-bg/80 transition-all duration-300 font-bold text-text shadow-sm hover:shadow-md cursor-pointer">{t('back')}</button>
+              </div>
+            ) : (
+              <div className={`absolute inset-0 z-50 flex items-center justify-center w-full bg-bg transition-all duration-500 ease-in-out ${isHome ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+                <div className={`relative z-10 flex flex-col items-center justify-center w-full p-8 transition-transform duration-500 ease-in-out ${isHome ? 'scale-100' : 'scale-[1.02]'}`}>
+                  <h2 className="text-6xl font-black flex items-center justify-center gap-4 mb-12 animate-fade-in-up text-accent tracking-tight">
+                    <Icon name="Leaf" size={60} />
+                    <span className="flex items-start gap-3">
+                      Taxon
+                      <span className="text-xs font-bold bg-accent/10 text-accent px-2 py-0.5 rounded-lg border border-accent/20 uppercase tracking-widest mt-2">Beta</span>
+                    </span>
+                  </h2>
+                  <div className="flex flex-col md:flex-row gap-6 w-full max-w-2xl mb-8">
+                    <HomeButton
+                      onClick={() => {
+                        setAppMode('identify');
+                        if (keyData) {
+                          setIsHome(false);
+                        } else {
+                          combinedFileInputRef.current?.click();
+                        }
+                      }}
+                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverHomeButton('identify'); }}
+                      onDragLeave={() => setDragOverHomeButton(null)}
+                      onDrop={(e) => handleHomeDrop(e, 'identify')}
+                      isDragOver={dragOverHomeButton === 'identify'}
+                      icon="FolderOpen"
+                      title={t('startOpenKey')}
+                      desc={t('startOpenKeyDesc')}
+                    />
+
+                    <HomeButton
+                      onClick={() => {
+                        setAppMode('build');
+                        if (draftKeyData) {
+                          setIsHome(false);
+                        } else if (currentDraftRef.current) {
+                          setDraftKeyData(currentDraftRef.current);
+                          setIsHome(false);
+                        } else {
+                          setDraftKeyData(undefined);
+                          setBuildChatHistory([]);
+                          setIsHome(false);
+                        }
+                      }}
+                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverHomeButton('build'); }}
+                      onDragLeave={() => setDragOverHomeButton(null)}
+                      onDrop={(e) => handleHomeDrop(e, 'build')}
+                      isDragOver={dragOverHomeButton === 'build'}
+                      icon="PenTool"
+                      title={t('startCreateKey')}
+                      desc={t('startCreateKeyDesc')}
+                    />
+                  </div>
+                  <button
+                    onClick={() => setModalState({ type: 'preferences' })}
+                    className="p-3 rounded-full bg-panel-bg transition-all cursor-pointer text-gray-500 hover:text-accent shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md"
+                    title={t('preferences')}
+                  >
+                    <Icon name="Settings2" size={24} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* --- AI Panel --- */}
+          {!hideAi && (
+            <>
+              {/* Mobile AI Panel Backdrop */}
+              {isAiPanelVisible && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 md:hidden" onClick={() => setAiPanelVisible(false)} />
+              )}
+              <div
+                className="shrink-0 flex items-stretch absolute md:relative right-0 z-40 h-full max-w-[100vw]"
+                style={{
+                  width: isAiPanelVisible ? `${aiPanelWidth}px` : '0px', transition: isActivelyResizing ? 'none' : 'width 300ms ease-in-out'
+                }}
+              >
+                <div
+                  onMouseDown={handleAiPanelMouseDown}
+                  onTouchStart={handleAiPanelMouseDown}
+                  onDoubleClick={() => setAiPanelWidth && setAiPanelWidth(450)}
+                  className={`absolute -left-4 top-4 bottom-4 z-20 w-4 cursor-col-resize items-center justify-center group ${!isAiPanelVisible ? 'hidden' : 'hidden md:flex'}`}
+                  title={`${t('resizePanel')} ${t('doubleClickToReset' as any)}`}
+                >
+                  <div className={`w-1 h-full rounded-full transition-all duration-300 ${isActivelyResizing ? 'bg-accent shadow-md scale-x-150' : 'bg-transparent group-hover:bg-accent/50 group-hover:scale-x-150'}`}></div>
+                </div>
+                <div className={`ai-panel-wrapper grow min-w-0 h-full transition-all duration-300 ${isAiPanelVisible ? 'p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:p-0 md:py-4 md:pr-4' : 'p-0 overflow-hidden'}`}>
+                  <AIAssistant
+                    isVisible={isAiPanelVisible}
+                    onClose={() => setAiPanelVisible(false)}
+                    keyData={keyData}
+                    onEntityClick={(id) => setModalState({ type: 'entity', entityId: id })}
+                    onImageClick={(url) => handleOpenLightbox([{ url }], 0)}
+                    t={t}
+                    lang={lang}
+                    chatHistory={appMode === 'identify' ? identifyChatHistory : buildChatHistory}
+                    geminiApiKey={geminiApiKey}
+                    setChatHistory={appMode === 'identify' ? setIdentifyChatHistory : setBuildChatHistory}
+                    appMode={appMode}
+                    getCurrentDraft={() => currentDraftRef.current}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+        <div className="fixed md:bottom-6 bottom-24 left-0 right-0 z-100 flex flex-col items-center gap-2 pointer-events-none px-4 md:px-0">
+          {toasts.map(toast => (
+            <Toast key={toast.id} message={toast.message} onClose={() => handleCloseToast(toast.id)} />
+          ))}
+        </div>
       </div>
-      <div className="fixed md:bottom-6 bottom-24 left-0 right-0 z-100 flex flex-col items-center gap-2 pointer-events-none px-4 md:px-0">
-        {toasts.map(toast => (
-          <Toast key={toast.id} message={toast.message} onClose={() => handleCloseToast(toast.id)} />
-        ))}
-      </div>
-    </div>
     </AppProvider>
   );
 };

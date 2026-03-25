@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Panel } from './Panel';
-import { Icon, type IconName } from '../Icon';
+import { Icon, type IconName } from '../common/Icon';
 import type { Media, EntityNode } from '../../types';
-import { useSearchAutoScroll } from '../../hooks/useSearchAutoScroll';
+import { useSearchAutoScroll } from '../../hooks';
 
 // --- EntitiesPanel ---
 interface EntitiesPanelProps {
@@ -214,53 +214,53 @@ const EntityGroupNode: React.FC<RenderEntityNodeProps> = ({ node, mediaMap, onEn
     (indirectMatches.has(node.id) && !directMatches.has(node.id)) || (node as any).isDimmed
   );
 
-    const isList = view === 'list';
-    const isExpanded = expandedNodes.has(node.id);
-    const media = mediaMap.get(node.id);
-    const hasMedia = media && media.length > 0;
-    const thumbUrl = hasMedia ? media[0].url : '';
-    return (
-      <div className={`entity-group transition-opacity duration-200 ${isList ? '' : 'col-span-full'}`}>
-        <div data-search-match={isSearchMatch ? "true" : undefined} className={`flex items-center gap-2 p-1.5 rounded-xl transition-all duration-300 ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20 shadow-inner' : ''} ${isFilterDimmed ? 'opacity-50' : ''} hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}>          
-          <div className="w-6 h-6 shrink-0 flex items-center justify-center">
-            {node.children.length > 0 && (
-              <div onClick={() => onToggleNode(node.id)} className="p-1 cursor-pointer rounded hover:bg-black/10 dark:hover:bg-white/10">
-                <Icon name="ChevronRight" className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-              </div>
-            )}
-          </div>
-          <div onClick={() => onEntityClick(node.id)} className="flex items-center gap-2 grow cursor-pointer min-w-0">
-            {hasMedia ? (
-              <img src={thumbUrl} alt={node.name} loading="lazy" className="w-10 h-10 object-cover rounded-lg shadow-sm shrink-0" />
-            ) : (
-              <div className="w-10 h-10 bg-header-bg/80 rounded-lg shadow-sm shrink-0 object-cover flex items-center justify-center text-gray-400">
-                <Icon name="ImageOff" size="20" />
-              </div>
-            )}
-            <span className={`text-md ${isList ? 'font-medium' : ''}`}>{node.name}</span>
-          </div>
+  const isList = view === 'list';
+  const isExpanded = expandedNodes.has(node.id);
+  const media = mediaMap.get(node.id);
+  const hasMedia = media && media.length > 0;
+  const thumbUrl = hasMedia ? media[0].url : '';
+  return (
+    <div className={`entity-group transition-opacity duration-200 ${isList ? '' : 'col-span-full'}`}>
+      <div data-search-match={isSearchMatch ? "true" : undefined} className={`flex items-center gap-2 p-1.5 rounded-xl transition-all duration-300 ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20 shadow-inner' : ''} ${isFilterDimmed ? 'opacity-50' : ''} hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}>
+        <div className="w-6 h-6 shrink-0 flex items-center justify-center">
+          {node.children.length > 0 && (
+            <div onClick={() => onToggleNode(node.id)} className="p-1 cursor-pointer rounded hover:bg-black/10 dark:hover:bg-white/10">
+              <Icon name="ChevronRight" className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+            </div>
+          )}
         </div>
-        {isExpanded && (
-          <div className={`${isList ? 'pl-8' : 'pl-16 grid gap-4 col-span-full'}`}
-            style={isList ? {} : { gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}>
-            {node.children.map(child => {
-              const childProps = { node: child, mediaMap, onEntityClick, view, t, expandedNodes, onToggleNode, matchingIds, directMatches, indirectMatches };
-              if (view === 'grid' && child.isGroup) {
-                // In grid mode, wrap child groups to apply a smaller padding via negative margin.
-                // The wrapper becomes the grid item, taking over the col-span-full responsibility.
-                return (
-                  <div key={child.id} className="-ml-8 col-span-full">
-                    <RenderEntityNode {...childProps} />
-                  </div>
-                );
-              }
-              // Render leaves in grid mode, and all nodes in list mode, as before.
-              return <RenderEntityNode key={child.id} {...childProps} />;
-            })}
-          </div>
-        )}
+        <div onClick={() => onEntityClick(node.id)} className="flex items-center gap-2 grow cursor-pointer min-w-0">
+          {hasMedia ? (
+            <img src={thumbUrl} alt={node.name} loading="lazy" className="w-10 h-10 object-cover rounded-lg shadow-sm shrink-0" />
+          ) : (
+            <div className="w-10 h-10 bg-header-bg/80 rounded-lg shadow-sm shrink-0 object-cover flex items-center justify-center text-gray-400">
+              <Icon name="ImageOff" size="20" />
+            </div>
+          )}
+          <span className={`text-md ${isList ? 'font-medium' : ''}`}>{node.name}</span>
+        </div>
       </div>
-    );
+      {isExpanded && (
+        <div className={`${isList ? 'pl-8' : 'pl-16 grid gap-4 col-span-full'}`}
+          style={isList ? {} : { gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}>
+          {node.children.map(child => {
+            const childProps = { node: child, mediaMap, onEntityClick, view, t, expandedNodes, onToggleNode, matchingIds, directMatches, indirectMatches };
+            if (view === 'grid' && child.isGroup) {
+              // In grid mode, wrap child groups to apply a smaller padding via negative margin.
+              // The wrapper becomes the grid item, taking over the col-span-full responsibility.
+              return (
+                <div key={child.id} className="-ml-8 col-span-full">
+                  <RenderEntityNode {...childProps} />
+                </div>
+              );
+            }
+            // Render leaves in grid mode, and all nodes in list mode, as before.
+            return <RenderEntityNode key={child.id} {...childProps} />;
+          })}
+        </div>
+      )}
+    </div>
+  );
 };
 
 const EntityLeafNode = React.memo<RenderEntityNodeProps>(({ node, mediaMap, onEntityClick, view, t, expandedNodes, onToggleNode, matchingIds, directMatches, indirectMatches }) => {
@@ -299,15 +299,15 @@ const EntityLeafNode = React.memo<RenderEntityNodeProps>(({ node, mediaMap, onEn
 }, (prev, next) => {
   if (prev.node !== next.node) return false;
   if (prev.view !== next.view) return false;
-  
+
   const wasSearching = prev.matchingIds !== null;
   const isSearching = next.matchingIds !== null;
   if (wasSearching !== isSearching) return false;
 
   if (isSearching) {
-      const wasMatch = prev.matchingIds!.has(prev.node.id);
-      const isMatch = next.matchingIds!.has(next.node.id);
-      if (wasMatch !== isMatch) return false;
+    const wasMatch = prev.matchingIds!.has(prev.node.id);
+    const isMatch = next.matchingIds!.has(next.node.id);
+    if (wasMatch !== isMatch) return false;
   }
 
   const wasIndirect = prev.indirectMatches.has(prev.node.id);

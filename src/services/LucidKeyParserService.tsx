@@ -151,7 +151,7 @@ export class LucidKeyParser {
     return node;
   }
 
-  private buildEntityNode(xmlNode: Element, allEntities: Map<string, {id: string, name: string}>): EntityNode | null {
+  private buildEntityNode(xmlNode: Element, allEntities: Map<string, { id: string, name: string }>): EntityNode | null {
     const itemElement = xmlNode.querySelector(':scope > entity_item');
     if (!itemElement) return null;
     const id = itemElement.getAttribute('item_id');
