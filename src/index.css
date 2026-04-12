@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu+Sans:ital,wght@0,100..800;1,100..800&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -126,6 +127,7 @@ html,
 body {
   overflow-x: hidden;
   width: 100%;
+  font-family: 'Ubuntu Sans', sans-serif;
 }
 
 /* Mobile Touch Feedback */
