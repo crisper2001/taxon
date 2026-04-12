@@ -9,6 +9,7 @@ import { BuilderEntitiesTab } from './BuilderEntitiesTab';
 import { BuilderScoringTab } from './BuilderScoringTab';
 import { Header } from '../layout';
 import { useSwipe } from '../../hooks';
+import { translations } from '../../constants';
 import { Sidebar, type SidebarAction } from '../layout';
 
 interface KeyBuilderProps {
@@ -50,6 +51,18 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
 
   const [history, setHistory] = useState<DraftKeyData[]>(() => [getInitialDraft()]);
   const [historyIndex, setHistoryIndex] = useState(0);
+  const [savedDraftJSON, setSavedDraftJSON] = useState<string>(() => {
+    if (localStorage.getItem('draftHasUnsavedChanges') === 'false') {
+      const saved = localStorage.getItem('draftKeyData');
+      if (saved) {
+        try {
+          return JSON.stringify(JSON.parse(saved));
+        } catch (e) {}
+      }
+      return JSON.stringify(getInitialDraft());
+    }
+    return "";
+  });
   const [isSaved, setIsSaved] = useState(false);
   const isFirstRender = useRef(true);
   const [keyPromptMode, setKeyPromptMode] = useState<'new' | 'open' | null>(null);
@@ -58,6 +71,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
     if (initialData) {
       setHistory([initialData]);
       setHistoryIndex(0);
+      setSavedDraftJSON(JSON.stringify(initialData));
       setActiveTab('features');
       setSelectedFeatureId(null);
       setSelectedEntityId(null);
@@ -79,13 +93,22 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
     return () => clearTimeout(timer);
   }, [draftKey, onChange]);
 
+  useEffect(() => {
+    const isUnsaved = JSON.stringify(draftKey) !== savedDraftJSON;
+    localStorage.setItem('draftHasUnsavedChanges', String(isUnsaved));
+  }, [draftKey, savedDraftJSON]);
+
   const updateDraftKey = useCallback((updater: (prev: DraftKeyData) => DraftKeyData) => {
     setHistory(prevHistory => {
       const currentDraft = prevHistory[historyIndex] || { title: '', authors: '', description: '', features: [], entities: [] };
       const nextState = updater(currentDraft);
       const newHistory = prevHistory.slice(0, historyIndex + 1);
       newHistory.push(nextState);
-      if (newHistory.length > 50) newHistory.shift();
+      let shift = 0;
+      if (newHistory.length > 50) {
+        newHistory.shift();
+        shift = 1;
+      }
       return newHistory;
     });
     setHistoryIndex(prev => Math.min(prev + 1, 49));
@@ -336,8 +359,12 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
     };
   }, [t, updateDraftKey]);
 
-  const undo = () => { if (historyIndex > 0) setHistoryIndex(prev => prev - 1); };
-  const redo = () => { if (historyIndex < history.length - 1) setHistoryIndex(prev => prev + 1); };
+  const undo = () => { 
+    if (historyIndex > 0) { setHistoryIndex(prev => prev - 1); }
+  };
+  const redo = () => { 
+    if (historyIndex < history.length - 1) { setHistoryIndex(prev => prev + 1); }
+  };
 
   const [selectedFeatureId, setSelectedFeatureId] = useState<string | null>(null);
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
@@ -372,6 +399,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
+    setSavedDraftJSON(JSON.stringify(draftKey));
   };
 
   const updateFeatureMedia = (featureId: string, index: number, updates: Partial<Media>) => {
@@ -425,11 +453,14 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
   };
 
   const handleCreateNew = () => {
-    setHistory([{ title: t('kbNewIdentKey' as any) || 'New Identification Key', authors: '', description: '', features: [], entities: [] }]);
+    const newDraft = { title: t('kbNewIdentKey' as any) || 'New Identification Key', authors: '', description: '', features: [], entities: [] };
+    setHistory([newDraft]);
     setHistoryIndex(0);
+    setSavedDraftJSON(JSON.stringify(newDraft));
     setActiveTab('features');
     setSelectedFeatureId(null);
     setSelectedEntityId(null);
+    localStorage.setItem('draftHasUnsavedChanges', 'false');
     onNewKey?.();
   };
 
@@ -545,6 +576,34 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
         draftKey.features.find(f => f.id === editingMedia.itemId)?.states.find(s => s.id === editingMedia.stateId)?.media?.[editingMedia.mediaIndex]
   ) : null;
 
+  const handleRequestNewKey = () => {
+    const isFeaturesEmpty = !draftKey.features || draftKey.features.length === 0;
+    const isEntitiesEmpty = !draftKey.entities || draftKey.entities.length === 0;
+    const isTitleDefault = !draftKey.title || Object.values(translations).some((trans: any) => trans.kbNewIdentKey === draftKey.title) || draftKey.title === 'New Identification Key';
+    const isEmpty = isFeaturesEmpty && isEntitiesEmpty && !draftKey.authors && !draftKey.description && isTitleDefault;
+    const isUnmodified = localStorage.getItem('draftHasUnsavedChanges') === 'false';
+
+    if (isEmpty || isUnmodified) {
+      handleCreateNew();
+    } else {
+      setKeyPromptMode('new');
+    }
+  };
+
+  const handleRequestOpenKey = () => {
+    const isFeaturesEmpty = !draftKey.features || draftKey.features.length === 0;
+    const isEntitiesEmpty = !draftKey.entities || draftKey.entities.length === 0;
+    const isTitleDefault = !draftKey.title || Object.values(translations).some((trans: any) => trans.kbNewIdentKey === draftKey.title) || draftKey.title === 'New Identification Key';
+    const isEmpty = isFeaturesEmpty && isEntitiesEmpty && !draftKey.authors && !draftKey.description && isTitleDefault;
+    const isUnmodified = localStorage.getItem('draftHasUnsavedChanges') === 'false';
+
+    if (isEmpty || isUnmodified) {
+      triggerOpenNativeKey();
+    } else {
+      setKeyPromptMode('open');
+    }
+  };
+
   const ActionButton = ({ onClick, disabled, title, icon, iconClass = '' }: any) => (
     <button onClick={onClick} disabled={disabled} title={title} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
       <Icon name={icon} size={24} className={`opacity-80 ${iconClass}`} />
@@ -553,8 +612,8 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
 
   const builderLeftActions = (
     <>
-      <ActionButton onClick={() => setKeyPromptMode('new')} title={t('kbNewKey' as any)} icon="FilePlus" />
-      <ActionButton onClick={() => setKeyPromptMode('open')} title={t('openNativeKey')} icon="FolderOpen" />
+      <ActionButton onClick={handleRequestNewKey} title={t('kbNewKey' as any)} icon="FilePlus" />
+      <ActionButton onClick={handleRequestOpenKey} title={t('openNativeKey')} icon="FolderOpen" />
       <ActionButton onClick={exportJson} title={t('exportJson')} icon="Download" />
       <ActionButton onClick={() => setShowMetadataModal(true)} title={t('kbMetadata')} icon="Info" />
       <ActionButton onClick={() => onTestKey?.(draftKey)} title={t('kbTestKey' as any)} icon="Play" iconClass="text-accent" />
@@ -600,8 +659,8 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
   );
 
   const sidebarActions: SidebarAction[] = [
-    { icon: 'FilePlus', label: t('kbNewKey' as any), onClick: () => setKeyPromptMode('new') },
-    { icon: 'FolderOpen', label: t('openNativeKey'), onClick: () => setKeyPromptMode('open') },
+    { icon: 'FilePlus', label: t('kbNewKey' as any), onClick: handleRequestNewKey },
+    { icon: 'FolderOpen', label: t('openNativeKey'), onClick: handleRequestOpenKey },
     { icon: 'Download', label: t('exportJson'), onClick: exportJson },
     { icon: 'Info', label: t('kbMetadata'), onClick: () => setShowMetadataModal(true) },
     { icon: 'Play', label: t('kbTestKey' as any), onClick: () => onTestKey?.(draftKey), iconClass: 'text-accent' }

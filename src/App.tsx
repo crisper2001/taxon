@@ -249,6 +249,10 @@ const App: React.FC = () => {
     setExpandedDiscardedNodes(new Set());
   };
 
+  const handleDraftChange = useCallback((draft: DraftKeyData) => {
+    currentDraftRef.current = draft;
+  }, []);
+
   const addToast = useCallback((message: string) => {
     if (!showToasts) return;
     toastIdCounter.current += 1;
@@ -339,6 +343,7 @@ const App: React.FC = () => {
         } else {
           setDraftKeyData(data);
           setBuildChatHistory([]);
+          localStorage.setItem('draftHasUnsavedChanges', 'false');
         }
         setAppMode(targetMode);
         setIsHome(false);
@@ -693,7 +698,7 @@ const App: React.FC = () => {
                         setIsHome(true);
                       }}
                       initialData={draftKeyData}
-                      onChange={(draft) => currentDraftRef.current = draft}
+                      onChange={handleDraftChange}
                       onTestKey={(draft) => {
                         const parser = new LucidKeyParser();
                         setKeyData(parser.processDraftKey(draft));
