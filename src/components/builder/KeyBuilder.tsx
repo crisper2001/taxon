@@ -24,7 +24,6 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onChange, onTestKey, onNewKey }) => {
   const appContext = useAppContext();
   const { t, triggerOpenNativeKey, isAiPanelVisible, setAiPanelVisible, openPreferences } = appContext;
-  const hideAi = (appContext as any).hideAi;
   const [activeTab, setActiveTab] = useState<'features' | 'entities' | 'scoring'>('features');
   const [showMetadataModal, setShowMetadataModal] = useState(false);
   const [isSidebarOpen, setSidebarOpen] = useState(false);

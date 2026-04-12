@@ -17,6 +17,8 @@ interface AppContextProps {
   appMode: 'identify' | 'build';
   geminiApiKey: string;
   isAiPanelVisible: boolean;
+  enableAi: boolean;
+  enableAnimations: boolean;
 
   // Setters
   setLang: (lang: Language) => void;
@@ -24,6 +26,7 @@ interface AppContextProps {
   setGeminiApiKey: (key: string) => void;
   setAppMode: (mode: 'identify' | 'build') => void;
   setAiPanelVisible: (visible: boolean) => void;
+  setEnableAnimations: (mode: boolean) => void;
 
   // Actions
   triggerImport: () => void;

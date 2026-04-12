@@ -32,7 +32,8 @@ const App: React.FC = () => {
   const [theme, setTheme] = useState<Theme>('light');
   const [geminiApiKey, setGeminiApiKey] = useState<string>('');
   const [showToasts, setShowToasts] = useState<boolean>(true);
-  const [hideAi, setHideAi] = useState<boolean>(false);
+  const [enableAi, setEnableAi] = useState<boolean>(true);
+  const [enableAnimations, setEnableAnimations] = useState<boolean>(true);
 
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isAiPanelVisible, setAiPanelVisible] = useState(false);
@@ -121,10 +122,39 @@ const App: React.FC = () => {
       setShowToasts(savedToasts === 'true');
     }
 
+    const savedEnableAi = localStorage.getItem('enableAi');
+    const savedShowAi = localStorage.getItem('showAi');
     const savedHideAi = localStorage.getItem('hideAi');
-    if (savedHideAi !== null) {
-      setHideAi(savedHideAi === 'true');
+    if (savedEnableAi !== null) {
+      setEnableAi(savedEnableAi === 'true');
+    } else if (savedShowAi !== null) {
+      const migratedEnableAi = savedShowAi === 'true';
+      setEnableAi(migratedEnableAi);
+      localStorage.setItem('enableAi', String(migratedEnableAi));
+      localStorage.removeItem('showAi');
+    } else if (savedHideAi !== null) {
+      const migratedEnableAi = savedHideAi === 'false';
+      setEnableAi(migratedEnableAi);
+      localStorage.setItem('enableAi', String(migratedEnableAi));
+      localStorage.removeItem('hideAi');
     }
+
+    const savedEnableAnimations = localStorage.getItem('enableAnimations');
+    if (savedEnableAnimations !== null) {
+      setEnableAnimations(savedEnableAnimations === 'true');
+    } else if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setEnableAnimations(false);
+    }
+
+    const motionMediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handleMotionChange = (e: MediaQueryListEvent) => {
+      if (localStorage.getItem('enableAnimations') === null) {
+        setEnableAnimations(!e.matches);
+      }
+    };
+    motionMediaQuery.addEventListener('change', handleMotionChange);
+
+    return () => motionMediaQuery.removeEventListener('change', handleMotionChange);
   }, []);
 
   useEffect(() => {
@@ -159,6 +189,27 @@ const App: React.FC = () => {
     }
     metaThemeColor.setAttribute('content', theme === 'light' ? '#f8f9fa' : '#1a1a1a');
   }, [theme]);
+
+  useEffect(() => {
+    let styleEl = document.getElementById('performance-mode-styles');
+    if (!enableAnimations) {
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = 'performance-mode-styles';
+        styleEl.innerHTML = `
+          *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+          }
+        `;
+        document.head.appendChild(styleEl);
+      }
+    } else if (styleEl) {
+      styleEl.remove();
+    }
+  }, [enableAnimations]);
 
   // Failsafe to guarantee the global drag state is reset when a file is dropped
   // anywhere on the window, even if a child component stops the event propagation.
@@ -423,7 +474,7 @@ const App: React.FC = () => {
     });
   };
 
-  const handlePreferenceChange = (key: 'lang' | 'theme' | 'geminiApiKey' | 'showToasts' | 'hideAi', value: string | boolean) => {
+  const handlePreferenceChange = (key: 'lang' | 'theme' | 'geminiApiKey' | 'showToasts' | 'enableAi' | 'enableAnimations', value: string | boolean) => {
     if (key === 'lang') {
       const newLang = value as Language;
       setLang(newLang);
@@ -438,10 +489,13 @@ const App: React.FC = () => {
     } else if (key === 'showToasts') {
       setShowToasts(value as boolean);
       localStorage.setItem('showToasts', String(value));
-    } else if (key === 'hideAi') {
-      setHideAi(value as boolean);
-      localStorage.setItem('hideAi', String(value));
-      if (value) setAiPanelVisible(false);
+    } else if (key === 'enableAi') {
+      setEnableAi(value as boolean);
+      localStorage.setItem('enableAi', String(value));
+      if (!value) setAiPanelVisible(false);
+    } else if (key === 'enableAnimations') {
+      setEnableAnimations(value as boolean);
+      localStorage.setItem('enableAnimations', String(value));
     }
   };
 
@@ -504,7 +558,8 @@ const App: React.FC = () => {
     closeKey: () => {
       setIsHome(true);
     },
-    hideAi,
+    enableAi,
+    enableAnimations, setEnableAnimations,
   };
 
   return (
@@ -548,7 +603,7 @@ const App: React.FC = () => {
           t={t}
           onImageClick={handleOpenLightbox}
         />
-        <PreferencesModal isOpen={modalState.type === 'preferences' || underlyingModalState?.type === 'preferences'} onClose={() => setModalState({ type: 'none' })} currentPrefs={{ lang, theme, geminiApiKey, showToasts, hideAi }} onPreferenceChange={handlePreferenceChange} t={t} availableLanguages={Object.keys(translations) as Language[]} onClearData={() => { setUnderlyingModalState(modalState); setModalState({ type: 'confirmClearData' as any }); }} />
+        <PreferencesModal isOpen={modalState.type === 'preferences' || underlyingModalState?.type === 'preferences'} onClose={() => setModalState({ type: 'none' })} currentPrefs={{ lang, theme, geminiApiKey, showToasts, enableAi, enableAnimations }} onPreferenceChange={handlePreferenceChange} t={t} availableLanguages={Object.keys(translations) as Language[]} onClearData={() => { setUnderlyingModalState(modalState); setModalState({ type: 'confirmClearData' as any }); }} />
         <KeyInfoModal isOpen={modalState.type === 'keyInfo' || underlyingModalState?.type === 'keyInfo'} onClose={() => setModalState({ type: 'none' })} keyData={keyData} t={t} />
         <FeatureModal isOpen={modalState.type === 'feature' || underlyingModalState?.type === 'feature'} onClose={handleModalClose} featureId={(activeOrUnderlying as any).featureId} keyData={keyData} t={t} onImageClick={handleOpenLightbox} />
         <ImageLightboxModal isOpen={modalState.type === 'lightbox'} onClose={handleModalClose} media={(modalState as any).media} startIndex={(modalState as any).startIndex ?? 0} />
@@ -769,7 +824,7 @@ const App: React.FC = () => {
           </div>
 
           {/* --- AI Panel --- */}
-          {!hideAi && (
+          {enableAi && (
             <>
               {/* Mobile AI Panel Backdrop */}
               {isAiPanelVisible && (

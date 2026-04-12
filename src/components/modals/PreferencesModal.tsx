@@ -31,8 +31,8 @@ const languageNames: Record<Language, string> = {
 interface PreferencesModalProps {
     isOpen: boolean;
     onClose: () => void;
-    currentPrefs: { lang: Language; theme: Theme; geminiApiKey: string; showToasts: boolean; hideAi: boolean; };
-    onPreferenceChange: (key: 'lang' | 'theme' | 'geminiApiKey' | 'showToasts' | 'hideAi', value: string | boolean) => void;
+    currentPrefs: { lang: Language; theme: Theme; geminiApiKey: string; showToasts: boolean; enableAi: boolean; enableAnimations: boolean; };
+    onPreferenceChange: (key: 'lang' | 'theme' | 'geminiApiKey' | 'showToasts' | 'enableAi' | 'enableAnimations', value: string | boolean) => void;
     t: (key: keyof typeof translations['en']) => string;
     availableLanguages: Language[];
     onClearData?: () => void;
@@ -99,7 +99,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                         </div>
                         <div>
                             <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-hover-bg/50">
-                                <span className="font-bold text-base tracking-tight text-text/90">{t('uiShowToasts')}</span>
+                                <span className="font-bold text-base tracking-tight text-text/90">{t('uiShowToasts' as any) || 'Enable Notifications'}</span>
                                 <input
                                     type="checkbox"
                                     checked={currentPrefs.showToasts}
@@ -108,6 +108,17 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                                 />
                             </label>
                         </div>
+                    <div>
+                        <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-hover-bg/50">
+                            <span className="font-bold text-base tracking-tight text-text/90">{t('uiEnableAnimations' as any) || 'Enable Animations'}</span>
+                            <input
+                                type="checkbox"
+                                checked={currentPrefs.enableAnimations}
+                                onChange={(e) => onPreferenceChange('enableAnimations', e.target.checked)}
+                                className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-bg bg-bg cursor-pointer shadow-inner"
+                            />
+                        </label>
+                    </div>
                     </div>
                 )}
 
@@ -115,11 +126,11 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                     <div className="space-y-6">
                         <div>
                             <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-hover-bg/50">
-                                <span className="font-bold text-base tracking-tight text-text/90">{t('uiHideAi' as any)}</span>
+                                <span className="font-bold text-base tracking-tight text-text/90">{t('uiEnableAi' as any) || 'Enable AI Assistant'}</span>
                                 <input
                                     type="checkbox"
-                                    checked={currentPrefs.hideAi}
-                                    onChange={(e) => onPreferenceChange('hideAi', e.target.checked)}
+                                    checked={currentPrefs.enableAi}
+                                    onChange={(e) => onPreferenceChange('enableAi', e.target.checked)}
                                     className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-bg bg-bg cursor-pointer shadow-inner"
                                 />
                             </label>

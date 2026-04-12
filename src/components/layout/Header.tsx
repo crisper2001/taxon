@@ -13,8 +13,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ isSidebarOpen, setSidebarOpen, leftActions, centerContent, onLogoClick }) => {
   const appContext = useAppContext();
-  const { keyData, isLoading, error, statusText, isAiPanelVisible, setAiPanelVisible, openKeyInfo, t, appMode, triggerImport, openPreferences } = appContext;
-  const hideAi = (appContext as any).hideAi;
+  const { keyData, isLoading, error, statusText, isAiPanelVisible, setAiPanelVisible, openKeyInfo, t, appMode, triggerImport, openPreferences, enableAi } = appContext;
   const closeKey = (appContext as any).closeKey;
   const handleLogoClick = onLogoClick || closeKey;
 
@@ -54,7 +53,7 @@ export const Header: React.FC<HeaderProps> = ({ isSidebarOpen, setSidebarOpen, l
         </button>
       )}
       <div className="flex items-center z-20">
-        {!hideAi && (appMode === 'build' || (appMode === 'identify' && keyData)) ? (
+        {enableAi && (appMode === 'build' || (appMode === 'identify' && keyData)) ? (
           <button onClick={() => setAiPanelVisible(true)} disabled={isAiPanelVisible} title={isAiPanelVisible ? undefined : t('assistant')} aria-hidden={isAiPanelVisible} className={`p-2 rounded-full transition-all duration-300 ${isAiPanelVisible ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md'}`}>
             <Spot primaryColor="currentColor" secondaryColor="#f8fafb" mode="head" className="w-6 h-6 text-accent" />
           </button>
