@@ -78,7 +78,7 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
   const stateToRender = selectedState || cachedState;
   const stateParentToRender = selectedStateParent || cachedStateParent;
 
-  const modalTitle = stateToRender && stateParentToRender ? (
+  const modalTitle = cachedMode === 'state' && stateToRender && stateParentToRender ? (
     <div className="flex items-center gap-3 min-w-0">
       <div className="flex flex-col min-w-0">
         <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-0.5 leading-none truncate">{stateParentToRender.name || t('kbUnnamedFeature')}</span>
