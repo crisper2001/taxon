@@ -31,8 +31,8 @@ const languageNames: Record<Language, string> = {
 interface PreferencesModalProps {
     isOpen: boolean;
     onClose: () => void;
-    currentPrefs: { lang: Language; theme: Theme; geminiApiKey: string; showToasts: boolean; enableAi: boolean; enableAnimations: boolean; };
-    onPreferenceChange: (key: 'lang' | 'theme' | 'geminiApiKey' | 'showToasts' | 'enableAi' | 'enableAnimations', value: string | boolean) => void;
+    currentPrefs: { lang: Language; theme: Theme; geminiApiKey: string; showToasts: boolean; enableAi: boolean; enableAnimations: boolean; allowMisinterpretations: boolean; allowUncertainties: boolean; };
+    onPreferenceChange: (key: 'lang' | 'theme' | 'geminiApiKey' | 'showToasts' | 'enableAi' | 'enableAnimations' | 'allowMisinterpretations' | 'allowUncertainties', value: string | boolean) => void;
     t: (key: keyof typeof translations['en']) => string;
     availableLanguages: Language[];
     onClearData?: () => void;
@@ -55,7 +55,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={t('preferences')}>
             <div className="flex flex-col bg-bg/80 backdrop-blur-sm rounded-b-3xl">
-                <div className="p-7 h-[450px] overflow-y-auto overflow-x-hidden relative">
+                <div className="p-7 h-[500px] overflow-y-auto overflow-x-hidden relative">
                   <div key={activeTab} className="animate-fade-in-up h-full">
                 {activeTab === 'general' && (
                     <div className="space-y-8">
@@ -68,6 +68,30 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                                 className="input-base w-full font-semibold cursor-pointer"
                                 dropdownClassName="max-h-48 overflow-y-auto"
                             />
+                        </div>
+
+                        <div className="pt-6 border-t border-black/10 dark:border-white/10">
+                            <div className="font-bold mb-3 text-base block tracking-tight text-text/90">{t('identification' as any)}</div>
+                            <div className="space-y-4">
+                                <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-hover-bg/50">
+                                    <span className="font-bold text-base tracking-tight text-text/90">{t('uiAllowMisinterpretations' as any) || 'Allow Misinterpretations'}</span>
+                                    <input
+                                        type="checkbox"
+                                        checked={currentPrefs.allowMisinterpretations}
+                                        onChange={(e) => onPreferenceChange('allowMisinterpretations', e.target.checked)}
+                                        className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-bg bg-bg cursor-pointer shadow-inner"
+                                    />
+                                </label>
+                                <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-hover-bg/50">
+                                    <span className="font-bold text-base tracking-tight text-text/90">{t('uiAllowUncertainties' as any) || 'Allow Uncertainties'}</span>
+                                    <input
+                                        type="checkbox"
+                                        checked={currentPrefs.allowUncertainties}
+                                        onChange={(e) => onPreferenceChange('allowUncertainties', e.target.checked)}
+                                        className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-bg bg-bg cursor-pointer shadow-inner"
+                                    />
+                                </label>
+                            </div>
                         </div>
                         
                         {onClearData && (

@@ -13,7 +13,7 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **FR2.1:** The system must support two types of features: categorical (states) and numeric (ranges).
 * **FR2.2:** The system must identify "Direct Matches" (entities that strictly match all selected features and numeric thresholds).
 * **FR2.3:** The system must compute "Indirect Matches" (parent/group nodes that contain at least one remaining valid child entity).
-* **FR2.4:** The system must discard entities that lack a score for a chosen feature, have a state score of '0', or fall outside the allowed numeric score range (`min` / `max`).
+* **FR2.4:** The system must discard entities that lack a score for a chosen feature, fall outside the allowed numeric score range (`min` / `max`), or have a state score of '0'. Entities with 'Uncertain' ('3') or 'Misinterpreted' ('4', '5') scores must be dynamically retained or discarded based on user-configurable identification tolerances.
 
 ### 1.3. AI Assistant Integration
 * **FR3.1:** The system must communicate with the Google Gemini API using a user-provided API key.
@@ -51,6 +51,7 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **FR4.8:** Media lightboxes and modal image viewers must support native-feeling mobile touch gestures, allowing users to smoothly swipe horizontally to navigate between images with visual edge-resistance.
 * **FR4.9:** The system must utilize custom-styled UI form elements (such as glassmorphic dropdown menus, text inputs, and checkboxes) consistently across all modes and modals to maintain visual cohesion, replacing default native browser elements.
 * **FR4.10:** The application must dynamically generate and update the browser's Favicon (via an inline SVG data URI) and `theme-color` meta tag to perfectly synchronize with the user's selected UI theme and active accent color.
+* **FR4.11:** The system must visually indicate fuzzy matches (e.g., misinterpreted or uncertain traits) with specific warning badges inline within the entity list panels.
 
 ### 1.5. Search and Filtering
 * **FR5.1:** Tree components must support text-based search filtering, automatically expanding parent groups to reveal matching child nodes.
@@ -59,7 +60,7 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **FR5.4:** The system must provide a clear search button (X) within the search input fields to allow users to quickly reset their active filters.
 
 ### 1.6. State Management & Persistence
-* **FR6.1:** The system must preserve user preferences (API key, language selection, light/dark theme, toast notifications toggle, AI assistant visibility, panel layout sizes, and entities view modes) across sessions using the browser's `localStorage`.
+* **FR6.1:** The system must preserve user preferences (API key, language selection, light/dark theme, toast notifications toggle, AI assistant visibility, UI animations toggle, identification tolerances for misinterpretations and uncertainties, panel layout sizes, and entities view modes) across sessions using the browser's `localStorage`.
 * **FR6.2:** All application states (loaded keys, AI chat history, selected features) must be reset gracefully when a user opens a new key. The user can also manually clear their selections via the clear button in the Chosen Features panel, or clear the AI chat history via the Assistant panel (both of which prompt for confirmation via a custom modal).
 * **FR6.3:** Chat histories and active states must be strictly isolated between the Identify and Builder modes to prevent contextual overlap.
 * **FR6.4:** The system must provide an option in the preferences menu to safely delete all locally saved data, wiping the `localStorage` and resetting the application state entirely.
@@ -82,7 +83,7 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **FR8.10:** The system must preserve the active draft key locally (via `localStorage`) to prevent accidental data loss across browser refreshes, while still allowing the user to seamlessly navigate between the builder and the Main Menu.
 * **FR8.11:** The system must provide a "Test Key" function that instantly loads the working draft into the Identification Engine for real-time testing without requiring file exports.
 * **FR8.12:** The system must integrate the AI Assistant within the Builder Mode to provide and directly ingest taxonomic feature and entity suggestions. The AI context must dynamically include a compacted schema of the draft's existing features and entities to prevent duplicates and optimize token usage. Additionally, AI message blocks must store deep state snapshots to provide a contextual "Undo" button, allowing users to instantly cleanly revert complex, multi-item taxonomy ingestions.
-* **FR8.13:** The system must provide a safe "New Key" workflow that prompts the user to export their current draft before wiping the active builder state.
+* **FR8.13:** The system must intelligently track draft modifications (using JSON snapshot comparisons) and provide a safe "New Key" or "Open Key" workflow that prompts the user to export their current draft only if unsaved edits exist.
 * **FR8.14:** The system must provide a dedicated, horizontally-scrollable Scoring Matrix interface that plots entities against features/states. The matrix must support interactive crosshair highlighting for row/column tracking (highlighting strictly upwards and leftwards from the cursor), allow setting numeric range bounds (`min`/`max`) via modals, and support left-click (quick cycle) and right-click (dropdown selection) interactions for categorical state assignments. It must also provide a global "Clear Matrix" action with a safety confirmation modal to instantly wipe all existing score assignments.
 
 ---
@@ -93,10 +94,11 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **BR1.1 (Direct Matches):** An entity is considered a direct match only if it meets the criteria for all currently chosen features. If no features are selected, all entities are considered direct matches.
 * **BR1.2 (Direct Discards):** An entity is immediately discarded if it fails to match even one chosen feature. A mismatch occurs if:
   * The entity lacks any score data for the chosen feature.
-  * For categorical (state) features, the entity's score value is strictly '0' (indicating absence).
+  * For categorical (state) features, the entity's score value is '0' (indicating absence), or it is an 'Uncertain' ('3') or 'Misinterpreted' ('4', '5') score that the user has explicitly disallowed via application preferences.
   * For numeric features, the user's chosen value falls strictly outside the entity's defined minimum and maximum threshold (`< min` or `> max`).
 * **BR1.3 (Indirect Matches):** Group (parent) entities are considered indirect matches if they are not themselves direct matches, but they contain at least one descendant child node that is a direct match. They remain visible in the tree to preserve hierarchy.
 * **BR1.4 (Dimming Discarded Groups):** Group nodes that are technically discarded but contain child nodes that still need to be displayed are kept in the DOM but visually dimmed.
+* **BR1.5 (Fuzzy Matches):** Entities that match via an 'Uncertain' or 'Misinterpreted' score (and are permitted by user preferences) are retained as direct matches but must be visually flagged to the user.
 
 ### 2.2. AI Assistant Context & Constraints
 * **BR2.1 (Trait Accumulation):** During identification, the AI must continuously accumulate visual and textual traits into a running "Current Description". Traits are only replaced if corrected by the user, and only cleared if explicitly requested.
@@ -131,7 +133,7 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 
 ### UC3: Automatic Filtering of Entities
 * **Actor:** User
-* **Description:** As the user selects features, the system dynamically filters the entities. Entities that match all chosen features remain in the "Entities Remaining" panel, while mismatched entities are moved to the "Entities Discarded" panel.
+* **Description:** As the user selects features, the system dynamically filters the entities. Entities that match all chosen features remain in the "Entities Remaining" panel, while mismatched entities are moved to the "Entities Discarded" panel. Entities matching via uncertain or misinterpreted traits are flagged with visual warning badges.
 * **Associated Functional Requirements:** FR2.2, FR2.3, FR2.4, FR4.2
 * **Associated Business Rules:** BR1.1, BR1.2, BR1.3, BR1.4
 
@@ -167,7 +169,7 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 
 ### UC9: Configure Application Preferences
 * **Actor:** User
-* **Description:** The user accesses the preferences (available directly from the welcome screen, the desktop header, or the mobile sidebar) to set the UI theme (Light/Dark), application language, toggle toast notifications, hide the AI assistant, provide the Gemini API key required for the AI assistant, view application information in the About section, and delete all locally saved data.
+* **Description:** The user accesses the preferences (available directly from the welcome screen, the desktop header, or the mobile sidebar) to set the UI theme (Light/Dark), application language, toggle toast notifications, toggle the AI assistant, toggle UI animations, adjust identification tolerances (allowing misinterpretations or uncertainties), provide the Gemini API key required for the AI assistant, view application information in the About section, and delete all locally saved data.
 * **Associated Functional Requirements:** FR4.10, FR6.1, FR6.4, FR7.1, FR7.2, FR7.3
 * **Associated Business Rules:** None
 

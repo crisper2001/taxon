@@ -19,6 +19,8 @@ interface AppContextProps {
   isAiPanelVisible: boolean;
   enableAi: boolean;
   enableAnimations: boolean;
+  allowMisinterpretations: boolean;
+  allowUncertainties: boolean;
 
   // Setters
   setLang: (lang: Language) => void;
@@ -27,6 +29,8 @@ interface AppContextProps {
   setAppMode: (mode: 'identify' | 'build') => void;
   setAiPanelVisible: (visible: boolean) => void;
   setEnableAnimations: (mode: boolean) => void;
+  setAllowMisinterpretations: (allow: boolean) => void;
+  setAllowUncertainties: (allow: boolean) => void;
 
   // Actions
   triggerImport: () => void;

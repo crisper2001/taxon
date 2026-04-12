@@ -34,6 +34,8 @@ const App: React.FC = () => {
   const [showToasts, setShowToasts] = useState<boolean>(true);
   const [enableAi, setEnableAi] = useState<boolean>(true);
   const [enableAnimations, setEnableAnimations] = useState<boolean>(true);
+  const [allowMisinterpretations, setAllowMisinterpretations] = useState<boolean>(true);
+  const [allowUncertainties, setAllowUncertainties] = useState<boolean>(true);
 
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isAiPanelVisible, setAiPanelVisible] = useState(false);
@@ -66,7 +68,7 @@ const App: React.FC = () => {
   const [dragOverHomeButton, setDragOverHomeButton] = useState<'identify' | 'build' | null>(null);
 
   // --- DERIVED STATE & MEMOS ---
-  const { directMatches, indirectMatches, discardedEntityIds, directlyDiscarded } = useKeyFiltering(keyData, chosenFeatures);
+  const { directMatches, indirectMatches, discardedEntityIds, directlyDiscarded, uncertainMatchIds, misinterpretedMatchIds } = useKeyFiltering(keyData, chosenFeatures, allowMisinterpretations, allowUncertainties);
 
   const remainingTree = useMemo(() => {
     if (!keyData) return [];
@@ -153,6 +155,15 @@ const App: React.FC = () => {
       }
     };
     motionMediaQuery.addEventListener('change', handleMotionChange);
+
+    const savedAllowMis = localStorage.getItem('allowMisinterpretations');
+    if (savedAllowMis !== null) {
+      setAllowMisinterpretations(savedAllowMis === 'true');
+    }
+    const savedAllowUnc = localStorage.getItem('allowUncertainties');
+    if (savedAllowUnc !== null) {
+      setAllowUncertainties(savedAllowUnc === 'true');
+    }
 
     return () => motionMediaQuery.removeEventListener('change', handleMotionChange);
   }, []);
@@ -479,7 +490,7 @@ const App: React.FC = () => {
     });
   };
 
-  const handlePreferenceChange = (key: 'lang' | 'theme' | 'geminiApiKey' | 'showToasts' | 'enableAi' | 'enableAnimations', value: string | boolean) => {
+  const handlePreferenceChange = (key: 'lang' | 'theme' | 'geminiApiKey' | 'showToasts' | 'enableAi' | 'enableAnimations' | 'allowMisinterpretations' | 'allowUncertainties', value: string | boolean) => {
     if (key === 'lang') {
       const newLang = value as Language;
       setLang(newLang);
@@ -501,6 +512,12 @@ const App: React.FC = () => {
     } else if (key === 'enableAnimations') {
       setEnableAnimations(value as boolean);
       localStorage.setItem('enableAnimations', String(value));
+    } else if (key === 'allowMisinterpretations') {
+      setAllowMisinterpretations(value as boolean);
+      localStorage.setItem('allowMisinterpretations', String(value));
+    } else if (key === 'allowUncertainties') {
+      setAllowUncertainties(value as boolean);
+      localStorage.setItem('allowUncertainties', String(value));
     }
   };
 
@@ -565,6 +582,8 @@ const App: React.FC = () => {
     },
     enableAi,
     enableAnimations, setEnableAnimations,
+    allowMisinterpretations, setAllowMisinterpretations,
+    allowUncertainties, setAllowUncertainties,
   };
 
   return (
@@ -608,7 +627,7 @@ const App: React.FC = () => {
           t={t}
           onImageClick={handleOpenLightbox}
         />
-        <PreferencesModal isOpen={modalState.type === 'preferences' || underlyingModalState?.type === 'preferences'} onClose={() => setModalState({ type: 'none' })} currentPrefs={{ lang, theme, geminiApiKey, showToasts, enableAi, enableAnimations }} onPreferenceChange={handlePreferenceChange} t={t} availableLanguages={Object.keys(translations) as Language[]} onClearData={() => { setUnderlyingModalState(modalState); setModalState({ type: 'confirmClearData' as any }); }} />
+        <PreferencesModal isOpen={modalState.type === 'preferences' || underlyingModalState?.type === 'preferences'} onClose={() => setModalState({ type: 'none' })} currentPrefs={{ lang, theme, geminiApiKey, showToasts, enableAi, enableAnimations, allowMisinterpretations, allowUncertainties }} onPreferenceChange={handlePreferenceChange} t={t} availableLanguages={Object.keys(translations) as Language[]} onClearData={() => { setUnderlyingModalState(modalState); setModalState({ type: 'confirmClearData' as any }); }} />
         <KeyInfoModal isOpen={modalState.type === 'keyInfo' || underlyingModalState?.type === 'keyInfo'} onClose={() => setModalState({ type: 'none' })} keyData={keyData} t={t} />
         <FeatureModal isOpen={modalState.type === 'feature' || underlyingModalState?.type === 'feature'} onClose={handleModalClose} featureId={(activeOrUnderlying as any).featureId} keyData={keyData} t={t} onImageClick={handleOpenLightbox} />
         <ImageLightboxModal isOpen={modalState.type === 'lightbox'} onClose={handleModalClose} media={(modalState as any).media} startIndex={(modalState as any).startIndex ?? 0} />
@@ -728,6 +747,8 @@ const App: React.FC = () => {
                         entityTree={remainingTree}
                         directMatches={directMatches}
                         indirectMatches={indirectMatches}
+                        uncertainMatchIds={uncertainMatchIds}
+                        misinterpretMatchIds={misinterpretedMatchIds}
                         mediaMap={keyData.entityMedia} onEntityClick={(id) => setModalState({ type: 'entity', entityId: id })}
                         t={t}
                         expandedNodes={expandedRemainingNodes}
@@ -737,6 +758,8 @@ const App: React.FC = () => {
                         title={t('entitiesDiscarded')}
                         directMatches={new Set()}
                         indirectMatches={new Set()}
+                        uncertainMatchIds={new Set()}
+                        misinterpretMatchIds={new Set()}
                         count={discardedEntityIds.size}
                         icon="ListX" entityTree={discardedTree}
                         mediaMap={keyData.entityMedia} onEntityClick={(id) => setModalState({ type: 'entity', entityId: id })}
