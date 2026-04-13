@@ -15,6 +15,11 @@ import { Sidebar, type SidebarAction } from '../layout';
 interface KeyBuilderProps {
   onExit: () => void;
   initialData?: DraftKeyData;
+  builderStateRef?: React.MutableRefObject<{
+    history: DraftKeyData[];
+    historyIndex: number;
+    savedHistoryIndex: number;
+  }>;
   onChange?: (draft: DraftKeyData) => void;
   onTestKey?: (draft: DraftKeyData) => void;
   onNewKey?: () => void;
@@ -22,9 +27,9 @@ interface KeyBuilderProps {
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
-export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onChange, onTestKey, onNewKey }) => {
+export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, builderStateRef, onChange, onTestKey, onNewKey }) => {
   const appContext = useAppContext();
-  const { t, triggerOpenNativeKey, isAiPanelVisible, setAiPanelVisible, openPreferences } = appContext;
+  const { t, triggerOpenNativeJson, isAiPanelVisible, setAiPanelVisible, openPreferences, addToast } = appContext;
   const [activeTab, setActiveTab] = useState<'features' | 'entities' | 'scoring'>('features');
   const [showMetadataModal, setShowMetadataModal] = useState(false);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -42,61 +47,69 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
 
   const getInitialDraft = () => {
     if (initialData) return initialData;
-    const saved = localStorage.getItem('draftKeyData');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) { }
-    }
     return { title: t('kbNewIdentKey' as any) || 'New Identification Key', authors: '', description: '', features: [], entities: [] };
   };
 
-  const [history, setHistory] = useState<DraftKeyData[]>(() => [getInitialDraft()]);
-  const [historyIndex, setHistoryIndex] = useState(0);
-  const [savedDraftJSON, setSavedDraftJSON] = useState<string>(() => {
-    if (localStorage.getItem('draftHasUnsavedChanges') === 'false') {
-      const saved = localStorage.getItem('draftKeyData');
-      if (saved) {
-        try {
-          return JSON.stringify(JSON.parse(saved));
-        } catch (e) {}
-      }
-      return JSON.stringify(getInitialDraft());
-    }
-    return "";
+  const [history, setHistory] = useState<DraftKeyData[]>(() => {
+    if (builderStateRef?.current?.history.length) return builderStateRef.current.history;
+    return [getInitialDraft()];
   });
-  const [isSaved, setIsSaved] = useState(false);
-  const isFirstRender = useRef(true);
+  const [historyIndex, setHistoryIndex] = useState(() => {
+    if (builderStateRef?.current?.history.length) return builderStateRef.current.historyIndex;
+    return 0;
+  });
+  const [savedHistoryIndex, setSavedHistoryIndex] = useState(() => {
+    if (builderStateRef?.current?.savedHistoryIndex !== undefined) return builderStateRef.current.savedHistoryIndex;
+    return 0;
+  });
   const [keyPromptMode, setKeyPromptMode] = useState<'new' | 'open' | null>(null);
 
+  const lastProcessedInitialData = useRef(initialData);
+
+  const draftKey = history[historyIndex] || { title: '', authors: '', description: '', features: [], entities: [] };
+  const draftKeyRef = useRef(draftKey);
+  draftKeyRef.current = draftKey;
+
   useEffect(() => {
-    if (initialData) {
-      setHistory([initialData]);
-      setHistoryIndex(0);
-      setSavedDraftJSON(JSON.stringify(initialData));
-      setActiveTab('features');
-      setSelectedFeatureId(null);
-      setSelectedEntityId(null);
+    if (initialData && initialData !== lastProcessedInitialData.current) {
+      lastProcessedInitialData.current = initialData;
+      if (initialData !== draftKeyRef.current) {
+        setHistory([initialData]);
+        setHistoryIndex(0);
+        setSavedHistoryIndex(0);
+        setActiveTab('features');
+        setSelectedFeatureId(null);
+        setSelectedEntityId(null);
+      }
     }
   }, [initialData]);
 
-  const draftKey = history[historyIndex] || { title: '', authors: '', description: '', features: [], entities: [] };
+  useEffect(() => {
+    if (builderStateRef) {
+      builderStateRef.current = { history, historyIndex, savedHistoryIndex };
+    }
+  }, [history, historyIndex, savedHistoryIndex, builderStateRef]);
 
   useEffect(() => {
     onChange?.(draftKey);
-    localStorage.setItem('draftKeyData', JSON.stringify(draftKey));
-
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-    setIsSaved(true);
-    const timer = setTimeout(() => setIsSaved(false), 2000);
-    return () => clearTimeout(timer);
   }, [draftKey, onChange]);
 
+  const isUnsaved = historyIndex !== savedHistoryIndex;
+
   useEffect(() => {
-    const isUnsaved = JSON.stringify(draftKey) !== savedDraftJSON;
-    localStorage.setItem('draftHasUnsavedChanges', String(isUnsaved));
-  }, [draftKey, savedDraftJSON]);
+    try {
+      localStorage.setItem('draftHasUnsavedChanges', String(isUnsaved));
+    } catch (e) { }
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isUnsaved) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isUnsaved]);
 
   const updateDraftKey = useCallback((updater: (prev: DraftKeyData) => DraftKeyData) => {
     setHistory(prevHistory => {
@@ -104,10 +117,9 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
       const nextState = updater(currentDraft);
       const newHistory = prevHistory.slice(0, historyIndex + 1);
       newHistory.push(nextState);
-      let shift = 0;
       if (newHistory.length > 50) {
         newHistory.shift();
-        shift = 1;
+        setSavedHistoryIndex(prev => prev - 1);
       }
       return newHistory;
     });
@@ -359,10 +371,10 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
     };
   }, [t, updateDraftKey]);
 
-  const undo = () => { 
+  const undo = () => {
     if (historyIndex > 0) { setHistoryIndex(prev => prev - 1); }
   };
-  const redo = () => { 
+  const redo = () => {
     if (historyIndex < history.length - 1) { setHistoryIndex(prev => prev + 1); }
   };
 
@@ -391,15 +403,40 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
     activeTab === 'scoring'
   );
 
-  const exportJson = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(draftKey, null, 2));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `${draftKey.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'draft_key'}.json`);
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
-    setSavedDraftJSON(JSON.stringify(draftKey));
+  const exportJson = async () => {
+    const fileName = `${draftKey.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'draft_key'}.json`;
+    const jsonString = JSON.stringify(draftKey, null, 2);
+
+    let saved = false;
+    if ('showSaveFilePicker' in window) {
+      try {
+        const handle = await (window as any).showSaveFilePicker({
+          suggestedName: fileName,
+          types: [{ description: 'JSON File', accept: { 'application/json': ['.json'] } }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(jsonString);
+        await writable.close();
+        saved = true;
+        setSavedHistoryIndex(historyIndex);
+      } catch (err: any) {
+        if (err.name === 'AbortError') return; // User cancelled the save dialog
+        console.error('File picker failed, falling back:', err);
+      }
+    }
+
+    if (!saved) {
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const downloadAnchorNode = document.createElement('a');
+      downloadAnchorNode.href = url;
+      downloadAnchorNode.download = fileName;
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setSavedHistoryIndex(historyIndex);
+    }
   };
 
   const updateFeatureMedia = (featureId: string, index: number, updates: Partial<Media>) => {
@@ -456,11 +493,13 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
     const newDraft = { title: t('kbNewIdentKey' as any) || 'New Identification Key', authors: '', description: '', features: [], entities: [] };
     setHistory([newDraft]);
     setHistoryIndex(0);
-    setSavedDraftJSON(JSON.stringify(newDraft));
+    setSavedHistoryIndex(0);
     setActiveTab('features');
     setSelectedFeatureId(null);
     setSelectedEntityId(null);
-    localStorage.setItem('draftHasUnsavedChanges', 'false');
+    try {
+      localStorage.setItem('draftHasUnsavedChanges', 'false');
+    } catch (e) { }
     onNewKey?.();
   };
 
@@ -468,7 +507,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
     if (keyPromptMode === 'new') {
       handleCreateNew();
     } else if (keyPromptMode === 'open') {
-      triggerOpenNativeKey();
+      triggerOpenNativeJson();
     }
     setKeyPromptMode(null);
   };
@@ -577,30 +616,18 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
   ) : null;
 
   const handleRequestNewKey = () => {
-    const isFeaturesEmpty = !draftKey.features || draftKey.features.length === 0;
-    const isEntitiesEmpty = !draftKey.entities || draftKey.entities.length === 0;
-    const isTitleDefault = !draftKey.title || Object.values(translations).some((trans: any) => trans.kbNewIdentKey === draftKey.title) || draftKey.title === 'New Identification Key';
-    const isEmpty = isFeaturesEmpty && isEntitiesEmpty && !draftKey.authors && !draftKey.description && isTitleDefault;
-    const isUnmodified = localStorage.getItem('draftHasUnsavedChanges') === 'false';
-
-    if (isEmpty || isUnmodified) {
-      handleCreateNew();
-    } else {
+    if (isUnsaved) {
       setKeyPromptMode('new');
+    } else {
+      handleCreateNew();
     }
   };
 
   const handleRequestOpenKey = () => {
-    const isFeaturesEmpty = !draftKey.features || draftKey.features.length === 0;
-    const isEntitiesEmpty = !draftKey.entities || draftKey.entities.length === 0;
-    const isTitleDefault = !draftKey.title || Object.values(translations).some((trans: any) => trans.kbNewIdentKey === draftKey.title) || draftKey.title === 'New Identification Key';
-    const isEmpty = isFeaturesEmpty && isEntitiesEmpty && !draftKey.authors && !draftKey.description && isTitleDefault;
-    const isUnmodified = localStorage.getItem('draftHasUnsavedChanges') === 'false';
-
-    if (isEmpty || isUnmodified) {
-      triggerOpenNativeKey();
-    } else {
+    if (isUnsaved) {
       setKeyPromptMode('open');
+    } else {
+      triggerOpenNativeJson();
     }
   };
 
@@ -652,9 +679,6 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
         <ActionButton onClick={undo} disabled={historyIndex <= 0} title={t('kbUndo')} icon="Undo" />
         <ActionButton onClick={redo} disabled={historyIndex >= history.length - 1} title={t('kbRedo')} icon="Redo" />
       </div>
-      <span className={`absolute left-full ml-3 text-xs font-bold text-green-500 dark:text-green-400 flex items-center gap-1 transition-opacity duration-500 whitespace-nowrap pointer-events-none ${isSaved ? 'opacity-100' : 'opacity-0'}`}>
-        <Icon name="Check" size={14} /> <span className="hidden md:inline">{t('saved' as any)}</span>
-      </span>
     </div>
   );
 
@@ -757,7 +781,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
 
               <div className={`builder-panel ${activeTab === 'scoring' ? 'active' : ''} min-w-0`}>
                 <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg min-w-0">
-                  <BuilderScoringTab draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any} />
+                  <BuilderScoringTab draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any} isActive={activeTab === 'scoring'} />
                 </div>
               </div>
             </div>

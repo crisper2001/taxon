@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import type { KeyData, ChosenFeature, ModalState, Media, RawChatMessage, DraftKeyData, FeatureNode } from './types';
+import type { KeyData, ChosenFeature, ModalState, Media, RawChatMessage, DraftKeyData, FeatureNode, DraftFeature, DraftEntity, EntityNode } from './types';
 import { LucidKeyParser } from './services';
 import { FeaturesPanel, EntitiesPanel, ChosenFeaturesPanel } from './components';
 import { AIAssistant } from './components/';
@@ -60,9 +60,14 @@ const App: React.FC = () => {
     setWidth: setAiPanelWidth
   } = useResizablePanel(450, MIN_AI_PANEL_WIDTH, MAX_AI_PANEL_WIDTH, isAiPanelVisible, 'aiPanelWidth');
 
-  const jsonFileInputRef = useRef<HTMLInputElement>(null);
   const combinedFileInputRef = useRef<HTMLInputElement>(null);
+  const jsonFileInputRef = useRef<HTMLInputElement>(null);
   const currentDraftRef = useRef<DraftKeyData | null>(null);
+  const builderStateRef = useRef<{
+    history: DraftKeyData[];
+    historyIndex: number;
+    savedHistoryIndex: number;
+  }>({ history: [], historyIndex: 0, savedHistoryIndex: 0 });
   const [isGlobalDragging, setIsGlobalDragging] = useState(false);
   const dragCounter = useRef(0);
   const [dragOverHomeButton, setDragOverHomeButton] = useState<'identify' | 'build' | null>(null);
@@ -309,6 +314,127 @@ const App: React.FC = () => {
     addToast(t('featuresCleared'));
   };
 
+  const exportLoadedKeyToNative = async () => {
+    if (!keyData) return;
+
+    const features: DraftFeature[] = [];
+    const featureMap = new Map<string, DraftFeature>();
+
+    for (const [id, f] of keyData.allFeatures.entries()) {
+      if (f.isState) continue;
+
+      const draftF: DraftFeature = {
+        id: f.id,
+        name: f.name,
+        description: f.description,
+        type: f.type,
+        base_unit: f.base_unit,
+        unit_prefix: f.unit_prefix,
+        matchType: f.matchType,
+        media: keyData.featureMedia.get(f.id) ? [...keyData.featureMedia.get(f.id)!] : undefined,
+        states: []
+      };
+      features.push(draftF);
+      featureMap.set(f.id, draftF);
+    }
+
+    const setFeatureHierarchy = (nodes: FeatureNode[], parentId?: string) => {
+      for (const n of nodes) {
+        if (n.isState) {
+          if (parentId) {
+            const parentDraft = featureMap.get(parentId);
+            if (parentDraft) {
+              const media = keyData.featureMedia.get(n.id);
+              parentDraft.states.push({
+                id: n.id,
+                name: n.name,
+                media: media ? [...media] : undefined
+              });
+            }
+          }
+        } else {
+          const draftF = featureMap.get(n.id);
+          if (draftF) draftF.parentId = parentId;
+          if (n.children) setFeatureHierarchy(n.children, n.id);
+        }
+      }
+    };
+    setFeatureHierarchy(keyData.featureTree);
+
+    const entities: DraftEntity[] = [];
+    const entityMap = new Map<string, DraftEntity>();
+
+    for (const [id, e] of keyData.allEntities.entries()) {
+      const scores: Record<string, any> = {};
+      const eScores = keyData.entityScores.get(id);
+      if (eScores) {
+        for (const [featId, score] of eScores.entries()) {
+          if ('value' in score) scores[featId] = score.value;
+          else if ('min' in score && 'max' in score) scores[featId] = { min: score.min, max: score.max };
+        }
+      }
+
+      const draftE: DraftEntity = {
+        id,
+        name: e.name,
+        description: keyData.entityProfiles.get(id)?.description,
+        scores,
+        media: keyData.entityMedia.get(id) ? [...keyData.entityMedia.get(id)!] : undefined
+      };
+      entities.push(draftE);
+      entityMap.set(id, draftE);
+    }
+
+    const setEntityHierarchy = (nodes: EntityNode[], parentId?: string) => {
+      for (const n of nodes) {
+        const draftE = entityMap.get(n.id);
+        if (draftE) draftE.parentId = parentId;
+        if (n.children) setEntityHierarchy(n.children, n.id);
+      }
+    };
+    setEntityHierarchy(keyData.entityTree);
+
+    const draft: DraftKeyData = {
+      title: keyData.keyTitle || 'Exported Key',
+      authors: keyData.keyAuthors || '',
+      description: keyData.keyDescription || '',
+      features,
+      entities
+    };
+
+    const fileName = `${(keyData.keyTitle || 'key').replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`;
+    const jsonString = JSON.stringify(draft, null, 2);
+
+    let saved = false;
+    if ('showSaveFilePicker' in window) {
+      try {
+        const handle = await (window as any).showSaveFilePicker({
+          suggestedName: fileName,
+          types: [{ description: 'JSON File', accept: { 'application/json': ['.json'] } }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(jsonString);
+        await writable.close();
+        saved = true;
+      } catch (err: any) {
+        if (err.name === 'AbortError') return; // User cancelled the save dialog
+        console.error('File picker failed, falling back:', err);
+      }
+    }
+
+    if (!saved) {
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const downloadAnchorNode = document.createElement('a');
+      downloadAnchorNode.href = url;
+      downloadAnchorNode.download = fileName;
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+  };
+
   const processZipFile = async (file: File, targetMode: 'identify' | 'build') => {
     if (targetMode === 'build') {
       addToast(t('errProcessingKey')); // ZIPs can't be edited directly in builder
@@ -354,6 +480,7 @@ const App: React.FC = () => {
           setIdentifyChatHistory([]);
         } else {
           setDraftKeyData(data);
+          builderStateRef.current = { history: [data], historyIndex: 0, savedHistoryIndex: 0 };
           setBuildChatHistory([]);
           localStorage.setItem('draftHasUnsavedChanges', 'false');
         }
@@ -597,7 +724,9 @@ const App: React.FC = () => {
     geminiApiKey, setGeminiApiKey,
     isAiPanelVisible, setAiPanelVisible,
     triggerImport: () => combinedFileInputRef.current?.click(),
-    triggerOpenNativeKey: () => jsonFileInputRef.current?.click(),
+    triggerOpenNativeKey: () => combinedFileInputRef.current?.click(),
+    triggerOpenNativeJson: () => jsonFileInputRef.current?.click(),
+    exportLoadedKeyToNative,
     resetKey: handleReset,
     openPreferences: () => setModalState({ type: 'preferences' }),
     openKeyInfo: () => keyData && setModalState({ type: 'keyInfo' }),
@@ -608,6 +737,7 @@ const App: React.FC = () => {
     enableAnimations, setEnableAnimations,
     allowMisinterpretations, setAllowMisinterpretations,
     allowUncertainties, setAllowUncertainties,
+    addToast,
   };
 
   return (
@@ -624,7 +754,7 @@ const App: React.FC = () => {
             <div className="border-4 border-dashed border-accent rounded-3xl p-12 flex flex-col items-center justify-center bg-panel-bg shadow-2xl animate-fade-in-up">
               <Icon name="FolderOpen" size={64} className="mb-6 animate-bounce text-accent" />
               <h3 className="text-3xl font-black tracking-tight text-accent">{t('openNativeKey')}</h3>
-              <p className="text-lg opacity-80 mt-2 font-medium text-accent">{t('dropKeyHere' as any)}</p>
+              <p className="text-lg opacity-80 mt-2 font-medium text-accent">{t('dropKeyHere' as any) || 'Drop key file here (.json, .zip)'}</p>
             </div>
           </div>
         )}
@@ -741,6 +871,7 @@ const App: React.FC = () => {
                         setIsHome(true);
                       }}
                       initialData={draftKeyData}
+                      builderStateRef={builderStateRef}
                       onChange={handleDraftChange}
                       onTestKey={(draft) => {
                         const parser = new LucidKeyParser();
@@ -851,6 +982,7 @@ const App: React.FC = () => {
                           setIsHome(false);
                         } else {
                           setDraftKeyData(undefined);
+                          builderStateRef.current = { history: [], historyIndex: 0, savedHistoryIndex: 0 };
                           setBuildChatHistory([]);
                           setIsHome(false);
                         }

@@ -2,7 +2,7 @@
   "name": "taxon",
   "homepage": "https://crisper2001.github.io/taxon",
   "private": true,
-  "version": "0.9.0",
+  "version": "0.9.1",
   "author": "Isaque",
   "type": "module",
   "scripts": {

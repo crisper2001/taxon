@@ -86,7 +86,9 @@ export const FeatureModal: React.FC<FeatureModalProps> = ({ isOpen, onClose, fea
                                             <div className="text-sm opacity-90 flex flex-col gap-2 text-text">
                                                 {!feature.isState ? (
                                                     <>
-                                                        <p><span className="font-semibold opacity-70">{t('kbType')}:</span> {feature.type === 'state' ? t('kbTypeState') : t('kbTypeNumeric')}</p>
+                                                        {!(feature.type === 'state' && featureNode && featureNode.children.length > 0 && !featureNode.children[0].isState) && (
+                                                            <p><span className="font-semibold opacity-70">{t('kbType')}:</span> {feature.type === 'state' ? t('kbTypeState') : t('kbTypeNumeric')}</p>
+                                                        )}
                                                         {feature.type === 'numeric' && (feature.base_unit && feature.base_unit !== 'none' || feature.unit_prefix && feature.unit_prefix !== 'none') && (() => {
                                                             const prefixMap: Record<string, string> = { 'kilo': 'unitKilo', 'hecto': 'unitHecto', 'deca': 'unitDeca', 'deci': 'unitDeci', 'centi': 'unitCenti', 'milli': 'unitMilli', 'micro': 'unitMicro' };
                                                             const baseMap: Record<string, string> = { 'metre': 'unitMetre', 'square metre': 'unitSquareMetre', 'cubic metre': 'unitCubicMetre', 'litre': 'unitLitre', 'degrees celcius': 'unitCelsius', 'degrees planar': 'unitDegree' };
@@ -106,11 +108,13 @@ export const FeatureModal: React.FC<FeatureModalProps> = ({ isOpen, onClose, fea
                                                             }
                                                             return <p><span className="font-semibold opacity-70">{t('kbBaseUnit')}:</span> {finalStr}</p>;
                                                         })()}
-                                                        {feature.type === 'state' && featureNode && featureNode.children.length > 0 && (
-                                                            <p><span className="font-semibold opacity-70">{t('kbStates')}:</span> {featureNode.children.map(c => c.name).join(', ')}</p>
-                                                        )}
-                                                        {feature.type === 'state' && (
-                                                        <p><span className="font-semibold opacity-70">{t('kbMatchType' as any) || 'Match Type'}:</span> {feature.matchType === 'AND' ? (t('kbMatchAll' as any) || 'Match All (AND)') : feature.matchType === 'SINGLE' ? (t('kbSingleSelection' as any) || 'Single Selection') : (t('kbMatchAny' as any) || 'Match Any (OR)')}</p>
+                                                        {feature.type === 'state' && (!featureNode || featureNode.children.length === 0 || featureNode.children[0].isState) && (
+                                                            <>
+                                                                {featureNode && featureNode.children.length > 0 && (
+                                                                    <p><span className="font-semibold opacity-70">{t('kbStates')}:</span> {featureNode.children.map(c => c.name).join(', ')}</p>
+                                                                )}
+                                                                <p><span className="font-semibold opacity-70">{t('kbMatchType' as any) || 'Match Type'}:</span> {feature.matchType === 'AND' ? (t('kbMatchAll' as any) || 'Match All (AND)') : feature.matchType === 'SINGLE' ? (t('kbSingleSelection' as any) || 'Single Selection') : (t('kbMatchAny' as any) || 'Match Any (OR)')}</p>
+                                                            </>
                                                         )}
                                                     </>
                                                 ) : (

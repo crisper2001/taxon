@@ -229,6 +229,8 @@ const EntityGroupNode: React.FC<RenderEntityNodeProps> = ({ node, mediaMap, onEn
   const isMisinterpreted = misinterpretedMatchIds?.has(node.id);
   const isUncertain = uncertainMatchIds?.has(node.id);
 
+  const imageClasses = `bg-header-bg/80 shadow-sm rounded-lg shrink-0 object-cover ${isList ? 'w-10 h-10' : 'w-full aspect-square'}`;
+
   return (
     <div className={`entity-group transition-opacity duration-200 ${isList ? '' : 'col-span-full'}`}>
       <div data-search-match={isSearchMatch ? "true" : undefined} className={`flex items-center gap-2 p-1.5 rounded-xl transition-all duration-300 ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20 shadow-inner' : ''} ${isFilterDimmed ? 'opacity-50' : ''} hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}>
@@ -239,16 +241,16 @@ const EntityGroupNode: React.FC<RenderEntityNodeProps> = ({ node, mediaMap, onEn
             </div>
           )}
         </div>
-        <div onClick={() => onEntityClick(node.id)} className="flex items-center gap-2 grow cursor-pointer min-w-0">
+        <div onClick={() => onEntityClick(node.id)} className={`flex gap-1.5 cursor-pointer min-w-0 ${isList ? 'items-center grow' : 'flex-col items-center text-center w-[140px]'}`}>
           {hasMedia ? (
-            <img src={thumbUrl} alt={node.name} loading="lazy" className="w-10 h-10 object-cover rounded-lg shadow-sm shrink-0" />
+            <img src={thumbUrl} alt={node.name} loading="lazy" className={imageClasses} />
           ) : (
-            <div className="w-10 h-10 bg-header-bg/80 rounded-lg shadow-sm shrink-0 object-cover flex items-center justify-center text-gray-400">
-              <Icon name="ImageOff" size="20" />
+            <div className={`${imageClasses} flex items-center justify-center text-gray-400`}>
+              <Icon name="ImageOff" size={isList ? 20 : 32} />
             </div>
           )}
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className={`text-md truncate ${isList ? 'font-medium' : ''}`}>{node.name}</span>
+          <div className={`flex items-center gap-1.5 min-w-0 ${isList ? '' : 'justify-center w-full mt-1'}`}>
+            <span className="text-md truncate leading-tight">{node.name}</span>
             {isMisinterpreted && (
               <span className="flex items-center justify-center w-5 h-5 rounded-full bg-yellow-500/10 text-yellow-500 shrink-0" title={t('badgeMisinterpreted' as any) || 'Misinterpreted match'}>
                 <Icon name="TriangleAlert" size={12} />

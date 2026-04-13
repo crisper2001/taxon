@@ -352,6 +352,12 @@ body {
   }
 }
 
+/* Optimization for rendering very long lists in the builder */
+.builder-list-item {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 52px;
+}
+
 /* --- Shared SVG Global Gradients --- */
 .text-accent:not([class*="bg-"]) svg[stroke="currentColor"],
 .text-accent:not([class*="bg-"]) svg *[stroke="currentColor"],

@@ -35,9 +35,12 @@ interface AppContextProps {
   // Actions
   triggerImport: () => void;
   triggerOpenNativeKey: () => void;
+  triggerOpenNativeJson: () => void;
+  exportLoadedKeyToNative: () => void;
   resetKey: () => void;
   openPreferences: () => void;
   openKeyInfo: () => void;
+  addToast: (message: string) => void;
 }
 
 const AppContext = createContext<AppContextProps | undefined>(undefined);

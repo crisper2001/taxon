@@ -5,7 +5,7 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 ## 1. Functional Requirements
 
 ### 1.1. File Parsing & Data Extraction
-* **FR1.1:** The system must accept and parse `.zip` archives containing Lucid key data structures, as well as native `.json` drafting schemas. The system must support opening files via standard file dialogs and global drag-and-drop interactions (with specific drop targets on the Main Menu).
+* **FR1.1:** The system must accept and parse native `.json` identification keys, as well as import `.zip` archives containing legacy Lucid key data structures. The system must support opening files via standard file dialogs and global drag-and-drop interactions (with specific drop targets on the Main Menu).
 * **FR1.2:** The system must parse nested ZIP structures to read `key.data` (XML) for entities, features, and media definitions, and `normal.sco` (XML) for scoring matrices.
 * **FR1.3:** The system must generate temporary object URLs (`Blob`) to display images stored locally inside the ZIP's `Media/` directory without requiring a backend.
 
@@ -81,7 +81,7 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **FR8.7:** The system must allow adding Markdown-formatted descriptions to entities, features, and states.
 * **FR8.8:** The system must support resuming work by natively loading previously exported custom `.json` keys directly into the builder.
 * **FR8.9:** The system must support exporting the constructed key data into a custom JSON format.
-* **FR8.10:** The system must preserve the active draft key locally (via `localStorage`) to prevent accidental data loss across browser refreshes, while still allowing the user to seamlessly navigate between the builder and the Main Menu.
+* **FR8.10:** The system must preserve the active draft key in memory to allow the user to seamlessly navigate between the builder and the Main Menu without accidental data loss during the active session.
 * **FR8.11:** The system must provide a "Test Key" function that instantly loads the working draft into the Identification Engine for real-time testing without requiring file exports.
 * **FR8.12:** The system must integrate the AI Assistant within the Builder Mode to provide and directly ingest taxonomic feature and entity suggestions. The AI context must dynamically include a compacted schema of the draft's existing features and entities to prevent duplicates and optimize token usage. Additionally, AI message blocks must store deep state snapshots to provide a contextual "Undo" button, allowing users to instantly cleanly revert complex, multi-item taxonomy ingestions.
 * **FR8.13:** The system must intelligently track draft modifications (using JSON snapshot comparisons) and provide a safe "New Key" or "Open Key" workflow that prompts the user to export their current draft only if unsaved edits exist.

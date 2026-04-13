@@ -27,9 +27,16 @@ interface BuilderScoringTabProps {
   draftKey: DraftKeyData;
   updateDraftKey: (updater: (prev: DraftKeyData) => DraftKeyData) => void;
   t: (key: string) => string;
+  isActive?: boolean;
 }
 
-export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({ draftKey, updateDraftKey, t }) => {
+export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({ draftKey, updateDraftKey, t, isActive = true }) => {
+  const lastActiveDraft = useRef(draftKey);
+  if (isActive) {
+    lastActiveDraft.current = draftKey;
+  }
+  const displayDraft = isActive ? draftKey : lastActiveDraft.current;
+
   const [editingNumeric, setEditingNumeric] = useState<{ entityId: string, featureId: string, min: string, max: string } | null>(null);
   const [isClearMatrixModalOpen, setIsClearMatrixModalOpen] = useState(false);
   const lastEditingNumeric = useRef<{ entityId: string, featureId: string, min: string, max: string } | null>(null);
@@ -38,8 +45,30 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
   const tableRef = useRef<HTMLTableElement>(null);
   const lastHighlighted = useRef<HTMLElement[]>([]);
 
-  const flattenedEntities = useMemo(() => flattenHierarchy(draftKey.entities), [draftKey.entities]);
-  const flattenedFeatures = useMemo(() => flattenHierarchy(draftKey.features), [draftKey.features]);
+  const [scrollPos, setScrollPos] = useState({ top: 0, left: 0 });
+
+  const flattenedEntities = useMemo(() => flattenHierarchy(displayDraft.entities), [displayDraft.entities]);
+  const flattenedFeatures = useMemo(() => flattenHierarchy(displayDraft.features), [displayDraft.features]);
+
+  const matrixRows = useMemo(() => {
+    const rows: { type: 'feature' | 'state', f: any, s?: any, depth: number }[] = [];
+    flattenedFeatures.forEach(({ item: f, depth }) => {
+      rows.push({ type: 'feature', f, depth });
+      if (f.type === 'state') {
+        f.states.forEach((s: any) => {
+          rows.push({ type: 'state', f, s, depth: depth + 1 });
+        });
+      }
+    });
+    return rows;
+  }, [flattenedFeatures]);
+
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    setScrollPos({
+      top: e.currentTarget.scrollTop,
+      left: e.currentTarget.scrollLeft
+    });
+  }, []);
 
   const clearHighlight = useCallback(() => {
     for (const cell of lastHighlighted.current) {
@@ -60,7 +89,7 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
     const targetCol = td.cellIndex;
     const targetRow = tr.rowIndex;
 
-    if (tr.dataset.noHighlight === 'true') return clearHighlight();
+    if (tr.dataset.noHighlight === 'true' || td.dataset.spacer === 'true') return clearHighlight();
 
     clearHighlight();
 
@@ -70,12 +99,12 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
       // Highlight strictly to the left in the same row, including the header and the hovered cell itself
       for (let c = 0; c <= targetCol; c++) {
         const cell = tr.cells[c];
-        if (cell) { cell.classList.add('matrix-highlight'); lastHighlighted.current.push(cell); }
+        if (cell && cell.dataset.spacer !== 'true') { cell.classList.add('matrix-highlight'); lastHighlighted.current.push(cell); }
       }
       // Highlight strictly upwards in the same column, including the header
       for (let r = 0; r < targetRow; r++) {
         const row = rows[r];
-        if (row && row.cells[targetCol]) {
+        if (row && row.cells[targetCol] && row.dataset.spacer !== 'true' && row.cells[targetCol].dataset.spacer !== 'true') {
           row.cells[targetCol].classList.add('matrix-highlight');
           lastHighlighted.current.push(row.cells[targetCol]);
         }
@@ -166,7 +195,27 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
     setScore(entityId, stateId, nextVal || null);
   };
 
-  if (draftKey.features.length === 0 || draftKey.entities.length === 0) {
+  // --- Native 2D Virtualization ---
+  const ROW_HEIGHT = 48; // Approx height of a matrix row
+  const COL_WIDTH = 49;  // 32px select + 16px padding + 1px border
+  const OVERSCAN = 15;   // Pre-render rows/cols outside viewport for smooth scrolling
+
+  const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 1000;
+  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1600;
+
+  const startRow = Math.max(0, Math.floor(scrollPos.top / ROW_HEIGHT) - OVERSCAN);
+  const endRow = Math.min(matrixRows.length, Math.ceil((scrollPos.top + viewportHeight) / ROW_HEIGHT) + OVERSCAN);
+  const visibleRows = matrixRows.slice(startRow, endRow);
+  const topSpacerHeight = startRow * ROW_HEIGHT;
+  const bottomSpacerHeight = (matrixRows.length - endRow) * ROW_HEIGHT;
+
+  const startCol = Math.max(0, Math.floor(scrollPos.left / COL_WIDTH) - OVERSCAN);
+  const endCol = Math.min(flattenedEntities.length, Math.ceil((scrollPos.left + viewportWidth) / COL_WIDTH) + OVERSCAN);
+  const visibleEntities = flattenedEntities.slice(startCol, endCol);
+  const leftSpacerWidth = startCol * COL_WIDTH;
+  const rightSpacerWidth = (flattenedEntities.length - endCol) * COL_WIDTH;
+
+  if (displayDraft.features.length === 0 || displayDraft.entities.length === 0) {
     return (
       <div className="flex h-full items-center justify-center opacity-40 text-lg font-medium flex-col gap-4 p-8 text-center animate-fade-in">
         <Icon name="Table" size={48} className="opacity-50" />
@@ -186,7 +235,7 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
           <Icon name="Eraser" size={14} /> <span className="hidden sm:inline">{t('kbClearMatrix' as any) || 'Clear Matrix'}</span>
         </button>
       </div>
-      <div className="flex-1 overflow-auto bg-bg/30 relative custom-scrollbar min-w-0 min-h-0">
+      <div className="flex-1 overflow-auto bg-bg/30 relative custom-scrollbar min-w-0 min-h-0" onScroll={handleScroll}>
         <table
           id="scoring-matrix-table"
           ref={tableRef}
@@ -198,26 +247,35 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
             <tr>
               <th className="sticky top-0 left-0 z-40 bg-header-bg p-4 border-b border-border border-r-2 border-r-border w-[140px] min-w-[140px] max-w-[140px] md:w-[250px] md:min-w-[250px] md:max-w-[250px] align-bottom">
               </th>
-              {flattenedEntities.map(({ item: e, depth }) => (
+              {leftSpacerWidth > 0 && <th style={{ minWidth: leftSpacerWidth, padding: 0, border: 0 }} data-spacer="true"></th>}
+              {visibleEntities.map(({ item: e, depth }) => (
                 <th key={e.id} className="sticky top-0 z-20 bg-header-bg py-2 px-3 border-b border-r border-border w-[1%] whitespace-nowrap align-bottom text-center">
                   <div className="inline-flex items-center justify-start font-bold h-40 relative pt-[calc(var(--depth)*0.75rem)] md:pt-[calc(var(--depth)*1.5rem)]" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', '--depth': depth } as React.CSSProperties}>
                     <span className="truncate max-h-[140px] whitespace-nowrap text-accent" title={e.name}>{e.name || t('kbUnnamedEntity')}</span>
                   </div>
                 </th>
               ))}
+              {rightSpacerWidth > 0 && <th style={{ minWidth: rightSpacerWidth, padding: 0, border: 0 }} data-spacer="true"></th>}
             </tr>
           </thead>
           <tbody>
-            {flattenedFeatures.map(({ item: f, depth }) => {
-              return (
-                <React.Fragment key={f.id}>
-                  <tr className="transition-colors group/row bg-panel-bg" data-no-highlight={f.type === 'state'}>
+            {topSpacerHeight > 0 && (
+              <tr style={{ height: topSpacerHeight }} data-spacer="true">
+                <td colSpan={visibleEntities.length + (leftSpacerWidth > 0 ? 2 : 1) + (rightSpacerWidth > 0 ? 1 : 0)} style={{ padding: 0, border: 0 }}></td>
+              </tr>
+            )}
+            {visibleRows.map((rowItem) => {
+              if (rowItem.type === 'feature') {
+                const { f, depth } = rowItem;
+                return (
+                  <tr key={`f-${f.id}`} className="transition-colors group/row bg-panel-bg" data-no-highlight={f.type === 'state'}>
                     <td className="sticky left-0 z-30 p-2 md:p-4 border-b border-border border-r-2 border-r-border transition-colors align-middle w-[140px] min-w-[140px] max-w-[140px] md:w-[250px] md:min-w-[250px] md:max-w-[250px] bg-header-bg">
                       <div className="flex items-center gap-2 font-bold relative w-full text-sm md:text-base pl-[calc(var(--depth)*0.75rem)] md:pl-[calc(var(--depth)*1.5rem)]" style={{ '--depth': depth } as React.CSSProperties}>
                         <span className="truncate text-accent" title={f.name}>{f.name || t('kbUnnamedFeature')}</span>
                       </div>
                     </td>
-                    {flattenedEntities.map(({ item: e }) => (
+                    {leftSpacerWidth > 0 && <td style={{ minWidth: leftSpacerWidth, padding: 0, border: 0 }} data-spacer="true"></td>}
+                    {visibleEntities.map(({ item: e }) => (
                       <td key={e.id} className={`p-2 border-b border-border align-middle w-[1%] whitespace-nowrap ${f.type === 'state' ? 'bg-black/10 dark:bg-black/3' : 'border-r'}`}>
                         {f.type === 'numeric' && (
                           (() => {
@@ -240,62 +298,72 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
                         )}
                       </td>
                     ))}
+                    {rightSpacerWidth > 0 && <td style={{ minWidth: rightSpacerWidth, padding: 0, border: 0 }} data-spacer="true"></td>}
                   </tr>
-                  {f.type === 'state' && f.states.map(s => (
-                    <tr key={s.id} className="transition-colors group/row bg-panel-bg">
-                      <td className="sticky left-0 z-30 py-2 md:py-3 px-2 md:px-4 border-b border-border border-r-2 border-r-border transition-colors align-middle w-[140px] min-w-[140px] max-w-[140px] md:w-[250px] md:min-w-[250px] md:max-w-[250px] bg-header-bg text-text font-medium">
-                        <div className="flex items-center gap-2 relative w-full text-xs md:text-sm pl-[calc(var(--depth)*0.75rem)] md:pl-[calc(var(--depth)*1.5rem)]" style={{ '--depth': depth + 1 } as React.CSSProperties}>
-                          <span className="truncate opacity-90" title={s.name}>{s.name}</span>
-                        </div>
+                );
+              } else {
+                const { f, s, depth } = rowItem;
+                return (
+                  <tr key={`s-${s.id}`} className="transition-colors group/row bg-panel-bg">
+                    <td className="sticky left-0 z-30 py-2 md:py-3 px-2 md:px-4 border-b border-border border-r-2 border-r-border transition-colors align-middle w-[140px] min-w-[140px] max-w-[140px] md:w-[250px] md:min-w-[250px] md:max-w-[250px] bg-header-bg text-text font-medium">
+                      <div className="flex items-center gap-2 relative w-full text-xs md:text-sm pl-[calc(var(--depth)*0.75rem)] md:pl-[calc(var(--depth)*1.5rem)]" style={{ '--depth': depth } as React.CSSProperties}>
+                        <span className="truncate opacity-90" title={s.name}>{s.name}</span>
+                      </div>
+                    </td>
+                    {leftSpacerWidth > 0 && <td style={{ minWidth: leftSpacerWidth, padding: 0, border: 0 }} data-spacer="true"></td>}
+                    {visibleEntities.map(({ item: e }) => (
+                      <td key={`${e.id}-${s.id}`} className="p-2 border-b border-r border-border align-middle w-[1%] whitespace-nowrap">
+                        {(() => {
+                          const scoreVal = e.scores[s.id] as string;
+                          const vals = (s as any).values || getDefaultStateValues(t);
+                          const selectedVal = vals.find((v: any) => v.id === scoreVal);
+                          return (
+                            <div className="flex items-center justify-center w-full h-full min-h-[32px]" title={selectedVal?.name}>
+                              <CustomSelect
+                                value={scoreVal || ''}
+                                onChange={val => setScore(e.id, s.id, val || null)}
+                                hideChevron={true}
+                                customTrigger={
+                                  <div className="flex items-center justify-center w-full">
+                                    {scoreVal && selectedVal ? renderScoreSymbol(selectedVal) : null}
+                                  </div>
+                                }
+                                onTriggerClick={(ev, toggle) => {
+                                  cycleScore(e.id, s.id, scoreVal || '', vals);
+                                }}
+                                onTriggerContextMenu={(ev, toggle) => {
+                                  ev.preventDefault();
+                                  toggle();
+                                }}
+                                options={[
+                                  { value: '', label: <span className="opacity-40 px-2">-</span> },
+                                  ...vals.map((v: any) => ({ value: v.id, label: <span className="flex items-center gap-2 px-1 whitespace-nowrap">{renderScoreSymbol(v)} <span className="text-[12px] leading-none font-bold">{v.name}</span></span> }))
+                                ]}
+                                className="w-8 h-8 cursor-pointer bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-md focus:outline-none flex items-center justify-center transition-colors border border-border"
+                              />
+                            </div>
+                          );
+                        })()}
                       </td>
-                      {flattenedEntities.map(({ item: e }) => (
-                        <td key={`${e.id}-${s.id}`} className="p-2 border-b border-r border-border align-middle w-[1%] whitespace-nowrap">
-                          {(() => {
-                            const scoreVal = e.scores[s.id] as string;
-                            const vals = (s as any).values || getDefaultStateValues(t);
-                            const selectedVal = vals.find((v: any) => v.id === scoreVal);
-                            return (
-                              <div className="flex items-center justify-center w-full h-full min-h-[32px]" title={selectedVal?.name}>
-                                <CustomSelect
-                                  value={scoreVal || ''}
-                                  onChange={val => setScore(e.id, s.id, val || null)}
-                                  hideChevron={true}
-                                  customTrigger={
-                                    <div className="flex items-center justify-center w-full">
-                                      {scoreVal && selectedVal ? renderScoreSymbol(selectedVal) : null}
-                                    </div>
-                                  }
-                                  onTriggerClick={(ev, toggle) => {
-                                    cycleScore(e.id, s.id, scoreVal || '', vals);
-                                  }}
-                                  onTriggerContextMenu={(ev, toggle) => {
-                                    ev.preventDefault();
-                                    toggle();
-                                  }}
-                                  options={[
-                                    { value: '', label: <span className="opacity-40 px-2">-</span> },
-                                    ...vals.map((v: any) => ({ value: v.id, label: <span className="flex items-center gap-2 px-1 whitespace-nowrap">{renderScoreSymbol(v)} <span className="text-[12px] leading-none font-bold">{v.name}</span></span> }))
-                                  ]}
-                                  className="w-8 h-8 cursor-pointer bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-md focus:outline-none flex items-center justify-center transition-colors border border-border"
-                                />
-                              </div>
-                            );
-                          })()}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </React.Fragment>
-              );
+                    ))}
+                    {rightSpacerWidth > 0 && <td style={{ minWidth: rightSpacerWidth, padding: 0, border: 0 }} data-spacer="true"></td>}
+                  </tr>
+                );
+              }
             })}
+            {bottomSpacerHeight > 0 && (
+              <tr style={{ height: bottomSpacerHeight }} data-spacer="true">
+                <td colSpan={visibleEntities.length + (leftSpacerWidth > 0 ? 2 : 1) + (rightSpacerWidth > 0 ? 1 : 0)} style={{ padding: 0, border: 0 }}></td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
 
       <Modal isOpen={!!editingNumeric} onClose={() => setEditingNumeric(null)} title={t('kbScoring')}>
         {currentEditingNumeric && (() => {
-          const feature = draftKey.features.find(x => x.id === currentEditingNumeric.featureId);
-          const entity = draftKey.entities.find(x => x.id === currentEditingNumeric.entityId);
+          const feature = displayDraft.features.find(x => x.id === currentEditingNumeric.featureId);
+          const entity = displayDraft.entities.find(x => x.id === currentEditingNumeric.entityId);
           const unitSym = feature ? getUnitSymbol(feature.base_unit, feature.unit_prefix) : '';
           return (
             <div className="p-6 flex flex-col gap-4">

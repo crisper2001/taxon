@@ -7,6 +7,67 @@ import { BuilderEntityModal } from '../modals';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
+const MemoizedEntityItem = React.memo(({
+  e, depth, hasChildren, isSelected, isCollapsed, isDragOver, isDragged, anyDragged,
+  t, setSelectedEntityId, toggleEntityCollapse, duplicateEntity, setDeleteTarget, treeDnd
+}: any) => {
+  return (
+    <div
+      draggable
+      data-entity-id={e.id}
+      onContextMenu={(ev) => ev.preventDefault()}
+      onDragStart={(ev) => treeDnd.onDragStart(ev, e.id)}
+      onDragEnd={treeDnd.onDragEnd}
+      onDragOver={(ev) => treeDnd.onDragOver(ev, e.id)}
+      onDragLeave={() => treeDnd.onDragLeave(e.id)}
+      onDrop={(ev) => treeDnd.onDrop(ev, e.id)}
+      onTouchStart={(ev) => treeDnd.onTouchStart(ev, e.id)}
+      onTouchMove={(ev) => {
+        if (anyDragged) ev.stopPropagation();
+        treeDnd.onTouchMove(ev, e.id);
+      }}
+      onTouchEnd={(ev) => {
+        if (anyDragged) ev.stopPropagation();
+        treeDnd.onTouchEnd(ev, e.id);
+      }}
+      onTouchCancel={treeDnd.onTouchCancel}
+      onClick={() => setSelectedEntityId(e.id)}
+      className={`builder-list-item entity-item flex items-center gap-2 p-1.5 rounded-xl transition-all duration-300 relative group/item cursor-pointer hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm ${isSelected ? 'bg-accent/20 shadow-inner ring-2 ring-accent' : 'border border-transparent'} ${isDragOver ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${isDragged ? 'opacity-50' : ''}`}
+      style={{ paddingLeft: `calc(${1.5 + depth * 1.5}rem + 0.5rem)`, touchAction: anyDragged ? 'none' : 'auto' }}
+    >
+      {hasChildren && (
+        <button
+          onClick={(ev) => { ev.stopPropagation(); toggleEntityCollapse(e.id); }}
+          className={`w-7 h-7 flex items-center justify-center rounded-md cursor-pointer absolute z-20 transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-500 hover:bg-black/10 dark:hover:bg-white/10'}`}
+          style={{ left: `calc(${depth * 1.5}rem)` }}
+        >
+          <Icon name="ChevronRight" size={16} className={`transition-transform duration-200 ${!isCollapsed ? 'rotate-90' : ''}`} />
+        </button>
+      )}
+
+      {e.media && e.media.length > 0 ? (
+        <img src={e.media[0].url} alt={e.name} className="w-10 h-10 object-cover rounded-lg shadow-sm shrink-0" />
+      ) : (
+        <div className="w-10 h-10 bg-header-bg/80 rounded-lg shadow-sm shrink-0 flex items-center justify-center text-gray-400">
+          <Icon name="Leaf" size={20} className={`shrink-0 ${isSelected ? 'opacity-100 text-accent' : 'opacity-60'}`} />
+        </div>
+      )}
+      <span className="truncate flex-1 text-sm font-medium">{e.name || t('kbUnnamedEntity')}</span>
+
+      <div className="max-md:hidden opacity-0 group-hover/item:opacity-100 flex items-center gap-0.5 transition-opacity z-20 shrink-0 pr-1">
+        <button onClick={(ev) => { ev.stopPropagation(); duplicateEntity(e.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbDuplicate')}>
+          <Icon name="Copy" size={14} />
+        </button>
+        <button onClick={(ev) => { ev.stopPropagation(); setDeleteTarget({ type: 'entity', id: e.id }); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-red-500 hover:bg-red-500/10' : 'text-red-400 hover:text-red-500 hover:bg-red-500/10'}`} title={t('kbDelete')}>
+          <Icon name="Trash2" size={14} />
+        </button>
+      </div>
+    </div>
+  );
+}, (prev, next) => {
+  return prev.e === next.e && prev.depth === next.depth && prev.hasChildren === next.hasChildren && prev.isSelected === next.isSelected && prev.isCollapsed === next.isCollapsed && prev.isDragOver === next.isDragOver && prev.isDragged === next.isDragged && prev.anyDragged === next.anyDragged && prev.t === next.t;
+});
+
 interface BuilderEntitiesTabProps {
   draftKey: DraftKeyData;
   updateDraftKey: (updater: (prev: DraftKeyData) => DraftKeyData) => void;
@@ -113,74 +174,40 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
 
   const selectedEntity = draftKey.entities.find(e => e.id === selectedEntityId);
 
-  const renderEntityList = () => {
-    const renderNode = (id: string, depth: number) => {
-      const e = draftKey.entities.find(x => x.id === id);
-      if (!e) return null;
-      const children = draftKey.entities.filter(x => x.parentId === id);
-      const isCollapsed = collapsedEntities.has(e.id);
-      return (
-        <React.Fragment key={e.id}>
-          <div
-            draggable
-            data-entity-id={e.id}
-            onContextMenu={(ev) => ev.preventDefault()}
-            onDragStart={(ev) => treeDnd.onDragStart(ev, e.id)}
-            onDragEnd={treeDnd.onDragEnd}
-            onDragOver={(ev) => treeDnd.onDragOver(ev, e.id)}
-            onDragLeave={() => treeDnd.onDragLeave(e.id)}
-            onDrop={(ev) => treeDnd.onDrop(ev, e.id)}
-            onTouchStart={(ev) => treeDnd.onTouchStart(ev, e.id)}
-            onTouchMove={(ev) => {
-              if (draggedItem) ev.stopPropagation();
-              treeDnd.onTouchMove(ev, e.id);
-            }}
-            onTouchEnd={(ev) => {
-              if (draggedItem) ev.stopPropagation();
-              treeDnd.onTouchEnd(ev, e.id);
-            }}
-            onTouchCancel={treeDnd.onTouchCancel}
-            onClick={() => setSelectedEntityId(e.id)}
-            className={`entity-item flex items-center gap-2 p-1.5 rounded-xl transition-all duration-300 relative group/item cursor-pointer hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm ${selectedEntityId === e.id ? 'bg-accent/20 shadow-inner ring-2 ring-accent' : 'border border-transparent'} ${dragOverId === e.id ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${draggedItem?.id === e.id ? 'opacity-50' : ''}`}
-            style={{ paddingLeft: `calc(${1.5 + depth * 1.5}rem + 0.5rem)`, touchAction: draggedItem ? 'none' : 'auto' }}
-          >
-            {children.length > 0 && (
-              <button
-                onClick={(ev) => { ev.stopPropagation(); toggleEntityCollapse(e.id); }}
-                className={`w-7 h-7 flex items-center justify-center rounded-md cursor-pointer absolute z-20 transition-colors ${selectedEntityId === e.id ? 'text-accent hover:bg-accent/10' : 'text-gray-500 hover:bg-black/10 dark:hover:bg-white/10'}`}
-                style={{ left: `calc(${depth * 1.5}rem)` }}
-              >
-                <Icon name="ChevronRight" size={16} className={`transition-transform duration-200 ${!isCollapsed ? 'rotate-90' : ''}`} />
-              </button>
-            )}
-
-            {e.media && e.media.length > 0 ? (
-              <img src={e.media[0].url} alt={e.name} className="w-10 h-10 object-cover rounded-lg shadow-sm shrink-0" />
-            ) : (
-              <div className="w-10 h-10 bg-header-bg/80 rounded-lg shadow-sm shrink-0 flex items-center justify-center text-gray-400">
-                <Icon name="Leaf" size={20} className={`shrink-0 ${selectedEntityId === e.id ? 'opacity-100 text-accent' : 'opacity-60'}`} />
-              </div>
-            )}
-            <span className="truncate flex-1 text-sm font-medium">{e.name || t('kbUnnamedEntity' as any)}</span>
-
-            <div className="max-md:hidden opacity-0 group-hover/item:opacity-100 flex items-center gap-0.5 transition-opacity z-20 shrink-0 pr-1">
-              <button onClick={(ev) => { ev.stopPropagation(); duplicateEntity(e.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedEntityId === e.id ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbDuplicate')}>
-                <Icon name="Copy" size={14} />
-              </button>
-              <button onClick={(ev) => { ev.stopPropagation(); setDeleteTarget({ type: 'entity', id: e.id }); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${selectedEntityId === e.id ? 'text-red-500 hover:bg-red-500/10' : 'text-red-400 hover:text-red-500 hover:bg-red-500/10'}`} title={t('kbDelete')}>
-                <Icon name="Trash2" size={14} />
-              </button>
-            </div>
-          </div>
-          {children.length > 0 && !isCollapsed && (
-            <div className="relative">
-              {children.map(c => renderNode(c.id, depth + 1))}
-            </div>
-          )}
-        </React.Fragment>
-      );
+  const visibleEntities = React.useMemo(() => {
+    const entityChildrenMap = new Map<string, DraftEntity[]>();
+    const rootEntities: DraftEntity[] = [];
+    draftKey.entities.forEach(e => {
+      if (e.parentId) {
+        if (!entityChildrenMap.has(e.parentId)) entityChildrenMap.set(e.parentId, []);
+        entityChildrenMap.get(e.parentId)!.push(e);
+      } else {
+        rootEntities.push(e);
+      }
+    });
+    const result: { e: DraftEntity, depth: number, hasChildren: boolean }[] = [];
+    const traverse = (e: DraftEntity, depth: number) => {
+      const children = entityChildrenMap.get(e.id) || [];
+      result.push({ e, depth, hasChildren: children.length > 0 });
+      if (!collapsedEntities.has(e.id)) {
+        children.forEach(c => traverse(c, depth + 1));
+      }
     };
-    return draftKey.entities.filter(e => !e.parentId).map(e => renderNode(e.id, 0));
+    rootEntities.forEach(e => traverse(e, 0));
+    return result;
+  }, [draftKey.entities, collapsedEntities]);
+
+  const renderEntityList = () => {
+    return visibleEntities.map(({ e, depth, hasChildren }) => (
+      <MemoizedEntityItem
+        key={e.id} e={e} depth={depth} hasChildren={hasChildren}
+        isSelected={selectedEntityId === e.id} isCollapsed={collapsedEntities.has(e.id)}
+        isDragOver={dragOverId === e.id} isDragged={draggedItem?.id === e.id}
+        anyDragged={!!draggedItem} t={t} setSelectedEntityId={setSelectedEntityId}
+        toggleEntityCollapse={toggleEntityCollapse} duplicateEntity={duplicateEntity}
+        setDeleteTarget={setDeleteTarget} treeDnd={treeDnd}
+      />
+    ));
   };
 
   return (
