@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import type { KeyData, ChosenFeature, ModalState, Media, RawChatMessage, DraftKeyData } from './types';
+import type { KeyData, ChosenFeature, ModalState, Media, RawChatMessage, DraftKeyData, FeatureNode } from './types';
 import { LucidKeyParser } from './services';
 import { FeaturesPanel, EntitiesPanel, ChosenFeaturesPanel } from './components';
 import { AIAssistant } from './components/';
@@ -348,6 +348,7 @@ const App: React.FC = () => {
         if (targetMode === 'identify') {
           const parser = new LucidKeyParser();
           const loadedKeyData = parser.processDraftKey(data);
+          
           setKeyData(loadedKeyData);
           resetKey();
           setIdentifyChatHistory([]);
@@ -463,7 +464,7 @@ const App: React.FC = () => {
     }
   };
 
-  const updateFeature = (id: string, value: string | boolean | number, isNumeric = false) => {
+  const updateFeature = (id: string, value: string | boolean | number, isNumeric = false, parentId?: string) => {
     isFeatureUpdateRef.current = true;
     setChosenFeatures(prevMap => {
       const newMap = new Map(prevMap);
@@ -471,6 +472,29 @@ const App: React.FC = () => {
       // Handle state features (booleans from checkboxes)
       if (!isNumeric) {
         if (value) {
+          if (parentId && keyData) {
+            const parentFeature = keyData.allFeatures.get(parentId);
+            if (parentFeature?.matchType === 'SINGLE') {
+              const findNode = (nodes: FeatureNode[], fid: string): FeatureNode | null => {
+                for (const n of nodes) {
+                  if (n.id === fid) return n;
+                  if (n.children) {
+                    const found = findNode(n.children, fid);
+                    if (found) return found;
+                  }
+                }
+                return null;
+              };
+              const pNode = findNode(keyData.featureTree, parentId);
+              if (pNode && pNode.children) {
+                for (const child of pNode.children) {
+                  if (child.id !== id) {
+                    newMap.delete(child.id);
+                  }
+                }
+              }
+            }
+          }
           newMap.set(id, {}); // State features are marked as chosen without a specific value
         } else {
           newMap.delete(id);
@@ -720,7 +744,8 @@ const App: React.FC = () => {
                       onChange={handleDraftChange}
                       onTestKey={(draft) => {
                         const parser = new LucidKeyParser();
-                        setKeyData(parser.processDraftKey(draft));
+                        const loadedKeyData = parser.processDraftKey(draft);
+                        setKeyData(loadedKeyData);
                         resetKey();
                         setIdentifyChatHistory([]);
                         setDraftKeyData(draft);

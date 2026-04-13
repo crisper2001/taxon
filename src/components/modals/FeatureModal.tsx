@@ -109,6 +109,9 @@ export const FeatureModal: React.FC<FeatureModalProps> = ({ isOpen, onClose, fea
                                                         {feature.type === 'state' && featureNode && featureNode.children.length > 0 && (
                                                             <p><span className="font-semibold opacity-70">{t('kbStates')}:</span> {featureNode.children.map(c => c.name).join(', ')}</p>
                                                         )}
+                                                        {feature.type === 'state' && (
+                                                        <p><span className="font-semibold opacity-70">{t('kbMatchType' as any) || 'Match Type'}:</span> {feature.matchType === 'AND' ? (t('kbMatchAll' as any) || 'Match All (AND)') : feature.matchType === 'SINGLE' ? (t('kbSingleSelection' as any) || 'Single Selection') : (t('kbMatchAny' as any) || 'Match Any (OR)')}</p>
+                                                        )}
                                                     </>
                                                 ) : (
                                                     <>

@@ -110,15 +110,38 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
 
               <MarkdownInput label={t('kbDescription')} value={featureToRender.description || ''} onChange={val => updateFeature(featureToRender.id, { description: val })} rows={3} />
 
-              <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-semibold opacity-80">{t('kbType')}</span>
-                <CustomSelect
-                  value={featureToRender.type}
-                  onChange={val => requestTypeChange(featureToRender.id, val as 'numeric' | 'state')}
-                  options={[{ value: 'state', label: t('kbTypeState') }, { value: 'numeric', label: t('kbTypeNumeric') }]}
-                  className="input-base cursor-pointer"
-                />
-              </label>
+              <div className="flex gap-4">
+                <label className="flex flex-col gap-1.5 flex-1">
+                  <span className="text-sm font-semibold opacity-80">{t('kbType')}</span>
+                  <CustomSelect
+                    value={featureToRender.type}
+                    onChange={val => requestTypeChange(featureToRender.id, val as 'numeric' | 'state')}
+                    options={[{ value: 'state', label: t('kbTypeState') }, { value: 'numeric', label: t('kbTypeNumeric') }]}
+                    className="input-base cursor-pointer"
+                  />
+                </label>
+
+                {featureToRender.type === 'state' && (
+                  <label className="flex flex-col gap-1.5 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-semibold opacity-80">{t('kbMatchType' as any) || 'Matching Type'}</span>
+                      <div title={t('kbMatchTypeHelp' as any) || "OR: Matches any selected state.\nAND: Matches all selected states.\nSINGLE: Restricts to a single selection."} className="text-gray-400 hover:text-accent transition-colors cursor-help mt-0.5">
+                        <Icon name="Info" size={14} />
+                      </div>
+                    </div>
+                    <CustomSelect
+                      value={featureToRender.matchType || 'OR'}
+                      onChange={val => updateFeature(featureToRender.id, { matchType: val as 'OR' | 'AND' | 'SINGLE' })}
+                      options={[
+                        { value: 'OR', label: t('kbMatchAny' as any) || 'Match Any (OR)' },
+                        { value: 'AND', label: t('kbMatchAll' as any) || 'Match All (AND)' },
+                        { value: 'SINGLE', label: t('kbSingleSelection' as any) || 'Single Selection' }
+                      ]}
+                      className="input-base cursor-pointer"
+                    />
+                  </label>
+                )}
+              </div>
 
               {featureToRender.type === 'numeric' && (
                 <div className="flex gap-4">

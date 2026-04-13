@@ -414,7 +414,11 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
                 <Icon name={iconName} size={20} className={`shrink-0 ${selectedFeatureId === f.id ? 'opacity-100 text-accent' : 'opacity-60'}`} />
               </div>
             )}
-            <span className="truncate flex-1 text-sm font-medium">{f.name || t('kbUnnamedFeature')}</span>
+            <span className="truncate flex-1 text-sm font-medium">
+              {f.name || t('kbUnnamedFeature')}
+              {f.matchType === 'AND' && <span className="ml-2 text-[10px] bg-accent/20 text-accent px-1.5 py-0.5 rounded font-bold">AND</span>}
+              {f.matchType === 'SINGLE' && <span className="ml-2 text-[10px] bg-accent/20 text-accent px-1.5 py-0.5 rounded font-bold">SINGLE</span>}
+            </span>
 
             <div className="max-md:hidden opacity-0 group-hover/item:opacity-100 flex items-center gap-0.5 transition-opacity z-20 shrink-0 pr-1">
               {f.type === 'state' && (

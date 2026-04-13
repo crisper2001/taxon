@@ -7,12 +7,13 @@ interface RenderFeatureNodeProps {
   node: FeatureNode;
   keyData: KeyData;
   chosenFeatures: Map<string, ChosenFeature>;
-  onFeatureChange: (id: string, value: string | boolean | number, isNumeric: boolean) => void;
+  onFeatureChange: (id: string, value: string | boolean | number, isNumeric: boolean, parentId?: string) => void;
   onImageClick: (id: string) => void;
   t: (key: string) => string;
   expandedNodes: Set<string>;
   onToggleNode: (id: string) => void;
   matchingIds: Set<string> | null;
+  parentFeature?: FeatureNode;
 }
 
 export const RenderFeatureNode: React.FC<RenderFeatureNodeProps> = (props) => {
@@ -45,7 +46,7 @@ const FeatureGroupNode: React.FC<RenderFeatureNodeProps> = ({
       </div>
       {isExpanded && (
         <div className="feature-node-children pl-8">
-          {node.children.map(child => <RenderFeatureNode key={child.id} {...{ node: child, keyData, chosenFeatures, onFeatureChange, onImageClick, t, expandedNodes, onToggleNode, matchingIds }} />)}
+          {node.children.map(child => <RenderFeatureNode key={child.id} {...{ node: child, keyData, chosenFeatures, onFeatureChange, onImageClick, t, expandedNodes, onToggleNode, matchingIds, parentFeature: node }} />)}
         </div>
       )}
     </div>
@@ -53,7 +54,7 @@ const FeatureGroupNode: React.FC<RenderFeatureNodeProps> = ({
 };
 
 const FeatureLeafNode = React.memo<RenderFeatureNodeProps>(({
-  node, keyData, chosenFeatures, onFeatureChange, onImageClick, t, expandedNodes, onToggleNode, matchingIds
+  node, keyData, chosenFeatures, onFeatureChange, onImageClick, t, expandedNodes, onToggleNode, matchingIds, parentFeature
 }) => {
   const isSearching = matchingIds !== null;
   const isMatch = isSearching && matchingIds.has(node.id);
@@ -61,13 +62,19 @@ const FeatureLeafNode = React.memo<RenderFeatureNodeProps>(({
   const isSelected = chosenFeatures.has(node.id);
   const media = keyData.featureMedia.get(node.id);
   const hasMedia = media && media.length > 0;
+  const isSingleSelection = parentFeature ? keyData.allFeatures.get(parentFeature.id)?.matchType === 'SINGLE' : false;
 
   return (
     <div data-search-match={isMatch ? "true" : undefined} className={`feature-item group relative pl-8 py-1.5 pr-2 flex items-center gap-3 hover:bg-hover-bg/80 rounded-xl transition-all duration-300 hover:shadow-sm ${isDimmed ? 'opacity-30' : ''} ${isMatch ? 'bg-accent/20 shadow-inner' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}>
       {hasMedia && <img src={media![0].url} alt={node.name} loading="lazy" onClick={() => onImageClick(node.id)} className="w-24 h-24 object-cover rounded-lg shadow-sm cursor-pointer shrink-0" />}
       {node.type === 'state' ? (
         <label className="flex items-center gap-2 cursor-pointer grow">
-          <input type="checkbox" checked={isSelected} onChange={() => onFeatureChange(node.id, !isSelected, false)} className="form-checkbox h-4 w-4 rounded text-accent focus:ring-accent" />
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => onFeatureChange(node.id, !isSelected, false, parentFeature?.id)}
+            className={`form-checkbox h-4 w-4 ${isSingleSelection ? 'rounded-full' : 'rounded'} text-accent focus:ring-accent`}
+          />
           <span>{node.name}</span>
         </label>
       ) : (

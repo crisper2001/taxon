@@ -30,6 +30,7 @@ export interface Feature {
   description?: string;
   base_unit?: string;
   unit_prefix?: string;
+  matchType?: 'OR' | 'AND' | 'SINGLE';
 }
 
 export interface FeatureNode {
@@ -104,6 +105,7 @@ export interface DraftFeature {
   media?: Media[];
   base_unit?: string;
   unit_prefix?: string;
+  matchType?: 'OR' | 'AND' | 'SINGLE';
 }
 
 export interface DraftEntity {

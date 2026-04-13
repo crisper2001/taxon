@@ -354,6 +354,7 @@ export class LucidKeyParser {
         description: f.description,
         base_unit: f.base_unit,
         unit_prefix: f.unit_prefix,
+        matchType: f.matchType,
       });
       keyData.featureListForAI.push({ id: f.id, type: featureType, description: f.description ? `${f.name} - ${f.description}` : f.name });
 

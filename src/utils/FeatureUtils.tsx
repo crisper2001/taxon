@@ -1,4 +1,4 @@
-import type { Feature } from '../types';
+import type { Feature, FeatureNode } from '../types';
 
 const UNIT_PREFIX_MAP: Record<string, string> = { 'kilo': 'k', 'hecto': 'h', 'deca': 'da', 'deci': 'd', 'centi': 'c', 'milli': 'm', 'micro': 'µ', 'none': '' };
 const BASE_UNIT_MAP: Record<string, string> = { 'metre': 'm', 'square metre': 'm²', 'cubic metre': 'm³', 'litre': 'l', 'degrees celcius': '°C', 'degrees planar': '°', 'none': '' };
@@ -8,4 +8,18 @@ export const getUnitSymbol = (feature: Feature | undefined): string => {
   const prefix = UNIT_PREFIX_MAP[feature.unit_prefix || 'none'] || '';
   const base = BASE_UNIT_MAP[feature.base_unit || 'none'] || '';
   return prefix + base;
+};
+
+export const getFeatureParentNode = (featureId: string, featureTree: FeatureNode[]): FeatureNode | null => {
+  const search = (nodes: FeatureNode[], parent: FeatureNode | null): FeatureNode | null => {
+    for (const node of nodes) {
+      if (node.id === featureId) return parent;
+      if (node.children) {
+        const found = search(node.children, node);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+  return search(featureTree, null);
 };

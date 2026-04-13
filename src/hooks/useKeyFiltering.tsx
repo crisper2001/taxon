@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { KeyData, ChosenFeature, StateScore, NumericScore, EntityNode } from '../types';
+import { getFeatureParentNode } from '../utils/FeatureUtils';
 
 export const useKeyFiltering = (keyData: KeyData | null, chosenFeatures: Map<string, ChosenFeature>, allowMisinterpretations: boolean = true, allowUncertainties: boolean = true) => {
   return useMemo(() => {
@@ -18,38 +19,70 @@ export const useKeyFiltering = (keyData: KeyData | null, chosenFeatures: Map<str
     const uncertainMatchIds = new Set<string>();
     const misinterpretedMatchIds = new Set<string>();
 
+    // Group chosen features by their parent feature to evaluate AND/OR matching types
+    const choicesByParent = new Map<string, { id: string, choice: ChosenFeature, stateNode: any }[]>();
+    
+    for (const [featureId, choice] of chosenFeatures.entries()) {
+      const feature = keyData.allFeatures.get(featureId);
+      if (!feature) continue;
+
+      if (feature.isState) {
+        const parent = getFeatureParentNode(featureId, keyData.featureTree);
+        if (parent) {
+          if (!choicesByParent.has(parent.id)) choicesByParent.set(parent.id, []);
+          choicesByParent.get(parent.id)!.push({ id: featureId, choice, stateNode: feature });
+        } else {
+          if (!choicesByParent.has(featureId)) choicesByParent.set(featureId, []);
+          choicesByParent.get(featureId)!.push({ id: featureId, choice, stateNode: feature });
+        }
+      } else {
+        if (!choicesByParent.has(featureId)) choicesByParent.set(featureId, []);
+        choicesByParent.get(featureId)!.push({ id: featureId, choice, stateNode: feature });
+      }
+    }
+
     // 1. Determine which entities are directly discarded by a feature mismatch.
     for (const entityId of allEntityIds) {
       let isMismatch = false;
       let hasUncertainty = false;
       let hasMisinterpretation = false;
 
-      for (const [featureId, choice] of chosenFeatures.entries()) {
-        const feature = keyData.allFeatures.get(featureId);
-        if (!feature) continue;
+      for (const [parentId, choices] of choicesByParent.entries()) {
+        const parentFeatureData = keyData.allFeatures.get(parentId);
 
-        const scores = keyData.entityScores.get(entityId);
-        const score = scores?.get(featureId);
+        if (choices[0].stateNode.isState) {
+          const matchType = parentFeatureData?.matchType === 'AND' ? 'AND' : 'OR';
+          let anyStateMatched = false;
+          let allStatesMatched = true;
 
-        if (!score) {
-          isMismatch = true;
-          break;
-        }
+          for (const stateChoice of choices) {
+            const score = keyData.entityScores.get(entityId)?.get(stateChoice.id);
+            let stateMatched = false;
 
-        if (feature.type === 'state') {
-          const val = (score as StateScore).value;
-          if (val === '0') {
-            isMismatch = true;
-            break;
-          } else if (val === '3') {
-            if (!allowUncertainties) { isMismatch = true; break; }
-            hasUncertainty = true;
-          } else if (val === '4' || val === '5') {
-            if (!allowMisinterpretations) { isMismatch = true; break; }
-            hasMisinterpretation = true;
+            if (score) {
+              const val = (score as StateScore).value;
+              if (val !== '0') {
+                if (val === '3') {
+                  if (allowUncertainties) { stateMatched = true; hasUncertainty = true; }
+                } else if (val === '4' || val === '5') {
+                  if (allowMisinterpretations) { stateMatched = true; hasMisinterpretation = true; }
+                } else {
+                  stateMatched = true;
+                }
+              }
+            }
+            if (stateMatched) anyStateMatched = true;
+            else allStatesMatched = false;
           }
-        } else if (feature.type === 'numeric') {
-          const numVal = parseFloat(String(choice.value));
+
+          if (matchType === 'OR' && !anyStateMatched) { isMismatch = true; break; }
+          if (matchType === 'AND' && !allStatesMatched) { isMismatch = true; break; }
+        } else {
+          // Numeric feature evaluation
+          const choice = choices[0];
+          const score = keyData.entityScores.get(entityId)?.get(choice.id);
+          if (!score) { isMismatch = true; break; }
+          const numVal = parseFloat(String(choice.choice.value));
           if (isNaN(numVal) || numVal < (score as NumericScore).min || numVal > (score as NumericScore).max) {
             isMismatch = true;
             break;
