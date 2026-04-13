@@ -726,6 +726,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
                         draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
                         selectedFeatureId={selectedFeatureId} setSelectedFeatureId={setSelectedFeatureId}
                         collapsedFeatures={collapsedFeatures} toggleFeatureCollapse={toggleFeatureCollapse}
+                        setCollapsedFeatures={setCollapsedFeatures}
                         draggedItem={draggedItem} setDraggedItem={setDraggedItem}
                         dragOverId={dragOverId} setDragOverId={setDragOverId}
                         draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
@@ -737,6 +738,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
                         draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
                         selectedEntityId={selectedEntityId} setSelectedEntityId={setSelectedEntityId}
                         collapsedEntities={collapsedEntities} toggleEntityCollapse={toggleEntityCollapse}
+                        setCollapsedEntities={setCollapsedEntities}
                         draggedItem={draggedItem} setDraggedItem={setDraggedItem}
                         dragOverId={dragOverId} setDragOverId={setDragOverId}
                         draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
@@ -754,6 +756,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
                         draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
                         selectedFeatureId={selectedFeatureId} setSelectedFeatureId={setSelectedFeatureId}
                         collapsedFeatures={collapsedFeatures} toggleFeatureCollapse={toggleFeatureCollapse}
+                        setCollapsedFeatures={setCollapsedFeatures}
                         draggedItem={draggedItem} setDraggedItem={setDraggedItem}
                         dragOverId={dragOverId} setDragOverId={setDragOverId}
                         draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
@@ -769,6 +772,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
                         draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
                         selectedEntityId={selectedEntityId} setSelectedEntityId={setSelectedEntityId}
                         collapsedEntities={collapsedEntities} toggleEntityCollapse={toggleEntityCollapse}
+                        setCollapsedEntities={setCollapsedEntities}
                         draggedItem={draggedItem} setDraggedItem={setDraggedItem}
                         dragOverId={dragOverId} setDragOverId={setDragOverId}
                         draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}

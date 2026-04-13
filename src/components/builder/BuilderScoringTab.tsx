@@ -1,4 +1,5 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Icon } from '../common/Icon';
 import type { DraftKeyData } from '../../types';
 import { CustomSelect } from '../common';
@@ -44,7 +45,9 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
   const currentEditingNumeric = editingNumeric || lastEditingNumeric.current;
   const tableRef = useRef<HTMLTableElement>(null);
   const lastHighlighted = useRef<HTMLElement[]>([]);
+  const [contextMenu, setContextMenu] = useState<{ entityId: string, stateId: string, x: number, y: number, scoreVal: string, vals: any[] } | null>(null);
 
+  const [searchTerm, setSearchTerm] = useState('');
   const [scrollPos, setScrollPos] = useState({ top: 0, left: 0 });
 
   const flattenedEntities = useMemo(() => flattenHierarchy(displayDraft.entities), [displayDraft.entities]);
@@ -62,6 +65,44 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
     });
     return rows;
   }, [flattenedFeatures]);
+
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const matches = useMemo(() => {
+    const lower = searchTerm.toLowerCase().trim();
+    if (!lower) return [];
+    const m: { type: 'col' | 'row', index: number, id: string }[] = [];
+    flattenedEntities.forEach((e, i) => {
+      if (e.item.name.toLowerCase().includes(lower)) m.push({ type: 'col', index: i, id: e.item.id });
+    });
+    matrixRows.forEach((r, i) => {
+      const name = r.type === 'feature' ? r.f.name : r.s.name;
+      if (name.toLowerCase().includes(lower)) m.push({ type: 'row', index: i, id: r.type === 'feature' ? r.f.id : r.s.id });
+    });
+    return m;
+  }, [searchTerm, flattenedEntities, matrixRows]);
+
+  const matchingIds = useMemo(() => new Set(matches.map(m => m.id)), [matches]);
+  const activeMatchId = matches.length > 0 ? matches[currentMatchIndex]?.id : null;
+
+  useEffect(() => {
+    setCurrentMatchIndex(0);
+  }, [searchTerm, matches]);
+
+  useEffect(() => {
+    if (matches.length > 0 && matches[currentMatchIndex]) {
+      const match = matches[currentMatchIndex];
+      const container = tableRef.current?.parentElement;
+      if (container) {
+        if (match.type === 'col') {
+          container.scrollTo({ left: Math.max(0, (match.index - 1) * COL_WIDTH), behavior: 'smooth' });
+        } else {
+          container.scrollTo({ top: Math.max(0, (match.index - 1) * ROW_HEIGHT), behavior: 'smooth' });
+        }
+      }
+    }
+  }, [currentMatchIndex, matches]);
 
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     setScrollPos({
@@ -198,7 +239,7 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
   // --- Native 2D Virtualization ---
   const ROW_HEIGHT = 48; // Approx height of a matrix row
   const COL_WIDTH = 49;  // 32px select + 16px padding + 1px border
-  const OVERSCAN = 15;   // Pre-render rows/cols outside viewport for smooth scrolling
+  const OVERSCAN = 5;    // Pre-render rows/cols outside viewport for smooth scrolling
 
   const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 1000;
   const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1600;
@@ -226,14 +267,42 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
 
   return (
     <div className="flex flex-col w-full h-full animate-fade-in min-w-0 min-h-0">
-      <div className="p-4 border-b border-white/10 dark:border-white/5 flex items-center justify-between bg-header-bg/85 backdrop-blur-md shadow-sm shrink-0 md:rounded-tl-3xl z-50">
-        <div className="flex items-center gap-3">
+      <div className="p-4 border-b border-white/10 dark:border-white/5 flex flex-wrap items-center justify-between bg-header-bg/85 backdrop-blur-md shadow-sm shrink-0 md:rounded-tl-3xl z-50 gap-4">
+        <div className="flex items-center gap-3 shrink-0">
           <Icon name="Target" size={20} className="text-accent" />
           <h3 className="text-xl font-bold text-accent tracking-tight">{t('kbScoring')}</h3>
         </div>
-        <button onClick={() => setIsClearMatrixModalOpen(true)} className="px-3 py-1.5 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-lg text-sm font-bold transition-colors shadow-sm flex items-center gap-1 cursor-pointer">
-          <Icon name="Eraser" size={14} /> <span className="hidden sm:inline">{t('kbClearMatrix' as any) || 'Clear Matrix'}</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <div
+            className={`search-container group flex items-center gap-1 py-1.5 px-3 rounded-full relative transition-all duration-300 focus-within:bg-bg/80 focus-within:shadow-inner focus-within:backdrop-blur-md border border-transparent focus-within:border-white/10 cursor-text shrink-0 ${matches.length > 0 || searchTerm ? 'bg-bg/80 shadow-inner backdrop-blur-md border-white/10' : 'hover:bg-bg/50 cursor-pointer'}`}
+            onClick={() => searchInputRef.current?.focus()}
+          >
+            <Icon name="Search" className="shrink-0 text-gray-500" />
+            <input
+              ref={searchInputRef}
+              type="search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder={t('search')}
+              className={`transition-all duration-300 ease-in-out border-none bg-transparent outline-none text-sm p-0 ${matches.length > 0 || searchTerm ? 'w-24 sm:w-32 opacity-100' : 'w-0 opacity-0 group-hover:w-32 group-hover:opacity-100 focus:w-32 focus:opacity-100'}`}
+            />
+            {searchTerm && (
+              <button type="button" onClick={(e) => { e.stopPropagation(); setSearchTerm(''); searchInputRef.current?.focus(); }} className="p-0.5 hover:bg-accent/20 rounded cursor-pointer flex items-center justify-center text-gray-500 hover:text-accent transition-colors shrink-0" title={t('clearSearch')}>
+                <Icon name="X" size={14} />
+              </button>
+            )}
+            {matches.length > 0 && (
+              <div className="flex items-center gap-0.5 transition-opacity opacity-100 text-accent">
+                <span className="text-xs font-medium whitespace-nowrap px-1">{currentMatchIndex + 1} / {matches.length}</span>
+                <button type="button" onClick={(e) => { e.stopPropagation(); setCurrentMatchIndex(prev => prev > 0 ? prev - 1 : matches.length - 1); }} className="p-0.5 hover:bg-accent/20 rounded cursor-pointer flex items-center justify-center" title={t('prevMatch')}><Icon name="ChevronUp" size={14} /></button>
+                <button type="button" onClick={(e) => { e.stopPropagation(); setCurrentMatchIndex(prev => prev < matches.length - 1 ? prev + 1 : 0); }} className="p-0.5 hover:bg-accent/20 rounded cursor-pointer flex items-center justify-center" title={t('nextMatch')}><Icon name="ChevronDown" size={14} /></button>
+              </div>
+            )}
+          </div>
+          <button onClick={() => setIsClearMatrixModalOpen(true)} className="px-3 py-1.5 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-lg text-sm font-bold transition-colors shadow-sm flex items-center gap-1 cursor-pointer">
+            <Icon name="Eraser" size={14} /> <span className="hidden sm:inline">{t('kbClearMatrix' as any) || 'Clear Matrix'}</span>
+          </button>
+        </div>
       </div>
       <div className="flex-1 overflow-auto bg-bg/30 relative custom-scrollbar min-w-0 min-h-0" onScroll={handleScroll}>
         <table
@@ -241,20 +310,24 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
           ref={tableRef}
           onMouseOver={handleMouseOver}
           onMouseLeave={clearHighlight}
-          className="text-left border-collapse w-max min-w-max"
+          className="text-left border-separate border-spacing-0 w-max min-w-max"
         >
           <thead>
             <tr>
               <th className="sticky top-0 left-0 z-40 bg-header-bg p-4 border-b border-border border-r-2 border-r-border w-[140px] min-w-[140px] max-w-[140px] md:w-[250px] md:min-w-[250px] md:max-w-[250px] align-bottom">
               </th>
               {leftSpacerWidth > 0 && <th style={{ minWidth: leftSpacerWidth, padding: 0, border: 0 }} data-spacer="true"></th>}
-              {visibleEntities.map(({ item: e, depth }) => (
-                <th key={e.id} className="sticky top-0 z-20 bg-header-bg py-2 px-3 border-b border-r border-border w-[1%] whitespace-nowrap align-bottom text-center">
-                  <div className="inline-flex items-center justify-start font-bold h-40 relative pt-[calc(var(--depth)*0.75rem)] md:pt-[calc(var(--depth)*1.5rem)]" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', '--depth': depth } as React.CSSProperties}>
+              {visibleEntities.map(({ item: e, depth }) => {
+                const isMatch = matchingIds.has(e.id);
+                const isActiveMatch = activeMatchId === e.id;
+                const isSearchDimmed = !!searchTerm && !isMatch;
+                return (
+                <th key={e.id} data-search-match={isMatch ? "true" : undefined} data-search-active={isActiveMatch ? "true" : undefined} className={`sticky top-0 z-20 bg-header-bg py-2 px-3 border-b border-r border-border w-[1%] whitespace-nowrap align-bottom text-center transition-all duration-300 ${isMatch ? 'after:absolute after:inset-0 after:bg-accent/20 after:pointer-events-none' : ''} ${isActiveMatch ? 'after:absolute after:inset-0 after:ring-2 after:ring-accent after:ring-inset after:pointer-events-none' : ''}`}>
+                  <div className={`inline-flex items-center justify-start font-bold h-40 relative z-10 pt-[calc(var(--depth)*0.75rem)] md:pt-[calc(var(--depth)*1.5rem)] transition-opacity duration-300 ${isSearchDimmed ? 'opacity-30' : ''}`} style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', '--depth': depth } as React.CSSProperties}>
                     <span className="truncate max-h-[140px] whitespace-nowrap text-accent" title={e.name}>{e.name || t('kbUnnamedEntity')}</span>
                   </div>
                 </th>
-              ))}
+              )})}
               {rightSpacerWidth > 0 && <th style={{ minWidth: rightSpacerWidth, padding: 0, border: 0 }} data-spacer="true"></th>}
             </tr>
           </thead>
@@ -267,10 +340,13 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
             {visibleRows.map((rowItem) => {
               if (rowItem.type === 'feature') {
                 const { f, depth } = rowItem;
+                const isMatch = matchingIds.has(f.id);
+                const isActiveMatch = activeMatchId === f.id;
+                const isSearchDimmed = !!searchTerm && !isMatch;
                 return (
                   <tr key={`f-${f.id}`} className="transition-colors group/row bg-panel-bg" data-no-highlight={f.type === 'state'}>
-                    <td className="sticky left-0 z-30 p-2 md:p-4 border-b border-border border-r-2 border-r-border transition-colors align-middle w-[140px] min-w-[140px] max-w-[140px] md:w-[250px] md:min-w-[250px] md:max-w-[250px] bg-header-bg">
-                      <div className="flex items-center gap-2 font-bold relative w-full text-sm md:text-base pl-[calc(var(--depth)*0.75rem)] md:pl-[calc(var(--depth)*1.5rem)]" style={{ '--depth': depth } as React.CSSProperties}>
+                    <td data-search-match={isMatch ? "true" : undefined} data-search-active={isActiveMatch ? "true" : undefined} className={`sticky left-0 z-30 p-2 md:p-4 border-b border-border border-r-2 border-r-border transition-all duration-300 align-middle w-[140px] min-w-[140px] max-w-[140px] md:w-[250px] md:min-w-[250px] md:max-w-[250px] bg-header-bg ${isMatch ? 'after:absolute after:inset-0 after:bg-accent/20 after:pointer-events-none' : ''} ${isActiveMatch ? 'after:absolute after:inset-0 after:ring-2 after:ring-accent after:ring-inset after:pointer-events-none' : ''}`}>
+                      <div className={`flex items-center gap-2 font-bold relative z-10 w-full text-sm md:text-base pl-[calc(var(--depth)*0.75rem)] md:pl-[calc(var(--depth)*1.5rem)] transition-opacity duration-300 ${isSearchDimmed ? 'opacity-30' : ''}`} style={{ '--depth': depth } as React.CSSProperties}>
                         <span className="truncate text-accent" title={f.name}>{f.name || t('kbUnnamedFeature')}</span>
                       </div>
                     </td>
@@ -303,10 +379,13 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
                 );
               } else {
                 const { f, s, depth } = rowItem;
+                const isMatch = matchingIds.has(s.id);
+                const isActiveMatch = activeMatchId === s.id;
+                const isSearchDimmed = !!searchTerm && !isMatch;
                 return (
                   <tr key={`s-${s.id}`} className="transition-colors group/row bg-panel-bg">
-                    <td className="sticky left-0 z-30 py-2 md:py-3 px-2 md:px-4 border-b border-border border-r-2 border-r-border transition-colors align-middle w-[140px] min-w-[140px] max-w-[140px] md:w-[250px] md:min-w-[250px] md:max-w-[250px] bg-header-bg text-text font-medium">
-                      <div className="flex items-center gap-2 relative w-full text-xs md:text-sm pl-[calc(var(--depth)*0.75rem)] md:pl-[calc(var(--depth)*1.5rem)]" style={{ '--depth': depth } as React.CSSProperties}>
+                    <td data-search-match={isMatch ? "true" : undefined} data-search-active={isActiveMatch ? "true" : undefined} className={`sticky left-0 z-30 py-2 md:py-3 px-2 md:px-4 border-b border-border border-r-2 border-r-border transition-all duration-300 align-middle w-[140px] min-w-[140px] max-w-[140px] md:w-[250px] md:min-w-[250px] md:max-w-[250px] bg-header-bg text-text font-medium ${isMatch ? 'after:absolute after:inset-0 after:bg-accent/20 after:pointer-events-none' : ''} ${isActiveMatch ? 'after:absolute after:inset-0 after:ring-2 after:ring-accent after:ring-inset after:pointer-events-none' : ''}`}>
+                      <div className={`flex items-center gap-2 relative z-10 w-full text-xs md:text-sm pl-[calc(var(--depth)*0.75rem)] md:pl-[calc(var(--depth)*1.5rem)] transition-opacity duration-300 ${isSearchDimmed ? 'opacity-30' : ''}`} style={{ '--depth': depth } as React.CSSProperties}>
                         <span className="truncate opacity-90" title={s.name}>{s.name}</span>
                       </div>
                     </td>
@@ -319,28 +398,16 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
                           const selectedVal = vals.find((v: any) => v.id === scoreVal);
                           return (
                             <div className="flex items-center justify-center w-full h-full min-h-[32px]" title={selectedVal?.name}>
-                              <CustomSelect
-                                value={scoreVal || ''}
-                                onChange={val => setScore(e.id, s.id, val || null)}
-                                hideChevron={true}
-                                customTrigger={
-                                  <div className="flex items-center justify-center w-full">
-                                    {scoreVal && selectedVal ? renderScoreSymbol(selectedVal) : null}
-                                  </div>
-                                }
-                                onTriggerClick={(ev, toggle) => {
-                                  cycleScore(e.id, s.id, scoreVal || '', vals);
-                                }}
-                                onTriggerContextMenu={(ev, toggle) => {
-                                  ev.preventDefault();
-                                  toggle();
-                                }}
-                                options={[
-                                  { value: '', label: <span className="opacity-40 px-2">-</span> },
-                                  ...vals.map((v: any) => ({ value: v.id, label: <span className="flex items-center gap-2 px-1 whitespace-nowrap">{renderScoreSymbol(v)} <span className="text-[12px] leading-none font-bold">{v.name}</span></span> }))
-                                ]}
+                              <button
                                 className="w-8 h-8 cursor-pointer bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-md focus:outline-none flex items-center justify-center transition-colors border border-border"
-                              />
+                                onClick={() => cycleScore(e.id, s.id, scoreVal || '', vals)}
+                                onContextMenu={(ev) => {
+                                  ev.preventDefault();
+                                  setContextMenu({ entityId: e.id, stateId: s.id, x: ev.clientX, y: ev.clientY, scoreVal: scoreVal || '', vals });
+                                }}
+                              >
+                                {scoreVal && selectedVal ? renderScoreSymbol(selectedVal) : null}
+                              </button>
                             </div>
                           );
                         })()}
@@ -414,6 +481,36 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
           );
         })()}
       </Modal>
+
+      {contextMenu && typeof document !== 'undefined' && createPortal(
+        <>
+          <div className="fixed inset-0 z-100" onClick={() => setContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setContextMenu(null); }}></div>
+          <div
+            className="fixed z-101 bg-panel-bg/95 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-xl shadow-xl py-1 min-w-[150px] animate-fade-in font-sans text-text"
+            style={{
+              left: Math.min(contextMenu.x, window.innerWidth - 200),
+              top: Math.min(contextMenu.y, window.innerHeight - ((contextMenu.vals.length + 1) * 36 + 20))
+            }}
+          >
+            <button
+              onClick={() => { setScore(contextMenu.entityId, contextMenu.stateId, null); setContextMenu(null); }}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-hover-bg/80 transition-colors flex items-center gap-2 whitespace-nowrap"
+            >
+              <span className="opacity-40 px-2">-</span>
+            </button>
+            {contextMenu.vals.map(v => (
+              <button
+                key={v.id}
+                onClick={() => { setScore(contextMenu.entityId, contextMenu.stateId, v.id); setContextMenu(null); }}
+                className="w-full text-left px-4 py-2 text-sm hover:bg-hover-bg/80 transition-colors flex items-center gap-2 whitespace-nowrap"
+              >
+                {renderScoreSymbol(v)} <span className="text-[12px] leading-none font-bold">{v.name}</span>
+              </button>
+            ))}
+          </div>
+        </>,
+        document.body
+      )}
 
       <ConfirmModal
         isOpen={isClearMatrixModalOpen}
