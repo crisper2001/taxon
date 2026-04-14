@@ -657,9 +657,9 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
 
   const builderLeftActions = (
     <>
-      <ActionButton onClick={handleRequestNewKey} title={t('kbNewKey' as any)} icon="FilePlus" />
+      <ActionButton onClick={handleRequestNewKey} title={t('kbNewKey' as any)} icon="File" />
       <ActionButton onClick={handleRequestOpenKey} title={t('openNativeKey')} icon="FolderOpen" />
-      <ActionButton onClick={exportJson} title={t('exportJson')} icon="Download" />
+      <ActionButton onClick={exportJson} title={t('exportJson')} icon="Save" />
       <ActionButton onClick={() => setShowMetadataModal(true)} title={t('kbMetadata')} icon="Info" />
       <ActionButton onClick={() => onTestKey?.(draftKey)} title={t('kbTestKey' as any)} icon="Play" iconClass="text-accent" />
       <ActionButton onClick={openPreferences} title={t('preferences')} icon="Settings2" />
