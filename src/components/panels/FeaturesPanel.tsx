@@ -8,11 +8,11 @@ import { useSearchAutoScroll } from '../../hooks';
 interface FeaturesPanelProps {
   keyData: KeyData;
   chosenFeatures: Map<string, ChosenFeature>;
-  onFeatureChange: (id: string, value: string | boolean | number, isNumeric: boolean) => void;
+  onFeatureChange: (id: string, value: string | boolean | number, isNumeric: boolean, parentId?: string) => void;
   onImageClick: (featureId: string) => void;
   t: (key: string) => string;
 }
-export const FeaturesPanel: React.FC<FeaturesPanelProps> = ({ keyData, chosenFeatures, onFeatureChange, onImageClick, t }) => {
+export const FeaturesPanel: React.FC<FeaturesPanelProps> = React.memo(({ keyData, chosenFeatures, onFeatureChange, onImageClick, t }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedNodes, setExpandedNodes] = useState(new Set<string>());
   const [matchingIds, setMatchingIds] = useState<Set<string> | null>(null);
@@ -80,10 +80,10 @@ export const FeaturesPanel: React.FC<FeaturesPanelProps> = ({ keyData, chosenFea
   useSearchAutoScroll(containerRef, searchTerm, matchingIds, currentMatchIndex, setCurrentMatchIndex, setMatchCount);
 
   return (
-    <Panel 
-      title={t('features')} 
-      icon="ListFilter" 
-      count={keyData.totalFeaturesCount} 
+    <Panel
+      title={t('features')}
+      icon="ListFilter"
+      count={keyData.totalFeaturesCount}
       onSearch={setSearchTerm}
       currentMatchIndex={currentMatchIndex}
       matchCount={matchCount}
@@ -108,4 +108,4 @@ export const FeaturesPanel: React.FC<FeaturesPanelProps> = ({ keyData, chosenFea
       </div>
     </Panel>
   );
-};
+});

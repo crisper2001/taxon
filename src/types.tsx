@@ -83,7 +83,6 @@ export interface KeyData {
   totalFeaturesCount: number;
   featureListForAI: { id: string; type: FeatureType; description: string }[];
   parsingErrors: string[];
-  sourceFormat?: 'lucid' | 'native';
 }
 
 export interface ChosenFeature {

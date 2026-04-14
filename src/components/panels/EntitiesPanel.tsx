@@ -13,14 +13,14 @@ interface EntitiesPanelProps {
   directMatches: Set<string>;
   indirectMatches: Set<string>;
   uncertainMatchIds?: Set<string>;
-  misinterpretMatchIds?: Set<string>;
+  misinterpretedMatchIds?: Set<string>;
   mediaMap: Map<string, Media[]>;
   onEntityClick: (id: string) => void;
   t: (key: string) => string;
   expandedNodes: Set<string>;
   setExpandedNodes: React.Dispatch<React.SetStateAction<Set<string>>>;
 }
-export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({ title, icon, count, entityTree, directMatches, indirectMatches, uncertainMatchIds, misinterpretMatchIds, mediaMap, onEntityClick, t, expandedNodes, setExpandedNodes }) => {
+export const EntitiesPanel: React.FC<EntitiesPanelProps> = React.memo(({ title, icon, count, entityTree, directMatches, indirectMatches, uncertainMatchIds, misinterpretedMatchIds, mediaMap, onEntityClick, t, expandedNodes, setExpandedNodes }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [view, setView] = useState<'list' | 'grid'>(() => {
     return (localStorage.getItem('entitiesViewMode') as 'list' | 'grid') || 'grid';
@@ -180,13 +180,13 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({ title, icon, count
             directMatches={directMatches}
             indirectMatches={indirectMatches}
             uncertainMatchIds={uncertainMatchIds}
-            misinterpretedMatchIds={misinterpretMatchIds}
+            misinterpretedMatchIds={misinterpretedMatchIds}
           />
         ))}
       </div>
     </Panel>
   );
-};
+});
 
 interface RenderEntityNodeProps {
   node: EntityNode;

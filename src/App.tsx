@@ -304,18 +304,18 @@ const App: React.FC = () => {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     if (keyData) {
       setModalState({ type: 'confirmClear' });
     }
-  };
+  }, [keyData]);
 
   const executeReset = () => {
     resetKey();
     addToast(t('featuresCleared'));
   };
 
-  const convertAndSaveKey = async (keyToConvert: KeyData): Promise<boolean> => {
+  const convertAndSaveKey = useCallback(async (keyToConvert: KeyData): Promise<boolean> => {
     const features: DraftFeature[] = [];
     const featureMap = new Map<string, DraftFeature>();
 
@@ -435,12 +435,12 @@ const App: React.FC = () => {
       return true;
     }
     return false;
-  };
+  }, []);
 
-  const exportLoadedKeyToNative = async () => {
+  const exportLoadedKeyToNative = useCallback(async () => {
     if (!keyData) return;
     await convertAndSaveKey(keyData);
-  };
+  }, [keyData, convertAndSaveKey]);
 
   const processZipFile = async (file: File, targetMode: 'identify' | 'build') => {
     if (targetMode === 'build') {
@@ -488,7 +488,7 @@ const App: React.FC = () => {
         if (targetMode === 'identify') {
           const parser = new LucidKeyParser();
           const loadedKeyData = parser.processDraftKey(data);
-          
+
           setKeyData(loadedKeyData);
           resetKey();
           setIdentifyChatHistory([]);
@@ -605,7 +605,7 @@ const App: React.FC = () => {
     }
   };
 
-  const updateFeature = (id: string, value: string | boolean | number, isNumeric = false, parentId?: string) => {
+  const updateFeature = useCallback((id: string, value: string | boolean | number, isNumeric = false, parentId?: string) => {
     isFeatureUpdateRef.current = true;
     setChosenFeatures(prevMap => {
       const newMap = new Map(prevMap);
@@ -653,7 +653,7 @@ const App: React.FC = () => {
 
       return newMap;
     });
-  };
+  }, [keyData]);
 
   const handlePreferenceChange = (key: 'lang' | 'theme' | 'geminiApiKey' | 'showToasts' | 'enableAi' | 'enableAnimations' | 'allowMisinterpretations' | 'allowUncertainties', value: string | boolean) => {
     if (key === 'lang') {
@@ -701,6 +701,14 @@ const App: React.FC = () => {
     setModalState({ type: 'lightbox', media, startIndex });
   }, [modalState]);
 
+  const handleEntityClick = useCallback((id: string) => {
+    setModalState({ type: 'entity', entityId: id });
+  }, []);
+
+  const handleFeatureClick = useCallback((id: string) => {
+    setModalState({ type: 'feature', featureId: id });
+  }, []);
+
   const statusText = isLoading ? t('processing') :
     error ? `${t('error')}: ${error}` :
       keyData ? keyData.keyTitle : t('loadKeyPrompt');
@@ -726,7 +734,7 @@ const App: React.FC = () => {
   );
 
   // --- CONTEXT VALUE ---
-  const contextValue = {
+  const contextValue = useMemo(() => ({
     keyData,
     t,
     isLoading,
@@ -752,7 +760,11 @@ const App: React.FC = () => {
     allowMisinterpretations, setAllowMisinterpretations,
     allowUncertainties, setAllowUncertainties,
     addToast,
-  };
+  }), [
+    keyData, t, isLoading, error, statusText, lang, theme, appMode, geminiApiKey,
+    isAiPanelVisible, exportLoadedKeyToNative, handleReset, enableAi, enableAnimations,
+    allowMisinterpretations, allowUncertainties, addToast
+  ]);
 
   return (
     <AppProvider value={contextValue}>
@@ -832,12 +844,12 @@ const App: React.FC = () => {
           isDestructive={true}
         />
 
-      <ChangelogModal 
-        isOpen={(modalState.type as any) === 'changelog' || (underlyingModalState?.type as any) === 'changelog'} 
-        onClose={handleModalClose} 
-        version={packageJson.version} 
-        t={t as any} 
-      />
+        <ChangelogModal
+          isOpen={(modalState.type as any) === 'changelog' || (underlyingModalState?.type as any) === 'changelog'}
+          onClose={handleModalClose}
+          version={packageJson.version}
+          t={t as any}
+        />
 
         <input
           type="file"
@@ -916,7 +928,7 @@ const App: React.FC = () => {
                         { id: 'discarded', icon: 'ListX', label: t('entitiesDiscarded'), count: discardedEntityIds.size }
                       ]}
                     >
-                      <FeaturesPanel keyData={keyData} chosenFeatures={chosenFeatures} onFeatureChange={updateFeature} onImageClick={(id) => setModalState({ type: 'feature', featureId: id })} t={t} />
+                      <FeaturesPanel keyData={keyData} chosenFeatures={chosenFeatures} onFeatureChange={updateFeature} onImageClick={handleFeatureClick} t={t} />
                       <EntitiesPanel
                         title={t('entitiesRemaining')}
                         icon="List"
@@ -925,21 +937,21 @@ const App: React.FC = () => {
                         directMatches={directMatches}
                         indirectMatches={indirectMatches}
                         uncertainMatchIds={uncertainMatchIds}
-                        misinterpretMatchIds={misinterpretedMatchIds}
-                        mediaMap={keyData.entityMedia} onEntityClick={(id) => setModalState({ type: 'entity', entityId: id })}
+                        misinterpretedMatchIds={misinterpretedMatchIds}
+                        mediaMap={keyData.entityMedia} onEntityClick={handleEntityClick}
                         t={t}
                         expandedNodes={expandedRemainingNodes}
                         setExpandedNodes={setExpandedRemainingNodes} />
-                      <ChosenFeaturesPanel chosenFeatures={chosenFeatures} keyData={keyData} onFeatureChange={updateFeature} onImageClick={(id) => setModalState({ type: 'feature', featureId: id })} t={t} />
+                      <ChosenFeaturesPanel chosenFeatures={chosenFeatures} keyData={keyData} onFeatureChange={updateFeature} onImageClick={handleFeatureClick} t={t} />
                       <EntitiesPanel
                         title={t('entitiesDiscarded')}
                         directMatches={new Set()}
                         indirectMatches={new Set()}
                         uncertainMatchIds={new Set()}
-                        misinterpretMatchIds={new Set()}
+                        misinterpretedMatchIds={new Set()}
                         count={discardedEntityIds.size}
                         icon="ListX" entityTree={discardedTree}
-                        mediaMap={keyData.entityMedia} onEntityClick={(id) => setModalState({ type: 'entity', entityId: id })}
+                        mediaMap={keyData.entityMedia} onEntityClick={handleEntityClick}
                         t={t}
                         expandedNodes={expandedDiscardedNodes}
                         setExpandedNodes={setExpandedDiscardedNodes} />
@@ -1063,7 +1075,7 @@ const App: React.FC = () => {
                     isVisible={isAiPanelVisible}
                     onClose={() => setAiPanelVisible(false)}
                     keyData={keyData}
-                    onEntityClick={(id) => setModalState({ type: 'entity', entityId: id })}
+                    onEntityClick={handleEntityClick}
                     onImageClick={(url) => handleOpenLightbox([{ url }], 0)}
                     t={t}
                     lang={lang}

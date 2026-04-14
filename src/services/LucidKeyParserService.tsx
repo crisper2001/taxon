@@ -77,7 +77,6 @@ export class LucidKeyParser {
       featureTree: [], entityScores: new Map(),
       entityProfiles: new Map(), totalFeaturesCount: 0, parsingErrors: [],
       featureListForAI: [],
-      sourceFormat: 'lucid',
     };
 
     const keyDoc = this.parser.parseFromString(keyDataXml, "application/xml");
@@ -251,6 +250,8 @@ export class LucidKeyParser {
       const stateInfo = keyData.allFeatures.get(stateId);
       if (!stateInfo) return;
 
+      const parentName = stateInfo.parentName || 'Others';
+
       si.querySelectorAll('scored_item').forEach(sci => {
         const entityId = sci.getAttribute('item_id');
         const scoreValue = sci.getAttribute('value') as ScoreType;
@@ -260,7 +261,7 @@ export class LucidKeyParser {
 
           const profile = keyData.entityProfiles.get(entityId);
           if (profile) {
-            profile.characteristics.push({ text: stateInfo.name, parent: stateInfo.parentName || 'Others', type: 'state', score: scoreValue });
+            profile.characteristics.push({ text: stateInfo.name, parent: parentName, type: 'state', score: scoreValue });
           }
         }
       });
@@ -271,6 +272,9 @@ export class LucidKeyParser {
       if (!featureId) return;
       const featureInfo = keyData.allFeatures.get(featureId);
       if (!featureInfo) return;
+
+      const unitSym = getUnitSymbol(featureInfo);
+      const parentPath = featureInfo.parentName ? `${featureInfo.parentName} > ${featureInfo.name}` : featureInfo.name;
 
       si.querySelectorAll('scored_item').forEach(sci => {
         const data = sci.querySelector('scored_data');
@@ -284,8 +288,7 @@ export class LucidKeyParser {
 
           const profile = keyData.entityProfiles.get(entityId);
           if (profile) {
-            const parentPath = featureInfo.parentName ? `${featureInfo.parentName} > ${featureInfo.name}` : featureInfo.name;
-            profile.characteristics.push({ text: `${range.min} - ${range.max} ${getUnitSymbol(featureInfo)}`, parent: parentPath, type: 'numeric' });
+            profile.characteristics.push({ text: `${range.min} - ${range.max} ${unitSym}`, parent: parentPath, type: 'numeric' });
           }
         }
       });
@@ -356,7 +359,6 @@ export class LucidKeyParser {
       featureTree: [], entityScores: new Map(),
       entityProfiles: new Map(), totalFeaturesCount: 0, parsingErrors: [],
       featureListForAI: [],
-      sourceFormat: 'native',
     };
 
     const entityNodes = new Map<string, EntityNode>();
@@ -420,12 +422,14 @@ export class LucidKeyParser {
           if (s.media && s.media.length > 0) {
             keyData.featureMedia.set(s.id, s.media);
           }
+
+          const vals = (s as any).values || [
+            { id: '1', name: 'Common' }, { id: '2', name: 'Rare' }, { id: '3', name: 'Uncertain' }, { id: '4', name: 'Common (misinterpreted)' }, { id: '5', name: 'Rare (misinterpreted)' }
+          ];
+
           draftKey.entities.forEach(e => {
             const score = e.scores[s.id] as string;
             if (score) {
-              const vals = (s as any).values || [
-                { id: '1', name: 'Common' }, { id: '2', name: 'Rare' }, { id: '3', name: 'Uncertain' }, { id: '4', name: 'Common (misinterpreted)' }, { id: '5', name: 'Rare (misinterpreted)' }
-              ];
               const scoreDef = vals.find((v: any) => v.id === score);
               keyData.entityScores.get(e.id)?.set(s.id, { value: score as ScoreType });
               keyData.entityProfiles.get(e.id)?.characteristics.push({ text: s.name, parent: f.name, type: 'state', score: score as ScoreType, scoreName: scoreDef ? scoreDef.name : undefined, scoreColor: scoreDef ? scoreDef.color : undefined, scoreIcon: scoreDef ? scoreDef.iconType : undefined } as any);

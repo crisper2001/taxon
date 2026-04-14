@@ -176,6 +176,26 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
     });
   }, [rawChatHistory, t, keyData, appMode]);
 
+  const featuresToSend = useMemo(() => {
+    if (!keyData) return [];
+    const featureNodeMap = new Map<string, any>();
+    const traverse = (nodes: any[]) => {
+      for (const n of nodes) {
+        featureNodeMap.set(n.id, n);
+        if (n.children) traverse(n.children);
+      }
+    };
+    traverse(keyData.featureTree);
+
+    return keyData.featureListForAI.map(f => {
+      const node = featureNodeMap.get(f.id);
+      if (node && node.children && node.children.length > 0 && node.children[0].isState) {
+        return { ...f, states: node.children.map((c: any) => ({ id: c.id, name: c.name })) };
+      }
+      return f;
+    });
+  }, [keyData]);
+
   useEffect(() => {
     if (shouldScrollToBottom.current) {
       chatHistoryRef.current?.scrollTo(0, chatHistoryRef.current.scrollHeight);
@@ -232,26 +252,6 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
         name: ep.name,
         characteristics: ep.characteristics.map(c => `${c.parent ? c.parent + ': ' : ''}${c.text}`)
       })) : [];
-
-    // We send all features to the AI so it can perform semantic matching (e.g. mapping "square" to "rectangular")
-    const featuresToSend = (keyData?.featureListForAI || []).map(f => {
-      if (!keyData) return f;
-      const findNode = (nodes: any[], id: string): any => {
-        for (const n of nodes) {
-          if (n.id === id) return n;
-          if (n.children) {
-            const found = findNode(n.children, id);
-            if (found) return found;
-          }
-        }
-        return null;
-      };
-      const node = findNode(keyData.featureTree, f.id);
-      if (node && node.children && node.children.length > 0 && node.children[0].isState) {
-        return { ...f, states: node.children.map((c: any) => ({ id: c.id, name: c.name })) };
-      }
-      return f;
-    });
 
     const languageNames: Record<string, string> = {
       'en': 'English',

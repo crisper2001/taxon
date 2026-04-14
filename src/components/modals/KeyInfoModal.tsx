@@ -19,11 +19,6 @@ export const KeyInfoModal: React.FC<KeyInfoModalProps> = ({ isOpen, onClose, key
       <div className="p-7 bg-bg/80 backdrop-blur-sm rounded-b-3xl">
         <div className="flex flex-wrap items-center gap-3 mb-3">
           <h2 className="text-3xl font-black text-accent tracking-tight">{keyData.keyTitle}</h2>
-          {keyData.sourceFormat && (
-            <span className="text-[10px] font-bold bg-accent/10 text-accent px-2 py-0.5 rounded border border-accent/20 uppercase tracking-widest shrink-0 mt-0.5" title={keyData.sourceFormat === 'lucid' ? (t('formatLucidDesc' as any) || 'Imported from Lucid Key format') : (t('formatNativeDesc' as any) || 'Native Taxon Key format')}>
-              {keyData.sourceFormat === 'lucid' ? (t('formatLucid' as any) || 'Lucid') : (t('formatNative' as any) || 'Taxon JSON')}
-            </span>
-          )}
         </div>
         {keyData.keyAuthors && <p className="font-semibold text-gray-500 mb-5 flex items-center gap-2 bg-bg/80 backdrop-blur-sm w-fit px-3 py-1.5 rounded-full border border-white/20 dark:border-white/10 shadow-inner"><Icon name="Users" size={16} /> {keyData.keyAuthors}</p>}
         <Markdown content={keyData.keyDescription || ''} className="text-lg opacity-90" />

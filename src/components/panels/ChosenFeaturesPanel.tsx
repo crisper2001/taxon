@@ -10,12 +10,12 @@ import { useSearchAutoScroll } from '../../hooks';
 interface ChosenFeaturesPanelProps {
   chosenFeatures: Map<string, ChosenFeature>;
   keyData: KeyData;
-  onFeatureChange: (id: string, value: boolean | string, isNumeric: boolean) => void;
+  onFeatureChange: (id: string, value: string | boolean | number, isNumeric: boolean, parentId?: string) => void;
   onImageClick: (featureId: string) => void;
   t: (key: string) => string;
 }
 
-export const ChosenFeaturesPanel: React.FC<ChosenFeaturesPanelProps> = ({ chosenFeatures, keyData, onFeatureChange, onImageClick, t }) => {
+export const ChosenFeaturesPanel: React.FC<ChosenFeaturesPanelProps> = React.memo(({ chosenFeatures, keyData, onFeatureChange, onImageClick, t }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedNodes, setExpandedNodes] = useState(new Set<string>());
   const [matchingIds, setMatchingIds] = useState<Set<string> | null>(null);
@@ -181,4 +181,4 @@ export const ChosenFeaturesPanel: React.FC<ChosenFeaturesPanelProps> = ({ chosen
       </div>
     </Panel>
   );
-};
+});
