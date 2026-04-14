@@ -32,6 +32,12 @@ export const BuilderEntityModal: React.FC<BuilderEntityModalProps> = ({
   const [cachedEntity, setCachedEntity] = useState<DraftEntity | undefined>(selectedEntity);
 
   useEffect(() => {
+    if (!isOpen && touchTimeout.current) {
+      clearTimeout(touchTimeout.current);
+    }
+  }, [isOpen, touchTimeout]);
+
+  useEffect(() => {
     if (selectedEntity) {
       setCachedEntity(selectedEntity);
     }
@@ -127,16 +133,21 @@ export const BuilderEntityModal: React.FC<BuilderEntityModalProps> = ({
                       }, 300);
                     }}
                     onTouchMove={(e) => {
-                      if (draggedMedia) e.stopPropagation();
                       const touch = e.touches[0];
+                      if (!draggedMedia) {
+                        const dx = touch.clientX - lastTouchPos.current.x;
+                        const dy = touch.clientY - lastTouchPos.current.y;
+                        if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+                          if (touchTimeout.current) clearTimeout(touchTimeout.current);
+                        }
+                        return;
+                      }
+                      e.stopPropagation();
+                      if (e.cancelable) e.preventDefault();
                       lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
                       if (ghostRef.current) {
                         ghostRef.current.style.left = `${touch.clientX}px`;
                         ghostRef.current.style.top = `${touch.clientY}px`;
-                      }
-                      if (!draggedMedia) {
-                        if (touchTimeout.current) clearTimeout(touchTimeout.current);
-                        return;
                       }
                       const el = document.elementFromPoint(touch.clientX, touch.clientY);
                       const targetMedia = el?.closest('[data-entity-media-idx]');

@@ -13,7 +13,7 @@ const MemoizedFeatureItem = React.memo(({
   f, depth, hasChildren, isFirst, isLast, isSelected, isCollapsed, dragOverId, isDragged, anyDragged, draggedItemType, draggedItemParentId, draggedItemId, isSearchDimmed, isSearchMatch,
   t, setSelectedFeatureId, toggleFeatureCollapse, duplicateFeature, setDeleteTarget, addState,
   featureTreeDnd, setDragOverId, setDraggedItem, moveStateToFeature, moveFeature, reorderFeatures, updateFeature,
-  dragStateRef, collapsedFeaturesRef
+  dragStateRef, collapsedFeaturesRef, ghostRef
 }: any) => {
   const checkFeatureCycle = (draggedId: string, targetId: string) => {
     let current: string | undefined = targetId;
@@ -97,10 +97,13 @@ const MemoizedFeatureItem = React.memo(({
       }}
       onTouchStart={(e) => featureTreeDnd.onTouchStart(e, f.id)}
       onTouchMove={(e) => {
-        if (anyDragged) e.stopPropagation();
+        if (anyDragged) {
+          e.stopPropagation();
+          if (e.cancelable) e.preventDefault();
+        }
         const touch = e.touches[0];
         featureTreeDnd.lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
-        if (featureTreeDnd.ghostRef.current) { featureTreeDnd.ghostRef.current.style.left = `${touch.clientX}px`; featureTreeDnd.ghostRef.current.style.top = `${touch.clientY}px`; }
+        if (ghostRef.current) { ghostRef.current.style.left = `${touch.clientX}px`; ghostRef.current.style.top = `${touch.clientY}px`; }
         if (!anyDragged) return;
         const el = document.elementFromPoint(touch.clientX, touch.clientY);
         const targetFeature = el?.closest('[data-feature-id]');
@@ -148,12 +151,15 @@ const MemoizedFeatureItem = React.memo(({
           }
           setDraggedItem(null); setDragOverId(null);
         }
+      if (featureTreeDnd.onTouchCancel) {
+        featureTreeDnd.onTouchCancel(e);
+      }
       }}
       onTouchCancel={featureTreeDnd.onTouchCancel}
     />
   );
 }, (prev, next) => {
-  return prev.f === next.f && prev.depth === next.depth && prev.hasChildren === next.hasChildren && prev.isFirst === next.isFirst && prev.isLast === next.isLast && prev.isSelected === next.isSelected && prev.isCollapsed === next.isCollapsed && prev.dragOverId === next.dragOverId && prev.isDragged === next.isDragged && prev.anyDragged === next.anyDragged && prev.draggedItemType === next.draggedItemType && prev.draggedItemParentId === next.draggedItemParentId && prev.draggedItemId === next.draggedItemId && prev.isSearchDimmed === next.isSearchDimmed && prev.isSearchMatch === next.isSearchMatch && prev.t === next.t && prev.dragStateRef === next.dragStateRef && prev.collapsedFeaturesRef === next.collapsedFeaturesRef;
+  return prev.f === next.f && prev.depth === next.depth && prev.hasChildren === next.hasChildren && prev.isFirst === next.isFirst && prev.isLast === next.isLast && prev.isSelected === next.isSelected && prev.isCollapsed === next.isCollapsed && prev.dragOverId === next.dragOverId && prev.isDragged === next.isDragged && prev.anyDragged === next.anyDragged && prev.draggedItemType === next.draggedItemType && prev.draggedItemParentId === next.draggedItemParentId && prev.draggedItemId === next.draggedItemId && prev.isSearchDimmed === next.isSearchDimmed && prev.isSearchMatch === next.isSearchMatch && prev.t === next.t && prev.dragStateRef === next.dragStateRef && prev.collapsedFeaturesRef === next.collapsedFeaturesRef && prev.ghostRef === next.ghostRef;
 });
 
 const MemoizedStateItem = React.memo(({
@@ -250,16 +256,21 @@ const MemoizedStateItem = React.memo(({
         }, 300);
       }}
       onTouchMove={(e) => {
-        if (anyDragged) e.stopPropagation();
         const touch = e.touches[0];
+        if (!anyDragged) {
+          const dx = touch.clientX - lastTouchPos.current.x;
+          const dy = touch.clientY - lastTouchPos.current.y;
+          if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+            if (touchTimeout.current) clearTimeout(touchTimeout.current);
+          }
+          return;
+        }
+        e.stopPropagation();
+        if (e.cancelable) e.preventDefault();
         lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
         if (ghostRef.current) {
           ghostRef.current.style.left = `${touch.clientX}px`;
           ghostRef.current.style.top = `${touch.clientY}px`;
-        }
-        if (!anyDragged) {
-          if (touchTimeout.current) clearTimeout(touchTimeout.current);
-          return;
         }
         const el = document.elementFromPoint(touch.clientX, touch.clientY);
         const targetState = el?.closest('[data-state-id]');
@@ -350,6 +361,12 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
   const searchInputRef = useRef<HTMLInputElement>(null);
   const collapsedFeaturesRef = useRef(collapsedFeatures);
   collapsedFeaturesRef.current = collapsedFeatures;
+
+  useEffect(() => {
+    return () => {
+      if (touchTimeout.current) clearTimeout(touchTimeout.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!searchTerm) {
@@ -886,6 +903,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
             isSearchDimmed={isSearchDimmed} isSearchMatch={isSearchMatch} moveFeature={moveFeature}
             reorderFeatures={reorderFeatures} updateFeature={updateFeature}
             dragStateRef={dragStateRef} collapsedFeaturesRef={collapsedFeaturesRef}
+            ghostRef={ghostRef}
           />
         );
       } else {

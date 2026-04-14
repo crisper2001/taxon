@@ -13,7 +13,7 @@ const MemoizedEntityItem = React.memo(({
   e, depth, hasChildren, isFirst, isLast, isSelected, isCollapsed, dragOverId, isDragged, anyDragged, isSearchDimmed, isSearchMatch,
   t, setSelectedEntityId, toggleEntityCollapse, duplicateEntity, setDeleteTarget, treeDnd,
   moveEntity, reorderEntities, updateEntity, draggedItem, setDragOverId, setDraggedItem,
-  dragStateRef, collapsedEntitiesRef
+  dragStateRef, collapsedEntitiesRef, ghostRef
 }: any) => {
   const checkEntityCycle = (draggedId: string, targetId: string) => {
     let current: string | undefined = targetId;
@@ -81,12 +81,15 @@ const MemoizedEntityItem = React.memo(({
       }}
       onTouchStart={(ev) => treeDnd.onTouchStart(ev, e.id)}
       onTouchMove={(ev) => {
-        if (anyDragged) ev.stopPropagation();
+        if (anyDragged) {
+          ev.stopPropagation();
+          if (ev.cancelable) ev.preventDefault();
+        }
         const touch = ev.touches[0];
         treeDnd.lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
-        if (treeDnd.ghostRef.current) {
-          treeDnd.ghostRef.current.style.left = `${touch.clientX}px`;
-          treeDnd.ghostRef.current.style.top = `${touch.clientY}px`;
+        if (ghostRef.current) {
+          ghostRef.current.style.left = `${touch.clientX}px`;
+          ghostRef.current.style.top = `${touch.clientY}px`;
         }
         if (!anyDragged) return;
         const el = document.elementFromPoint(touch.clientX, touch.clientY);
@@ -125,12 +128,15 @@ const MemoizedEntityItem = React.memo(({
           }
           setDraggedItem(null); setDragOverId(null);
         }
+      if (treeDnd.onTouchCancel) {
+        treeDnd.onTouchCancel(ev);
+      }
       }}
       onTouchCancel={treeDnd.onTouchCancel}
     />
   );
 }, (prev, next) => {
-  return prev.e === next.e && prev.depth === next.depth && prev.hasChildren === next.hasChildren && prev.isFirst === next.isFirst && prev.isLast === next.isLast && prev.isSelected === next.isSelected && prev.isCollapsed === next.isCollapsed && prev.dragOverId === next.dragOverId && prev.isDragged === next.isDragged && prev.anyDragged === next.anyDragged && prev.isSearchDimmed === next.isSearchDimmed && prev.isSearchMatch === next.isSearchMatch && prev.t === next.t && prev.dragStateRef === next.dragStateRef && prev.collapsedEntitiesRef === next.collapsedEntitiesRef;
+  return prev.e === next.e && prev.depth === next.depth && prev.hasChildren === next.hasChildren && prev.isFirst === next.isFirst && prev.isLast === next.isLast && prev.isSelected === next.isSelected && prev.isCollapsed === next.isCollapsed && prev.dragOverId === next.dragOverId && prev.isDragged === next.isDragged && prev.anyDragged === next.anyDragged && prev.isSearchDimmed === next.isSearchDimmed && prev.isSearchMatch === next.isSearchMatch && prev.t === next.t && prev.dragStateRef === next.dragStateRef && prev.collapsedEntitiesRef === next.collapsedEntitiesRef && prev.ghostRef === next.ghostRef;
 });
 
 interface BuilderEntitiesTabProps {
@@ -170,6 +176,12 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
   dragStateRef.current = { dragOverId, draggedItem, draftKey };
   const collapsedEntitiesRef = useRef(collapsedEntities);
   collapsedEntitiesRef.current = collapsedEntities;
+
+  useEffect(() => {
+    return () => {
+      if (touchTimeout.current) clearTimeout(touchTimeout.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!searchTerm) {
@@ -395,6 +407,7 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
           moveEntity={moveEntity} reorderEntities={reorderEntities} updateEntity={updateEntity}
           draggedItem={draggedItem} setDragOverId={setDragOverId} setDraggedItem={setDraggedItem}
           dragStateRef={dragStateRef} collapsedEntitiesRef={collapsedEntitiesRef}
+          ghostRef={ghostRef}
         />
       );
     });

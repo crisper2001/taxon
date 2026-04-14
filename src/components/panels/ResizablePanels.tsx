@@ -60,6 +60,7 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
         }
 
         if (isSwiping) {
+            if (e.cancelable) e.preventDefault();
             let effectiveDelta = deltaX;
             // Add rubber-band resistance if trying to swipe past boundaries
             if (mobileTab === 0 && deltaX > 0) effectiveDelta *= 0.3;
@@ -81,6 +82,12 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
             else if (deltaX > 50) setMobileTab(prev => Math.max(prev - 1, 0));
         }
         
+        setIsSwiping(false);
+        setSwipeOffset(0);
+        touchStart.current = null;
+    };
+
+    const handleTouchCancel = () => {
         setIsSwiping(false);
         setSwipeOffset(0);
         touchStart.current = null;
@@ -163,6 +170,7 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
+                onTouchCancel={handleTouchCancel}
             >
                 <div style={{ gridArea: '1 / 1 / 2 / 2' }} className="panel-wrapper min-h-0 min-w-0 h-full">{childrenArray[0]}</div>
                 {numPanels >= 2 && (

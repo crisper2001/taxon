@@ -63,6 +63,12 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
   const [cachedMode, setCachedMode] = useState<'feature' | 'state'>('feature');
 
   useEffect(() => {
+    if (!isOpen && touchTimeout.current) {
+      clearTimeout(touchTimeout.current);
+    }
+  }, [isOpen, touchTimeout]);
+
+  useEffect(() => {
     if (selectedFeature) setCachedFeature(selectedFeature);
     if (selectedState) setCachedState(selectedState);
     if (selectedStateParent) setCachedStateParent(selectedStateParent);
@@ -247,16 +253,21 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
                       }, 300);
                     }}
                     onTouchMove={(e) => {
-                      if (draggedMedia) e.stopPropagation();
                       const touch = e.touches[0];
+                      if (!draggedMedia) {
+                        const dx = touch.clientX - lastTouchPos.current.x;
+                        const dy = touch.clientY - lastTouchPos.current.y;
+                        if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+                          if (touchTimeout.current) clearTimeout(touchTimeout.current);
+                        }
+                        return;
+                      }
+                      e.stopPropagation();
+                      if (e.cancelable) e.preventDefault();
                       lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
                       if (ghostRef.current) {
                         ghostRef.current.style.left = `${touch.clientX}px`;
                         ghostRef.current.style.top = `${touch.clientY}px`;
-                      }
-                      if (!draggedMedia) {
-                        if (touchTimeout.current) clearTimeout(touchTimeout.current);
-                        return;
                       }
                       const el = document.elementFromPoint(touch.clientX, touch.clientY);
                       const targetMedia = el?.closest('[data-feature-media-idx]');
@@ -421,16 +432,21 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
                       }, 300);
                     }}
                     onTouchMove={(e) => {
-                      if (draggedMedia) e.stopPropagation();
                       const touch = e.touches[0];
+                      if (!draggedMedia) {
+                        const dx = touch.clientX - lastTouchPos.current.x;
+                        const dy = touch.clientY - lastTouchPos.current.y;
+                        if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+                          if (touchTimeout.current) clearTimeout(touchTimeout.current);
+                        }
+                        return;
+                      }
+                      e.stopPropagation();
+                      if (e.cancelable) e.preventDefault();
                       lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
                       if (ghostRef.current) {
                         ghostRef.current.style.left = `${touch.clientX}px`;
                         ghostRef.current.style.top = `${touch.clientY}px`;
-                      }
-                      if (!draggedMedia) {
-                        if (touchTimeout.current) clearTimeout(touchTimeout.current);
-                        return;
                       }
                       const el = document.elementFromPoint(touch.clientX, touch.clientY);
                       const targetMedia = el?.closest('[data-state-media-idx]');
@@ -554,16 +570,21 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
                         }, 300);
                       }}
                       onTouchMove={(e) => {
-                        if (draggedValue) e.stopPropagation();
                         const touch = e.touches[0];
+                        if (!draggedValue) {
+                          const dx = touch.clientX - lastTouchPos.current.x;
+                          const dy = touch.clientY - lastTouchPos.current.y;
+                          if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+                            if (touchTimeout.current) clearTimeout(touchTimeout.current);
+                          }
+                          return;
+                        }
+                        e.stopPropagation();
+                        if (e.cancelable) e.preventDefault();
                         lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
                         if (ghostRef.current) {
                           ghostRef.current.style.left = `${touch.clientX}px`;
                           ghostRef.current.style.top = `${touch.clientY}px`;
-                        }
-                        if (!draggedValue) {
-                          if (touchTimeout.current) clearTimeout(touchTimeout.current);
-                          return;
                         }
                         const el = document.elementFromPoint(touch.clientX, touch.clientY);
                         const targetVal = el?.closest('[data-state-value-idx]');

@@ -38,6 +38,7 @@ export const useResizablePanel = (initialWidth: number, minWidth: number, maxWid
 
   const handleMouseMove = useCallback((e: MouseEvent | TouchEvent) => {
     if (!isResizing.current) return;
+    if (e.cancelable && 'touches' in e) e.preventDefault();
     requestAnimationFrame(() => {
       if (!isResizing.current) return;
       const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;

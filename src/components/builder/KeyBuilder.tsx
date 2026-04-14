@@ -411,7 +411,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
 
   const offsetIndex = isMobile ? (activeTab === 'features' ? 0 : activeTab === 'entities' ? 1 : 2) : (activeTab === 'scoring' ? 1 : 0);
 
-  const { swipeOffset, isSwiping, handleTouchStart, handleTouchMove, handleTouchEnd } = useSwipe(
+  const { swipeOffset, isSwiping, handleTouchStart, handleTouchMove, handleTouchEnd, handleTouchCancel } = useSwipe(
     () => {
       if (activeTab === 'features') setActiveTab('entities');
       else if (activeTab === 'entities') setActiveTab('scoring');
@@ -737,6 +737,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchCancel}
           >
             <div className={`builder-mobile-view ${isSwiping ? 'is-swiping' : ''}`} style={{ '--mobile-tab-offset': `-${offsetIndex * 100}%`, '--swipe-offset': `${swipeOffset}px` } as React.CSSProperties}>
 
