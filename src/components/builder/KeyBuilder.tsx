@@ -50,18 +50,28 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
     return { title: t('kbNewIdentKey' as any) || 'New Identification Key', authors: '', description: '', features: [], entities: [] };
   };
 
-  const [history, setHistory] = useState<DraftKeyData[]>(() => {
-    if (builderStateRef?.current?.history.length) return builderStateRef.current.history;
-    return [getInitialDraft()];
+  const [historyState, setHistoryState] = useState<{
+    history: DraftKeyData[];
+    historyIndex: number;
+    savedHistoryIndex: number;
+  }>(() => {
+    if (builderStateRef?.current?.history.length) {
+      return {
+        history: builderStateRef.current.history,
+        historyIndex: builderStateRef.current.historyIndex,
+        savedHistoryIndex: builderStateRef.current.savedHistoryIndex || 0
+      };
+    }
+    return {
+      history: [getInitialDraft()],
+      historyIndex: 0,
+      savedHistoryIndex: 0
+    };
   });
-  const [historyIndex, setHistoryIndex] = useState(() => {
-    if (builderStateRef?.current?.history.length) return builderStateRef.current.historyIndex;
-    return 0;
-  });
-  const [savedHistoryIndex, setSavedHistoryIndex] = useState(() => {
-    if (builderStateRef?.current?.savedHistoryIndex !== undefined) return builderStateRef.current.savedHistoryIndex;
-    return 0;
-  });
+
+  const history = historyState.history;
+  const historyIndex = historyState.historyIndex;
+  const savedHistoryIndex = historyState.savedHistoryIndex;
   const [keyPromptMode, setKeyPromptMode] = useState<'new' | 'open' | null>(null);
 
   const lastProcessedInitialData = useRef(initialData);
@@ -74,9 +84,11 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
     if (initialData && initialData !== lastProcessedInitialData.current) {
       lastProcessedInitialData.current = initialData;
       if (initialData !== draftKeyRef.current) {
-        setHistory([initialData]);
-        setHistoryIndex(0);
-        setSavedHistoryIndex(0);
+        setHistoryState({
+          history: [initialData],
+          historyIndex: 0,
+          savedHistoryIndex: 0
+        });
         setActiveTab('features');
         setSelectedFeatureId(null);
         setSelectedEntityId(null);
@@ -112,23 +124,27 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
   }, [isUnsaved]);
 
   const updateDraftKey = useCallback((updater: (prev: DraftKeyData) => DraftKeyData) => {
-    setHistory(prevHistory => {
-      const currentDraft = prevHistory[historyIndex] || { title: '', authors: '', description: '', features: [], entities: [] };
+    setHistoryState(prevState => {
+      const currentDraft = prevState.history[prevState.historyIndex] || { title: '', authors: '', description: '', features: [], entities: [] };
       const nextState = updater(currentDraft);
-      const newHistory = prevHistory.slice(0, historyIndex + 1);
+      const newHistory = prevState.history.slice(0, Math.max(0, prevState.historyIndex) + 1);
       newHistory.push(nextState);
+      let newSavedIndex = prevState.savedHistoryIndex;
       if (newHistory.length > 50) {
         newHistory.shift();
-        setSavedHistoryIndex(prev => prev - 1);
+        newSavedIndex--;
       }
-      return newHistory;
+      return {
+        history: newHistory,
+        historyIndex: newHistory.length - 1,
+        savedHistoryIndex: newSavedIndex
+      };
     });
-    setHistoryIndex(prev => Math.min(prev + 1, 49));
-  }, [historyIndex]);
+  }, []);
 
   useEffect(() => {
     const handleUndoHistory = () => {
-      setHistoryIndex(prev => Math.max(0, prev - 1));
+      setHistoryState(prev => prev.historyIndex > 0 ? { ...prev, historyIndex: prev.historyIndex - 1 } : prev);
     };
     const handleRestoreSnapshot = (e: any) => {
       const snapshot = e.detail;
@@ -372,10 +388,10 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
   }, [t, updateDraftKey]);
 
   const undo = () => {
-    if (historyIndex > 0) { setHistoryIndex(prev => prev - 1); }
+    setHistoryState(prev => prev.historyIndex > 0 ? { ...prev, historyIndex: prev.historyIndex - 1 } : prev);
   };
   const redo = () => {
-    if (historyIndex < history.length - 1) { setHistoryIndex(prev => prev + 1); }
+    setHistoryState(prev => prev.historyIndex < prev.history.length - 1 ? { ...prev, historyIndex: prev.historyIndex + 1 } : prev);
   };
 
   const [selectedFeatureId, setSelectedFeatureId] = useState<string | null>(null);
@@ -418,7 +434,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
         await writable.write(jsonString);
         await writable.close();
         saved = true;
-        setSavedHistoryIndex(historyIndex);
+        setHistoryState(prev => ({ ...prev, savedHistoryIndex: prev.historyIndex }));
       } catch (err: any) {
         if (err.name === 'AbortError') return; // User cancelled the save dialog
         console.error('File picker failed, falling back:', err);
@@ -435,7 +451,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
       downloadAnchorNode.click();
       downloadAnchorNode.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      setSavedHistoryIndex(historyIndex);
+      setHistoryState(prev => ({ ...prev, savedHistoryIndex: prev.historyIndex }));
     }
   };
 
@@ -491,9 +507,11 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
 
   const handleCreateNew = () => {
     const newDraft = { title: t('kbNewIdentKey' as any) || 'New Identification Key', authors: '', description: '', features: [], entities: [] };
-    setHistory([newDraft]);
-    setHistoryIndex(0);
-    setSavedHistoryIndex(0);
+    setHistoryState({
+      history: [newDraft],
+      historyIndex: 0,
+      savedHistoryIndex: 0
+    });
     setActiveTab('features');
     setSelectedFeatureId(null);
     setSelectedEntityId(null);

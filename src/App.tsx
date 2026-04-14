@@ -772,13 +772,13 @@ const App: React.FC = () => {
           </div>
         )}
         {/* Global SVG Gradients for Icons */}
-        <svg width="0" height="0" className="absolute pointer-events-none" aria-hidden="true" style={{ visibility: 'hidden' }}>
+        <svg width="0" height="0" className="absolute pointer-events-none" aria-hidden="true" style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
           <defs>
-            <linearGradient id="accent-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <linearGradient id="accent-gradient" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
               <stop offset="0%" stopColor="var(--color-accent, var(--accent-color))" style={{ stopColor: 'color-mix(in srgb, var(--color-accent, var(--accent-color)), white 15%)' }} />
               <stop offset="100%" stopColor="var(--color-accent, var(--accent-color))" style={{ stopColor: 'color-mix(in srgb, var(--color-accent, var(--accent-color)), black 10%)' }} />
             </linearGradient>
-            <linearGradient id="red-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <linearGradient id="red-gradient" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
               <stop offset="0%" stopColor="#ef4444" style={{ stopColor: 'color-mix(in srgb, #ef4444, white 15%)' }} />
               <stop offset="100%" stopColor="#ef4444" style={{ stopColor: 'color-mix(in srgb, #ef4444, black 10%)' }} />
             </linearGradient>

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Icon } from '../common/Icon';
 import type { DraftKeyData, DraftFeature } from '../../types';
 import { ConfirmModal, BuilderFeatureModal } from '../modals';
@@ -8,11 +8,15 @@ import { useTreeDragAndDrop, useSearchAutoScroll } from '../../hooks';
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
 const MemoizedFeatureItem = React.memo(({
-  f, depth, hasChildren, isSelected, isCollapsed, isDragOver, isDragged, anyDragged, draggedItemType, draggedItemParentId, draggedItemId, isSearchDimmed, isSearchMatch,
+  f, depth, hasChildren, isFirst, isLast, isSelected, isCollapsed, dragOverId, isDragged, anyDragged, draggedItemType, draggedItemParentId, draggedItemId, isSearchDimmed, isSearchMatch,
   t, setSelectedFeatureId, toggleFeatureCollapse, duplicateFeature, setDeleteTarget, addState,
-  featureTreeDnd, setDragOverId, setDraggedItem, moveStateToFeature
+  featureTreeDnd, setDragOverId, setDraggedItem, moveStateToFeature, moveFeature, reorderFeatures, updateFeature
 }: any) => {
   const iconName = f.type === 'state' ? 'ListTree' : 'Hash';
+  const isDragOverCenter = dragOverId === f.id;
+  const isDragOverTop = dragOverId === `before-${f.id}`;
+  const isDragOverBottom = dragOverId === `after-${f.id}` && (isCollapsed || f.type !== 'state' || !f.states || f.states.length === 0);
+
   return (
     <div
       data-search-match={isSearchMatch ? "true" : undefined}
@@ -25,10 +29,19 @@ const MemoizedFeatureItem = React.memo(({
         if (draggedItemType === 'state') {
           e.preventDefault(); e.stopPropagation();
           if (draggedItemParentId !== f.id && f.type === 'state') {
-            if (!isDragOver) setDragOverId(f.id);
+            if (dragOverId !== f.id) setDragOverId(f.id);
           }
-        } else {
-          featureTreeDnd.onDragOver(e, f.id);
+        } else if (draggedItemType === 'feature' && draggedItemId !== f.id) {
+          e.preventDefault(); e.stopPropagation();
+          const rect = e.currentTarget.getBoundingClientRect();
+          const y = e.clientY - rect.top;
+          if (y < rect.height * 0.25) {
+            if (dragOverId !== `before-${f.id}`) setDragOverId(`before-${f.id}`);
+          } else if (y > rect.height * 0.75) {
+            if (dragOverId !== `after-${f.id}`) setDragOverId(`after-${f.id}`);
+          } else {
+            if (dragOverId !== f.id) setDragOverId(f.id);
+          }
         }
       }}
       onDragLeave={() => featureTreeDnd.onDragLeave(f.id)}
@@ -39,19 +52,68 @@ const MemoizedFeatureItem = React.memo(({
           if (draggedItemParentId !== f.id && f.type === 'state') {
             moveStateToFeature(draggedItemId, draggedItemParentId, f.id);
           }
-          setDraggedItem(null);
-        } else {
-          featureTreeDnd.onDrop(e, f.id);
+        } else if (draggedItemType === 'feature' && draggedItemId !== f.id) {
+          e.preventDefault(); e.stopPropagation();
+          const rect = e.currentTarget.getBoundingClientRect();
+          const y = e.clientY - rect.top;
+          if (y < rect.height * 0.25 || y > rect.height * 0.75) {
+            reorderFeatures(draggedItemId, f.id, y < rect.height * 0.25 ? 'before' : 'after');
+          } else {
+            updateFeature(draggedItemId, { parentId: f.id });
+          }
         }
+        setDraggedItem(null);
       }}
       onTouchStart={(e) => featureTreeDnd.onTouchStart(e, f.id)}
-      onTouchMove={(e) => { if (anyDragged) e.stopPropagation(); featureTreeDnd.onTouchMove(e, f.id); }}
-      onTouchEnd={(e) => { if (anyDragged) e.stopPropagation(); featureTreeDnd.onTouchEnd(e, f.id); }}
+      onTouchMove={(e) => {
+        if (anyDragged) e.stopPropagation();
+        const touch = e.touches[0];
+        featureTreeDnd.lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
+        if (featureTreeDnd.ghostRef.current) {
+          featureTreeDnd.ghostRef.current.style.left = `${touch.clientX}px`;
+          featureTreeDnd.ghostRef.current.style.top = `${touch.clientY}px`;
+        }
+        if (!anyDragged) return;
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        const targetFeature = el?.closest('[data-feature-id]');
+        const targetState = el?.closest('[data-state-id]');
+        if (draggedItemType === 'feature') {
+          if (targetState) {
+            const targetId = targetState.getAttribute('data-parent-id');
+            if (targetId && targetId !== draggedItemId) {
+              setDragOverId(`after-${targetId}`);
+            }
+          } else if (targetFeature) {
+            const targetId = targetFeature.getAttribute('data-feature-id');
+            if (targetId && targetId !== draggedItemId) {
+              const rect = targetFeature.getBoundingClientRect();
+              const y = touch.clientY - rect.top;
+              if (y < rect.height * 0.25) setDragOverId(`before-${targetId}`);
+              else if (y > rect.height * 0.75) setDragOverId(`after-${targetId}`);
+              else setDragOverId(targetId);
+            }
+          } else setDragOverId(null);
+        } else setDragOverId(null);
+      }}
+      onTouchEnd={(e) => {
+        if (anyDragged) e.stopPropagation();
+        if (draggedItemType === 'feature') {
+          if (e.cancelable) e.preventDefault();
+          if (dragOverId) {
+            if (dragOverId.startsWith('before-')) reorderFeatures(draggedItemId, dragOverId.replace('before-', ''), 'before');
+            else if (dragOverId.startsWith('after-')) reorderFeatures(draggedItemId, dragOverId.replace('after-', ''), 'after');
+            else if (dragOverId !== draggedItemId) updateFeature(draggedItemId, { parentId: dragOverId });
+          }
+          setDraggedItem(null); setDragOverId(null);
+        }
+      }}
       onTouchCancel={featureTreeDnd.onTouchCancel}
       onClick={() => setSelectedFeatureId(f.id)}
-      className={`builder-list-item feature-item flex items-center gap-2 p-1.5 rounded-xl transition-all duration-300 relative group/item cursor-pointer hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm ${isSelected ? 'bg-accent/20 shadow-inner ring-2 ring-accent' : 'border border-transparent'} ${isDragOver ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${isDragged ? 'opacity-50' : ''} ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20 shadow-inner' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}
-      style={{ paddingLeft: `calc(${1.5 + depth * 1.5}rem + 0.5rem)`, touchAction: anyDragged ? 'none' : 'auto' }}
+      className={`builder-list-item feature-item flex items-center gap-2 p-1.5 rounded-xl transition-all duration-300 relative group/item cursor-pointer hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm ${isSelected ? 'bg-accent/20 shadow-inner ring-2 ring-accent' : 'border border-transparent'} ${isDragOverCenter ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${isDragOverTop || isDragOverBottom ? 'z-20' : ''} ${isDragged ? 'opacity-50' : ''} ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20 shadow-inner' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}
+      style={{ paddingLeft: `calc(${1.5 + depth * 1.5}rem + 0.5rem)`, touchAction: anyDragged ? 'none' : 'auto', contentVisibility: (isDragOverTop || isDragOverBottom) ? 'visible' : 'auto' } as React.CSSProperties}
     >
+      <div className={`absolute -top-[3px] left-0 right-0 h-[2px] bg-accent z-30 pointer-events-none transition-opacity duration-200 ${isDragOverTop ? 'opacity-100' : 'opacity-0'}`} />
+      <div className={`absolute -bottom-[3px] left-0 right-0 h-[2px] bg-accent z-30 pointer-events-none transition-opacity duration-200 ${isDragOverBottom ? 'opacity-100' : 'opacity-0'}`} />
       {hasChildren && (
         <button
           onClick={(e) => { e.stopPropagation(); toggleFeatureCollapse(f.id); }}
@@ -79,6 +141,16 @@ const MemoizedFeatureItem = React.memo(({
             <Icon name="Plus" size={14} />
           </button>
         )}
+        {!isFirst && (
+          <button onClick={(e) => { e.stopPropagation(); moveFeature(f.id, 'up'); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('moveUp' as any) || 'Move Up'}>
+            <Icon name="ArrowUp" size={14} />
+          </button>
+        )}
+        {!isLast && (
+          <button onClick={(e) => { e.stopPropagation(); moveFeature(f.id, 'down'); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('moveDown' as any) || 'Move Down'}>
+            <Icon name="ArrowDown" size={14} />
+          </button>
+        )}
         <button onClick={(e) => { e.stopPropagation(); duplicateFeature(f.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbDuplicate')}>
           <Icon name="Copy" size={14} />
         </button>
@@ -89,35 +161,48 @@ const MemoizedFeatureItem = React.memo(({
     </div>
   );
 }, (prev, next) => {
-  return prev.f === next.f && prev.depth === next.depth && prev.hasChildren === next.hasChildren && prev.isSelected === next.isSelected && prev.isCollapsed === next.isCollapsed && prev.isDragOver === next.isDragOver && prev.isDragged === next.isDragged && prev.anyDragged === next.anyDragged && prev.draggedItemType === next.draggedItemType && prev.draggedItemParentId === next.draggedItemParentId && prev.draggedItemId === next.draggedItemId && prev.isSearchDimmed === next.isSearchDimmed && prev.isSearchMatch === next.isSearchMatch && prev.t === next.t;
+  return prev.f === next.f && prev.depth === next.depth && prev.hasChildren === next.hasChildren && prev.isFirst === next.isFirst && prev.isLast === next.isLast && prev.isSelected === next.isSelected && prev.isCollapsed === next.isCollapsed && prev.dragOverId === next.dragOverId && prev.isDragged === next.isDragged && prev.anyDragged === next.anyDragged && prev.draggedItemType === next.draggedItemType && prev.draggedItemParentId === next.draggedItemParentId && prev.draggedItemId === next.draggedItemId && prev.isSearchDimmed === next.isSearchDimmed && prev.isSearchMatch === next.isSearchMatch && prev.t === next.t;
 });
 
 const MemoizedStateItem = React.memo(({
-  s, f, depth, isSelected, isDragOver, isDragged, anyDragged, draggedItemType, draggedItemParentId, draggedItemId, isSearchDimmed, isSearchMatch,
+  s, f, depth, isFirst, isLast, isSelected, dragOverId, isDragged, anyDragged, draggedItemType, draggedItemParentId, draggedItemId, isSearchDimmed, isSearchMatch,
   t, setSelectedFeatureId, duplicateState, setDeleteTarget,
   setDraggedItem, setDragOverId, dragStateRef, reorderStates, moveStateToFeature,
-  lastTouchPos, touchTimeout, ghostRef
+  lastTouchPos, touchTimeout, ghostRef, moveState, reorderFeatures
 }: any) => {
+  const isDragOverCenter = dragOverId === s.id;
+  const isDragOverTop = dragOverId === `before-${s.id}`;
+  const isDragOverBottom = dragOverId === `after-${s.id}`;
+  const isDragOverParentBottom = dragOverId === `after-${f.id}` && isLast;
+
   return (
     <div
-      className={`builder-list-item state-item flex items-center gap-2 p-1.5 rounded-xl transition-all duration-300 relative group/state cursor-pointer hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm ${isSelected ? 'bg-accent/20 shadow-inner ring-2 ring-accent' : 'border border-transparent opacity-80 hover:opacity-100'} ${isDragOver ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${isDragged ? 'opacity-50' : ''} ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20 shadow-inner' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}
+      className={`builder-list-item state-item flex items-center gap-2 p-1.5 rounded-xl transition-all duration-300 relative group/state cursor-pointer hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm ${isSelected ? 'bg-accent/20 shadow-inner ring-2 ring-accent' : 'border border-transparent opacity-80 hover:opacity-100'} ${isDragOverCenter ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${isDragOverTop || isDragOverBottom || isDragOverParentBottom ? 'z-20' : ''} ${isDragged ? 'opacity-50' : ''} ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20 shadow-inner' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}
       onClick={(e) => { e.stopPropagation(); setSelectedFeatureId(s.id); }}
-      style={{ paddingLeft: `calc(${1.5 + depth * 1.5}rem + 0.5rem)`, touchAction: anyDragged ? 'none' : 'auto' }}
+      style={{ paddingLeft: `calc(${1.5 + depth * 1.5}rem + 0.5rem)`, touchAction: anyDragged ? 'none' : 'auto', contentVisibility: (isDragOverTop || isDragOverBottom || isDragOverParentBottom) ? 'visible' : 'auto' } as React.CSSProperties}
       draggable data-state-id={s.id} data-parent-id={f.id}
       onDragStart={(e) => { e.stopPropagation(); setDraggedItem({ type: 'state', id: s.id, parentId: f.id }); }}
       onDragEnd={() => { setDraggedItem(null); setDragOverId(null); }}
       onDragOver={(e) => {
         e.preventDefault(); e.stopPropagation();
-        if (draggedItemType === 'state' && draggedItemId !== s.id && draggedItemParentId === f.id) {
-          if (!isDragOver) setDragOverId(s.id);
+        if (draggedItemType === 'state' && draggedItemId !== s.id) {
+          const rect = e.currentTarget.getBoundingClientRect();
+          const y = e.clientY - rect.top;
+          if (y < rect.height * 0.5) { if (dragOverId !== `before-${s.id}`) setDragOverId(`before-${s.id}`); }
+          else { if (dragOverId !== `after-${s.id}`) setDragOverId(`after-${s.id}`); }
+        } else if (draggedItemType === 'feature' && draggedItemId !== f.id) {
+          if (dragOverId !== `after-${f.id}`) setDragOverId(`after-${f.id}`);
         }
       }}
-      onDragLeave={() => { if (isDragOver) setDragOverId(null); }}
+      onDragLeave={() => { setDragOverId(null); }}
       onDrop={(e) => {
         e.preventDefault(); e.stopPropagation(); setDragOverId(null);
         if (draggedItemType === 'state' && draggedItemId !== s.id) {
-          if (draggedItemParentId === f.id) reorderStates(f.id, draggedItemId, s.id);
-          else moveStateToFeature(draggedItemId, draggedItemParentId, f.id);
+          const rect = e.currentTarget.getBoundingClientRect();
+          const position = (e.clientY - rect.top) < rect.height * 0.5 ? 'before' : 'after';
+          reorderStates(draggedItemParentId, f.id, draggedItemId, s.id, position);
+        } else if (draggedItemType === 'feature' && draggedItemId !== f.id) {
+          reorderFeatures(draggedItemId, f.id, 'after');
         }
         setDraggedItem(null);
       }}
@@ -139,11 +224,15 @@ const MemoizedStateItem = React.memo(({
         const targetFeature = el?.closest('[data-feature-id]');
         if (targetState) {
           const id = targetState.getAttribute('data-state-id');
-          if (id && id !== s.id && draggedItemType === 'state') setDragOverId(id);
+          if (id && id !== s.id && draggedItemType === 'state') {
+             const rect = targetState.getBoundingClientRect();
+             if (touch.clientY - rect.top < rect.height * 0.5) setDragOverId(`before-${id}`);
+             else setDragOverId(`after-${id}`);
+          }
         } else if (targetFeature) {
           const fid = targetFeature.getAttribute('data-feature-id');
-          const targetFeatType = dragStateRef.current.draftKey.features.find((x: any) => x.id === fid)?.type;
-          if (fid && targetFeatType === 'state' && fid !== f.id && draggedItemType === 'state') setDragOverId(fid);
+          const isStateFeat = dragStateRef.current.draftKey.features.find((x: any) => x.id === fid)?.type === 'state';
+          if (fid && isStateFeat && fid !== f.id && draggedItemType === 'state') setDragOverId(fid);
         } else setDragOverId(null);
       }}
       onTouchEnd={(e) => {
@@ -153,12 +242,17 @@ const MemoizedStateItem = React.memo(({
           if (e.cancelable) e.preventDefault();
           const { dragOverId: latestDragOverId, draggedItem: latestDraggedItem, draftKey: latestDraftKey } = dragStateRef.current;
           if (latestDragOverId && latestDraggedItem) {
-            const targetFeature = latestDraftKey.features.find((x: any) => x.id === latestDragOverId);
-            if (targetFeature && targetFeature.type === 'state') moveStateToFeature(latestDraggedItem.id, latestDraggedItem.parentId!, latestDragOverId);
-            else if (latestDragOverId !== s.id) {
-              const targetParentFeat = latestDraftKey.features.find((x: any) => x.states?.some((st: any) => st.id === latestDragOverId));
-              if (targetParentFeat && targetParentFeat.id === f.id && latestDraggedItem.parentId === f.id) reorderStates(f.id, latestDraggedItem.id, latestDragOverId);
-              else if (targetParentFeat && targetParentFeat.id !== latestDraggedItem.parentId) moveStateToFeature(latestDraggedItem.id, latestDraggedItem.parentId!, targetParentFeat.id);
+            if (latestDragOverId.startsWith('before-')) {
+              const targetId = latestDragOverId.replace('before-', '');
+              const parentFeat = latestDraftKey.features.find((x: any) => x.states?.some((st: any) => st.id === targetId));
+              if (parentFeat) reorderStates(latestDraggedItem.parentId!, parentFeat.id, latestDraggedItem.id, targetId, 'before');
+            } else if (latestDragOverId.startsWith('after-')) {
+              const targetId = latestDragOverId.replace('after-', '');
+              const parentFeat = latestDraftKey.features.find((x: any) => x.states?.some((st: any) => st.id === targetId));
+              if (parentFeat) reorderStates(latestDraggedItem.parentId!, parentFeat.id, latestDraggedItem.id, targetId, 'after');
+            } else {
+              const targetFeature = latestDraftKey.features.find((x: any) => x.id === latestDragOverId);
+              if (targetFeature && targetFeature.type === 'state') moveStateToFeature(latestDraggedItem.id, latestDraggedItem.parentId!, latestDragOverId);
             }
           }
           setDraggedItem(null); setDragOverId(null);
@@ -166,6 +260,8 @@ const MemoizedStateItem = React.memo(({
       }}
       onTouchCancel={() => { if (touchTimeout.current) clearTimeout(touchTimeout.current); setDraggedItem(null); setDragOverId(null); }}
     >
+      <div className={`absolute -top-[3px] left-0 right-0 h-[2px] bg-accent z-30 pointer-events-none transition-opacity duration-200 ${isDragOverTop ? 'opacity-100' : 'opacity-0'}`} />
+      <div className={`absolute -bottom-[3px] left-0 right-0 h-[2px] bg-accent z-30 pointer-events-none transition-opacity duration-200 ${isDragOverBottom || isDragOverParentBottom ? 'opacity-100' : 'opacity-0'}`} />
       {s.media && s.media.length > 0 ? (
         <img src={s.media[0].url} alt={s.name} className="w-8 h-8 object-cover rounded-lg shadow-sm shrink-0" />
       ) : (
@@ -175,13 +271,15 @@ const MemoizedStateItem = React.memo(({
       )}
       <span className="truncate flex-1 text-sm font-medium">{s.name || t('kbStateName') || 'Unnamed State'}</span>
       <div className="max-md:hidden opacity-0 group-hover/state:opacity-100 flex items-center gap-0.5 transition-opacity z-20 shrink-0 pr-1">
+        {!isFirst && <button onClick={(e) => { e.stopPropagation(); moveState(f.id, s.id, 'up'); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('moveUp' as any) || 'Move Up'}><Icon name="ArrowUp" size={14} /></button>}
+        {!isLast && <button onClick={(e) => { e.stopPropagation(); moveState(f.id, s.id, 'down'); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('moveDown' as any) || 'Move Down'}><Icon name="ArrowDown" size={14} /></button>}
         <button onClick={(e) => { e.stopPropagation(); duplicateState(f.id, s.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbDuplicate')}><Icon name="Copy" size={14} /></button>
         <button onClick={(e) => { e.stopPropagation(); setDeleteTarget({ type: 'state', id: s.id, parentId: f.id }); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-red-500 hover:bg-red-500/10' : 'text-red-400 hover:text-red-500 hover:bg-red-500/10'}`} title={t('kbDelete')}><Icon name="Trash2" size={14} /></button>
       </div>
     </div>
   );
 }, (prev, next) => {
-  return prev.s === next.s && prev.f === next.f && prev.depth === next.depth && prev.isSelected === next.isSelected && prev.isDragOver === next.isDragOver && prev.isDragged === next.isDragged && prev.anyDragged === next.anyDragged && prev.draggedItemType === next.draggedItemType && prev.draggedItemParentId === next.draggedItemParentId && prev.draggedItemId === next.draggedItemId && prev.isSearchDimmed === next.isSearchDimmed && prev.isSearchMatch === next.isSearchMatch && prev.t === next.t;
+  return prev.s === next.s && prev.f === next.f && prev.depth === next.depth && prev.isFirst === next.isFirst && prev.isLast === next.isLast && prev.isSelected === next.isSelected && prev.dragOverId === next.dragOverId && prev.isDragged === next.isDragged && prev.anyDragged === next.anyDragged && prev.draggedItemType === next.draggedItemType && prev.draggedItemParentId === next.draggedItemParentId && prev.draggedItemId === next.draggedItemId && prev.isSearchDimmed === next.isSearchDimmed && prev.isSearchMatch === next.isSearchMatch && prev.t === next.t;
 });
 
 interface BuilderFeaturesTabProps {
@@ -563,23 +661,103 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
     }));
   };
 
-  const reorderStates = React.useCallback((featureId: string, fromStateId: string, toStateId: string) => {
+  const moveFeature = useCallback((id: string, direction: 'up' | 'down') => {
+    updateDraftKey(prev => {
+      const newFeatures = [...prev.features];
+      const idx = newFeatures.findIndex(f => f.id === id);
+      if (idx === -1) return prev;
+      const feature = newFeatures[idx];
+      const siblings = newFeatures.filter(f => f.parentId === feature.parentId);
+      const siblingIdx = siblings.findIndex(f => f.id === id);
+      if (direction === 'up' && siblingIdx > 0) {
+        const prevIdx = newFeatures.findIndex(f => f.id === siblings[siblingIdx - 1].id);
+        const temp = newFeatures[idx];
+        newFeatures[idx] = newFeatures[prevIdx];
+        newFeatures[prevIdx] = temp;
+      } else if (direction === 'down' && siblingIdx < siblings.length - 1) {
+        const nextIdx = newFeatures.findIndex(f => f.id === siblings[siblingIdx + 1].id);
+        const temp = newFeatures[idx];
+        newFeatures[idx] = newFeatures[nextIdx];
+        newFeatures[nextIdx] = temp;
+      }
+      return { ...prev, features: newFeatures };
+    });
+  }, [updateDraftKey]);
+
+  const reorderFeatures = useCallback((draggedId: string, targetId: string, position: 'before' | 'after') => {
+    updateDraftKey(prev => {
+      const newFeatures = [...prev.features];
+      const draggedIdx = newFeatures.findIndex(f => f.id === draggedId);
+      const targetIdx = newFeatures.findIndex(f => f.id === targetId);
+      if (draggedIdx === -1 || targetIdx === -1) return prev;
+      
+      const draggedFeature = { ...newFeatures[draggedIdx], parentId: newFeatures[targetIdx].parentId };
+      newFeatures[draggedIdx] = draggedFeature;
+      
+      const [moved] = newFeatures.splice(draggedIdx, 1);
+      const newTargetIdx = newFeatures.findIndex(f => f.id === targetId);
+      const insertIdx = position === 'before' ? newTargetIdx : newTargetIdx + 1;
+      newFeatures.splice(insertIdx, 0, moved);
+      
+      return { ...prev, features: newFeatures };
+    });
+  }, [updateDraftKey]);
+
+  const reorderStates = React.useCallback((sourceFeatureId: string, targetFeatureId: string, draggedStateId: string, targetStateId: string, position: 'before' | 'after') => {
     updateDraftKey(prev => ({
       ...prev,
       features: prev.features.map(feat => {
-        if (feat.id === featureId) {
-          const fromIdx = feat.states.findIndex(st => st.id === fromStateId);
-          const toIdx = feat.states.findIndex(st => st.id === toStateId);
-          if (fromIdx !== -1 && toIdx !== -1) {
+        if (feat.id === sourceFeatureId) {
+          const idx = feat.states.findIndex(st => st.id === draggedStateId);
+          if (idx !== -1) {
             const newStates = [...feat.states];
-            const [moved] = newStates.splice(fromIdx, 1);
-            newStates.splice(toIdx, 0, moved);
+            const [moved] = newStates.splice(idx, 1);
             return { ...feat, states: newStates };
           }
         }
         return feat;
-      })
+      }).map((feat, _, tempFeatures) => {
+        if (feat.id === targetFeatureId) {
+          const sourceFeat = prev.features.find(f => f.id === sourceFeatureId);
+          const stateToMove = sourceFeat?.states.find(s => s.id === draggedStateId);
+          if (stateToMove) {
+            const newStates = [...feat.states];
+            const targetIdx = newStates.findIndex(st => st.id === targetStateId);
+            if (targetIdx !== -1) {
+              const insertIdx = position === 'before' ? targetIdx : targetIdx + 1;
+              newStates.splice(insertIdx, 0, stateToMove);
+            } else {
+              newStates.push(stateToMove);
+            }
+            return { ...feat, states: newStates };
+          }
+        }
+        return feat;
+      }) 
     }));
+  }, [updateDraftKey]);
+
+  const moveState = useCallback((featureId: string, stateId: string, direction: 'up' | 'down') => {
+    updateDraftKey(prev => {
+      const newFeatures = [...prev.features];
+      const fIdx = newFeatures.findIndex(f => f.id === featureId);
+      if (fIdx === -1) return prev;
+      const feature = { ...newFeatures[fIdx] };
+      const newStates = [...feature.states];
+      const sIdx = newStates.findIndex(s => s.id === stateId);
+      if (direction === 'up' && sIdx > 0) {
+        const temp = newStates[sIdx];
+        newStates[sIdx] = newStates[sIdx - 1];
+        newStates[sIdx - 1] = temp;
+      } else if (direction === 'down' && sIdx < newStates.length - 1) {
+        const temp = newStates[sIdx];
+        newStates[sIdx] = newStates[sIdx + 1];
+        newStates[sIdx + 1] = temp;
+      }
+      feature.states = newStates;
+      newFeatures[fIdx] = feature;
+      return { ...prev, features: newFeatures };
+    });
   }, [updateDraftKey]);
 
   const moveStateToFeature = (stateId: string, fromFeatureId: string, toFeatureId: string) => {
@@ -638,32 +816,32 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
       }
     });
     const result: any[] = [];
-    const traverse = (f: DraftFeature, depth: number) => {
+    const traverse = (f: DraftFeature, depth: number, index: number, total: number) => {
       const children = featureChildrenMap.get(f.id) || [];
       const hasChildren = children.length > 0 || (f.type === 'state' && f.states.length > 0);
-      result.push({ isFeature: true, f, depth, hasChildren });
+      result.push({ isFeature: true, f, depth, hasChildren, isFirst: index === 0, isLast: index === total - 1 });
       if (!collapsedFeatures.has(f.id)) {
-        children.forEach(c => traverse(c, depth + 1));
+        children.forEach((c, i) => traverse(c, depth + 1, i, children.length));
         if (f.type === 'state') {
-          f.states.forEach(s => result.push({ isFeature: false, s, f, depth: depth + 1 }));
+          f.states.forEach((s, i) => result.push({ isFeature: false, s, f, depth: depth + 1, isFirst: i === 0, isLast: i === f.states.length - 1 }));
         }
       }
     };
-    rootFeatures.forEach(f => traverse(f, 0));
+    rootFeatures.forEach((f, i) => traverse(f, 0, i, rootFeatures.length));
     return result;
   }, [draftKey.features, collapsedFeatures]);
 
   const renderFeatureList = () => {
     return visibleItems.map((item) => {
       if (item.isFeature) {
-        const { f, depth, hasChildren } = item;
+        const { f, depth, hasChildren, isFirst, isLast } = item;
         const isSearchDimmed = matchingIds !== null && !matchingIds.has(f.id);
         const isSearchMatch = matchingIds !== null && matchingIds.has(f.id);
         return (
           <MemoizedFeatureItem
-            key={`f-${f.id}`} f={f} depth={depth} hasChildren={hasChildren}
+            key={`f-${f.id}`} f={f} depth={depth} hasChildren={hasChildren} isFirst={isFirst} isLast={isLast}
             isSelected={selectedFeatureId === f.id} isCollapsed={collapsedFeatures.has(f.id)}
-            isDragOver={dragOverId === f.id} isDragged={draggedItem?.id === f.id}
+            dragOverId={dragOverId} isDragged={draggedItem?.id === f.id}
             anyDragged={!!draggedItem} draggedItemType={draggedItem?.type}
             draggedItemParentId={draggedItem?.parentId} draggedItemId={draggedItem?.id}
             t={t} setSelectedFeatureId={setSelectedFeatureId}
@@ -671,17 +849,18 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
             setDeleteTarget={setDeleteTarget} addState={addState}
             featureTreeDnd={featureTreeDnd} setDragOverId={setDragOverId}
             setDraggedItem={setDraggedItem} moveStateToFeature={moveStateToFeature}
-            isSearchDimmed={isSearchDimmed} isSearchMatch={isSearchMatch}
+            isSearchDimmed={isSearchDimmed} isSearchMatch={isSearchMatch} moveFeature={moveFeature}
+            reorderFeatures={reorderFeatures} updateFeature={updateFeature}
           />
         );
       } else {
-        const { s, f, depth } = item;
+        const { s, f, depth, isFirst, isLast } = item;
         const isSearchDimmed = matchingIds !== null && !matchingIds.has(s.id);
         const isSearchMatch = matchingIds !== null && matchingIds.has(s.id);
         return (
           <MemoizedStateItem
-            key={`s-${s.id}`} s={s} f={f} depth={depth}
-            isSelected={selectedFeatureId === s.id} isDragOver={dragOverId === s.id}
+            key={`s-${s.id}`} s={s} f={f} depth={depth} isFirst={isFirst} isLast={isLast}
+            isSelected={selectedFeatureId === s.id} dragOverId={dragOverId}
             isDragged={draggedItem?.id === s.id} anyDragged={!!draggedItem}
             draggedItemType={draggedItem?.type} draggedItemParentId={draggedItem?.parentId}
             draggedItemId={draggedItem?.id} t={t} setSelectedFeatureId={setSelectedFeatureId}
@@ -690,7 +869,8 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
             dragStateRef={dragStateRef} reorderStates={reorderStates}
             moveStateToFeature={moveStateToFeature}
             lastTouchPos={lastTouchPos} touchTimeout={touchTimeout} ghostRef={ghostRef}
-            isSearchDimmed={isSearchDimmed} isSearchMatch={isSearchMatch}
+            isSearchDimmed={isSearchDimmed} isSearchMatch={isSearchMatch} moveState={moveState}
+            reorderFeatures={reorderFeatures}
           />
         );
       }
@@ -744,16 +924,23 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
       </div>
       <div
         ref={containerRef}
-        className={`panel-content grow p-3 space-y-0.5 overflow-y-auto transition-colors ${dragOverId === 'root' ? 'bg-accent/5 ring-2 ring-inset ring-accent' : ''}`}
+        className={`panel-content grow p-3 space-y-1 overflow-y-auto transition-colors ${dragOverId === 'root-feature' ? 'bg-accent/5 ring-2 ring-inset ring-accent' : ''}`}
         data-root-drop="true"
         onDragOver={(e) => {
           e.preventDefault();
-          if (draggedItem?.type === 'feature' && dragOverId !== 'root') setDragOverId('root');
+          if (draggedItem?.type === 'feature' && dragOverId !== 'root-feature') setDragOverId('root-feature');
         }}
         onDragLeave={() => {
-          if (dragOverId === 'root') setDragOverId(null);
+          if (dragOverId === 'root-feature') setDragOverId(null);
         }}
-        onDrop={featureTreeDnd.onRootDrop}
+        onDrop={(e) => {
+          e.preventDefault();
+          if (dragOverId === 'root-feature' && draggedItem?.type === 'feature') {
+            updateFeature(draggedItem.id, { parentId: undefined });
+          }
+          setDragOverId(null);
+          setDraggedItem(null);
+        }}
       >
         {renderFeatureList()}
       </div>

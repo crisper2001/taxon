@@ -624,6 +624,29 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
                       )}
 
                       {!isDefault && <input type="color" value={v.color || '#3b82f6'} onChange={e => updateStateValue(stateParentToRender.id, stateToRender.id, v.id, { color: e.target.value })} className="w-8 h-8 rounded-lg cursor-pointer border-0 p-0 bg-transparent shrink-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch]:rounded-lg" title="Select color" />}
+                      
+                      {!isDefault && <button onClick={() => {
+                        updateDraftKey(prev => ({
+                          ...prev,
+                          features: prev.features.map(f => f.id === stateParentToRender.id ? {
+                            ...f, states: f.states.map(st => st.id === stateToRender.id ? {
+                              ...st, values: reorderArray((st as any).values || getDefaultStateValues(t), vIndex, vIndex - 1)
+                            } : st)
+                          } : f)
+                        }));
+                      }} title={t('moveUp' as any) || 'Move Up'} className="opacity-0 group-hover/val:opacity-100 text-gray-400 hover:text-accent transition-opacity p-2 bg-black/5 dark:bg-white/5 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer" disabled={vIndex <= 5}><Icon name="ArrowUp" size={16} /></button>}
+                      
+                      {!isDefault && <button onClick={() => {
+                        updateDraftKey(prev => ({
+                          ...prev,
+                          features: prev.features.map(f => f.id === stateParentToRender.id ? {
+                            ...f, states: f.states.map(st => st.id === stateToRender.id ? {
+                              ...st, values: reorderArray((st as any).values || getDefaultStateValues(t), vIndex, vIndex + 1)
+                            } : st)
+                          } : f)
+                        }));
+                      }} title={t('moveDown' as any) || 'Move Down'} className="opacity-0 group-hover/val:opacity-100 text-gray-400 hover:text-accent transition-opacity p-2 bg-black/5 dark:bg-white/5 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer" disabled={vIndex >= ((stateToRender as any).values || getDefaultStateValues(t)).length - 1}><Icon name="ArrowDown" size={16} /></button>}
+                      
                       {!isDefault && <button onClick={() => deleteStateValue(stateParentToRender.id, stateToRender.id, v.id)} className="opacity-0 group-hover/val:opacity-100 text-red-400 hover:text-red-600 transition-opacity p-2 bg-red-400/10 rounded-lg hover:bg-red-400/20"><Icon name="X" size={16} /></button>}
                     </div>
                   );

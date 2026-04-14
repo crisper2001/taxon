@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Icon } from '../common/Icon';
 import type { DraftKeyData, DraftEntity } from '../../types';
 import { processImage } from '../../utils/imageUtils';
@@ -8,34 +8,91 @@ import { BuilderEntityModal } from '../modals';
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
 const MemoizedEntityItem = React.memo(({
-  e, depth, hasChildren, isSelected, isCollapsed, isDragOver, isDragged, anyDragged, isSearchDimmed, isSearchMatch,
-  t, setSelectedEntityId, toggleEntityCollapse, duplicateEntity, setDeleteTarget, treeDnd
+  e, depth, hasChildren, isFirst, isLast, isSelected, isCollapsed, dragOverId, isDragged, anyDragged, isSearchDimmed, isSearchMatch,
+  t, setSelectedEntityId, toggleEntityCollapse, duplicateEntity, setDeleteTarget, treeDnd,
+  moveEntity, reorderEntities, updateEntity, draggedItem, setDragOverId, setDraggedItem
 }: any) => {
+  const isDragOverCenter = dragOverId === e.id;
+  const isDragOverTop = dragOverId === `before-${e.id}`;
+  const isDragOverBottom = dragOverId === `after-${e.id}`;
+
   return (
     <div
       data-search-match={isSearchMatch ? "true" : undefined}
       draggable
       data-entity-id={e.id}
       onContextMenu={(ev) => ev.preventDefault()}
-      onDragStart={(ev) => treeDnd.onDragStart(ev, e.id)}
-      onDragEnd={treeDnd.onDragEnd}
-      onDragOver={(ev) => treeDnd.onDragOver(ev, e.id)}
-      onDragLeave={() => treeDnd.onDragLeave(e.id)}
-      onDrop={(ev) => treeDnd.onDrop(ev, e.id)}
+      onDragStart={(ev) => { ev.stopPropagation(); setDraggedItem({ type: 'entity', id: e.id, parentId: e.parentId }); }}
+      onDragEnd={() => { setDraggedItem(null); setDragOverId(null); }}
+      onDragOver={(ev) => {
+        ev.preventDefault(); ev.stopPropagation();
+        if (draggedItem?.type === 'entity' && draggedItem.id !== e.id) {
+          const rect = ev.currentTarget.getBoundingClientRect();
+          const y = ev.clientY - rect.top;
+          if (y < rect.height * 0.25) {
+            if (dragOverId !== `before-${e.id}`) setDragOverId(`before-${e.id}`);
+          } else if (y > rect.height * 0.75) {
+            if (dragOverId !== `after-${e.id}`) setDragOverId(`after-${e.id}`);
+          } else {
+            if (dragOverId !== e.id) setDragOverId(e.id);
+          }
+        }
+      }}
+      onDragLeave={() => setDragOverId(null)}
+      onDrop={(ev) => {
+        ev.preventDefault(); ev.stopPropagation(); setDragOverId(null);
+        if (draggedItem?.type === 'entity' && draggedItem.id !== e.id) {
+          const rect = ev.currentTarget.getBoundingClientRect();
+          const y = ev.clientY - rect.top;
+          if (y < rect.height * 0.25 || y > rect.height * 0.75) {
+            reorderEntities(draggedItem.id, e.id, y < rect.height * 0.25 ? 'before' : 'after');
+          } else {
+            updateEntity(draggedItem.id, { parentId: e.id });
+          }
+        }
+        setDraggedItem(null);
+      }}
       onTouchStart={(ev) => treeDnd.onTouchStart(ev, e.id)}
       onTouchMove={(ev) => {
         if (anyDragged) ev.stopPropagation();
-        treeDnd.onTouchMove(ev, e.id);
+        const touch = ev.touches[0];
+        treeDnd.lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
+        if (treeDnd.ghostRef.current) {
+          treeDnd.ghostRef.current.style.left = `${touch.clientX}px`;
+          treeDnd.ghostRef.current.style.top = `${touch.clientY}px`;
+        }
+        if (!anyDragged) return;
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        const targetEntity = el?.closest('[data-entity-id]');
+        if (targetEntity && draggedItem?.type === 'entity') {
+          const targetId = targetEntity.getAttribute('data-entity-id');
+          if (targetId && targetId !== e.id) {
+            const rect = targetEntity.getBoundingClientRect();
+            if (touch.clientY - rect.top < rect.height * 0.25) setDragOverId(`before-${targetId}`);
+            else if (touch.clientY - rect.top > rect.height * 0.75) setDragOverId(`after-${targetId}`);
+            else setDragOverId(targetId);
+          }
+        } else setDragOverId(null);
       }}
       onTouchEnd={(ev) => {
         if (anyDragged) ev.stopPropagation();
-        treeDnd.onTouchEnd(ev, e.id);
+        if (draggedItem?.type === 'entity') {
+          if (ev.cancelable) ev.preventDefault();
+          if (dragOverId) {
+            if (dragOverId.startsWith('before-')) reorderEntities(draggedItem.id, dragOverId.replace('before-', ''), 'before');
+            else if (dragOverId.startsWith('after-')) reorderEntities(draggedItem.id, dragOverId.replace('after-', ''), 'after');
+            else if (dragOverId !== draggedItem.id) updateEntity(draggedItem.id, { parentId: dragOverId });
+          }
+          setDraggedItem(null); setDragOverId(null);
+        }
       }}
       onTouchCancel={treeDnd.onTouchCancel}
       onClick={() => setSelectedEntityId(e.id)}
-      className={`builder-list-item entity-item flex items-center gap-2 p-1.5 rounded-xl transition-all duration-300 relative group/item cursor-pointer hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm ${isSelected ? 'bg-accent/20 shadow-inner ring-2 ring-accent' : 'border border-transparent'} ${isDragOver ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${isDragged ? 'opacity-50' : ''} ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20 shadow-inner' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}
-      style={{ paddingLeft: `calc(${1.5 + depth * 1.5}rem + 0.5rem)`, touchAction: anyDragged ? 'none' : 'auto' }}
+      className={`builder-list-item entity-item flex items-center gap-2 p-1.5 rounded-xl transition-all duration-300 relative group/item cursor-pointer hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm ${isSelected ? 'bg-accent/20 shadow-inner ring-2 ring-accent' : 'border border-transparent'} ${isDragOverCenter ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${isDragOverTop || isDragOverBottom ? 'z-20' : ''} ${isDragged ? 'opacity-50' : ''} ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20 shadow-inner' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}
+      style={{ paddingLeft: `calc(${1.5 + depth * 1.5}rem + 0.5rem)`, touchAction: anyDragged ? 'none' : 'auto', contentVisibility: (isDragOverTop || isDragOverBottom) ? 'visible' : 'auto' } as React.CSSProperties}
     >
+      <div className={`absolute -top-[3px] left-0 right-0 h-[2px] bg-accent z-30 pointer-events-none transition-opacity duration-200 ${isDragOverTop ? 'opacity-100' : 'opacity-0'}`} />
+      <div className={`absolute -bottom-[3px] left-0 right-0 h-[2px] bg-accent z-30 pointer-events-none transition-opacity duration-200 ${isDragOverBottom ? 'opacity-100' : 'opacity-0'}`} />
       {hasChildren && (
         <button
           onClick={(ev) => { ev.stopPropagation(); toggleEntityCollapse(e.id); }}
@@ -56,6 +113,16 @@ const MemoizedEntityItem = React.memo(({
       <span className="truncate flex-1 text-sm font-medium">{e.name || t('kbUnnamedEntity')}</span>
 
       <div className="max-md:hidden opacity-0 group-hover/item:opacity-100 flex items-center gap-0.5 transition-opacity z-20 shrink-0 pr-1">
+        {!isFirst && (
+          <button onClick={(ev) => { ev.stopPropagation(); moveEntity(e.id, 'up'); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('moveUp' as any) || 'Move Up'}>
+            <Icon name="ArrowUp" size={14} />
+          </button>
+        )}
+        {!isLast && (
+          <button onClick={(ev) => { ev.stopPropagation(); moveEntity(e.id, 'down'); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('moveDown' as any) || 'Move Down'}>
+            <Icon name="ArrowDown" size={14} />
+          </button>
+        )}
         <button onClick={(ev) => { ev.stopPropagation(); duplicateEntity(e.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbDuplicate')}>
           <Icon name="Copy" size={14} />
         </button>
@@ -66,7 +133,7 @@ const MemoizedEntityItem = React.memo(({
     </div>
   );
 }, (prev, next) => {
-  return prev.e === next.e && prev.depth === next.depth && prev.hasChildren === next.hasChildren && prev.isSelected === next.isSelected && prev.isCollapsed === next.isCollapsed && prev.isDragOver === next.isDragOver && prev.isDragged === next.isDragged && prev.anyDragged === next.anyDragged && prev.isSearchDimmed === next.isSearchDimmed && prev.isSearchMatch === next.isSearchMatch && prev.t === next.t;
+  return prev.e === next.e && prev.depth === next.depth && prev.hasChildren === next.hasChildren && prev.isFirst === next.isFirst && prev.isLast === next.isLast && prev.isSelected === next.isSelected && prev.isCollapsed === next.isCollapsed && prev.dragOverId === next.dragOverId && prev.isDragged === next.isDragged && prev.anyDragged === next.anyDragged && prev.isSearchDimmed === next.isSearchDimmed && prev.isSearchMatch === next.isSearchMatch && prev.t === next.t;
 });
 
 interface BuilderEntitiesTabProps {
@@ -217,6 +284,48 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
     });
   };
 
+  const moveEntity = useCallback((id: string, direction: 'up' | 'down') => {
+    updateDraftKey(prev => {
+      const newEntities = [...prev.entities];
+      const idx = newEntities.findIndex(e => e.id === id);
+      if (idx === -1) return prev;
+      const entity = newEntities[idx];
+      const siblings = newEntities.filter(e => e.parentId === entity.parentId);
+      const siblingIdx = siblings.findIndex(e => e.id === id);
+      if (direction === 'up' && siblingIdx > 0) {
+        const prevIdx = newEntities.findIndex(e => e.id === siblings[siblingIdx - 1].id);
+        const temp = newEntities[idx];
+        newEntities[idx] = newEntities[prevIdx];
+        newEntities[prevIdx] = temp;
+      } else if (direction === 'down' && siblingIdx < siblings.length - 1) {
+        const nextIdx = newEntities.findIndex(e => e.id === siblings[siblingIdx + 1].id);
+        const temp = newEntities[idx];
+        newEntities[idx] = newEntities[nextIdx];
+        newEntities[nextIdx] = temp;
+      }
+      return { ...prev, entities: newEntities };
+    });
+  }, [updateDraftKey]);
+
+  const reorderEntities = useCallback((draggedId: string, targetId: string, position: 'before' | 'after') => {
+    updateDraftKey(prev => {
+      const newEntities = [...prev.entities];
+      const draggedIdx = newEntities.findIndex(e => e.id === draggedId);
+      const targetIdx = newEntities.findIndex(e => e.id === targetId);
+      if (draggedIdx === -1 || targetIdx === -1) return prev;
+      
+      const draggedEntity = { ...newEntities[draggedIdx], parentId: newEntities[targetIdx].parentId };
+      newEntities[draggedIdx] = draggedEntity;
+      
+      const [moved] = newEntities.splice(draggedIdx, 1);
+      const newTargetIdx = newEntities.findIndex(e => e.id === targetId);
+      const insertIdx = position === 'before' ? newTargetIdx : newTargetIdx + 1;
+      newEntities.splice(insertIdx, 0, moved);
+      
+      return { ...prev, entities: newEntities };
+    });
+  }, [updateDraftKey]);
+
   const reorderEntityMedia = (entityId: string, from: number, to: number) => {
     if (from === to) return;
     updateDraftKey(prev => ({
@@ -257,31 +366,33 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
         rootEntities.push(e);
       }
     });
-    const result: { e: DraftEntity, depth: number, hasChildren: boolean }[] = [];
-    const traverse = (e: DraftEntity, depth: number) => {
+    const result: { e: DraftEntity, depth: number, hasChildren: boolean, isFirst: boolean, isLast: boolean }[] = [];
+    const traverse = (e: DraftEntity, depth: number, index: number, total: number) => {
       const children = entityChildrenMap.get(e.id) || [];
-      result.push({ e, depth, hasChildren: children.length > 0 });
+      result.push({ e, depth, hasChildren: children.length > 0, isFirst: index === 0, isLast: index === total - 1 });
       if (!collapsedEntities.has(e.id)) {
-        children.forEach(c => traverse(c, depth + 1));
+        children.forEach((c, i) => traverse(c, depth + 1, i, children.length));
       }
     };
-    rootEntities.forEach(e => traverse(e, 0));
+    rootEntities.forEach((e, i) => traverse(e, 0, i, rootEntities.length));
     return result;
   }, [draftKey.entities, collapsedEntities]);
 
   const renderEntityList = () => {
-    return visibleEntities.map(({ e, depth, hasChildren }) => {
+    return visibleEntities.map(({ e, depth, hasChildren, isFirst, isLast }) => {
       const isSearchDimmed = matchingIds !== null && !matchingIds.has(e.id);
       const isSearchMatch = matchingIds !== null && matchingIds.has(e.id);
       return (
         <MemoizedEntityItem
-          key={e.id} e={e} depth={depth} hasChildren={hasChildren}
+          key={e.id} e={e} depth={depth} hasChildren={hasChildren} isFirst={isFirst} isLast={isLast}
           isSelected={selectedEntityId === e.id} isCollapsed={collapsedEntities.has(e.id)}
-          isDragOver={dragOverId === e.id} isDragged={draggedItem?.id === e.id}
+          dragOverId={dragOverId} isDragged={draggedItem?.id === e.id}
           anyDragged={!!draggedItem} t={t} setSelectedEntityId={setSelectedEntityId}
           toggleEntityCollapse={toggleEntityCollapse} duplicateEntity={duplicateEntity}
           setDeleteTarget={setDeleteTarget} treeDnd={treeDnd}
           isSearchDimmed={isSearchDimmed} isSearchMatch={isSearchMatch}
+          moveEntity={moveEntity} reorderEntities={reorderEntities} updateEntity={updateEntity}
+          draggedItem={draggedItem} setDragOverId={setDragOverId} setDraggedItem={setDraggedItem}
         />
       );
     });
@@ -329,16 +440,23 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
       </div>
       <div
         ref={containerRef}
-        className={`panel-content grow p-3 space-y-0.5 overflow-y-auto transition-colors ${dragOverId === 'root' ? 'bg-accent/5 ring-2 ring-inset ring-accent' : ''}`}
+        className={`panel-content grow p-3 space-y-1 overflow-y-auto transition-colors ${dragOverId === 'root-entity' ? 'bg-accent/5 ring-2 ring-inset ring-accent' : ''}`}
         data-root-drop="true"
         onDragOver={(e) => {
           e.preventDefault();
-          if (draggedItem?.type === 'entity' && dragOverId !== 'root') setDragOverId('root');
+          if (draggedItem?.type === 'entity' && dragOverId !== 'root-entity') setDragOverId('root-entity');
         }}
         onDragLeave={() => {
-          if (dragOverId === 'root') setDragOverId(null);
+          if (dragOverId === 'root-entity') setDragOverId(null);
         }}
-        onDrop={treeDnd.onRootDrop}
+        onDrop={(e) => {
+          e.preventDefault();
+          if (dragOverId === 'root-entity' && draggedItem?.type === 'entity') {
+            updateEntity(draggedItem.id, { parentId: undefined });
+          }
+          setDragOverId(null);
+          setDraggedItem(null);
+        }}
       >
         {renderEntityList()}
       </div>
