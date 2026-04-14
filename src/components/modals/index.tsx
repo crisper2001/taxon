@@ -1,5 +1,6 @@
 export * from './BuilderEntityModal';
 export * from './BuilderFeatureModal';
+export * from './ChangelogModal';
 export * from './ConfirmModal';
 export * from './EntityModal';
 export * from './FeatureModal';

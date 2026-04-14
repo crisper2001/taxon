@@ -4,7 +4,7 @@ import { LucidKeyParser } from './services';
 import { FeaturesPanel, EntitiesPanel, ChosenFeaturesPanel } from './components';
 import { AIAssistant } from './components/';
 import { ResizablePanels } from './components';
-import { EntityModal, PreferencesModal, KeyInfoModal, FeatureModal, ImageLightboxModal, ConfirmModal } from './components';
+import { EntityModal, PreferencesModal, KeyInfoModal, FeatureModal, ImageLightboxModal, ConfirmModal, ChangelogModal } from './components';
 import { translations } from './constants';
 import { useKeyFiltering } from './hooks';
 import { useResizablePanel } from './hooks';
@@ -16,6 +16,7 @@ import { KeyBuilder } from './components';
 import { Toast } from './components';
 import { AppProvider } from './context/AppContext';
 import type { Language, Theme } from './types';
+import packageJson from '../package.json';
 
 const App: React.FC = () => {
   // --- STATE MANAGEMENT ---
@@ -818,7 +819,7 @@ const App: React.FC = () => {
         <ConfirmModal
           isOpen={(modalState.type as any) === 'confirmClearData' || (underlyingModalState?.type as any) === 'confirmClearData'}
           onClose={handleModalClose}
-          onConfirm={() => { localStorage.clear(); window.location.reload(); }}
+          onConfirm={() => { localStorage.clear(); window.location.replace(window.location.href); }}
           title={t('clearLocalData' as any)}
           message={
             <div className="flex items-start gap-3 text-red-500 bg-red-500/10 p-4 rounded-xl border border-red-500/20">
@@ -830,6 +831,13 @@ const App: React.FC = () => {
           cancelText={t('cancel')}
           isDestructive={true}
         />
+
+      <ChangelogModal 
+        isOpen={(modalState.type as any) === 'changelog' || (underlyingModalState?.type as any) === 'changelog'} 
+        onClose={handleModalClose} 
+        version={packageJson.version} 
+        t={t as any} 
+      />
 
         <input
           type="file"
@@ -1017,6 +1025,13 @@ const App: React.FC = () => {
                     <Icon name="Settings2" size={24} />
                   </button>
                 </div>
+                <button
+                  onClick={() => setModalState({ type: 'changelog' as any })}
+                  className="absolute bottom-6 right-6 md:bottom-10 md:right-10 flex items-center gap-2 px-4 py-2.5 bg-panel-bg/90 backdrop-blur-md border border-black/5 dark:border-white/10 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer text-accent font-bold text-sm"
+                >
+                  <Icon name="Sparkles" size={18} />
+                  <span>{t('whatsNew' as any) ? t('whatsNew' as any).replace('{version}', packageJson.version) : `What's New in v${packageJson.version}`}</span>
+                </button>
               </div>
             )}
           </div>

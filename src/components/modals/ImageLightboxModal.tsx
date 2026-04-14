@@ -29,14 +29,26 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
       setCurrentIndex(startIndex); // Reset index when opening
       setScale(1);
       setPosition({ x: 0, y: 0 });
-      const timer = setTimeout(() => setIsVisible(true), 10);
-      return () => clearTimeout(timer);
     } else {
       setIsVisible(false);
       const timer = setTimeout(() => setIsRendered(false), 300);
       return () => clearTimeout(timer);
     }
   }, [isOpen, startIndex]);
+
+  useEffect(() => {
+    let raf1: number;
+    let raf2: number;
+    if (isRendered && isOpen) {
+      raf1 = requestAnimationFrame(() => {
+        raf2 = requestAnimationFrame(() => setIsVisible(true));
+      });
+    }
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, [isRendered, isOpen]);
 
   useEffect(() => {
     setScale(1);

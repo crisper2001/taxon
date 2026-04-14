@@ -195,9 +195,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                             {t('aboutDescription' as any) || 'A web application to create, edit, and use identification keys.'}
                         </p>
                         <div className="pt-4 flex justify-center w-full">
-                           <a href="https://github.com/crisper2001/taxon" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-5 py-3 bg-panel-bg/80 hover:bg-hover-bg rounded-2xl transition-all duration-300 font-bold text-sm text-text/80 shadow-sm border border-black/5 dark:border-white/5">
-                               <Icon name="Github" size={18} /> GitHub
-                           </a>
+                            <a href="https://github.com/crisper2001/taxon" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-5 py-3 bg-panel-bg/80 hover:bg-hover-bg rounded-2xl transition-all duration-300 font-bold text-sm text-text/80 shadow-sm border border-black/5 dark:border-white/5">
+                                <Icon name="Github" size={18} /> GitHub
+                            </a>
                         </div>
                     </div>
                 )}

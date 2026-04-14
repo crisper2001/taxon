@@ -15,28 +15,31 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    let raf1: number;
-    let raf2: number;
-    let timer: NodeJS.Timeout;
-
     if (isOpen) {
       setIsRendered(true);
-      // Double requestAnimationFrame guarantees the DOM has painted the initial state before animating
-      raf1 = requestAnimationFrame(() => {
-        raf2 = requestAnimationFrame(() => {
-          setIsVisible(true);
-        });
-      });
     } else {
       setIsVisible(false);
-      timer = setTimeout(() => setIsRendered(false), 300); // Must match animation duration
+      const timer = setTimeout(() => setIsRendered(false), 300); // Must match animation duration
+      return () => clearTimeout(timer);
     }
+  }, [isOpen]);
+
+  useEffect(() => {
+    let raf1: number;
+    let raf2: number;
+
+    if (isRendered && isOpen) {
+      // Double requestAnimationFrame guarantees the DOM has painted the initial state before animating
+      raf1 = requestAnimationFrame(() => {
+        raf2 = requestAnimationFrame(() => setIsVisible(true));
+      });
+    }
+
     return () => {
       cancelAnimationFrame(raf1);
       cancelAnimationFrame(raf2);
-      clearTimeout(timer);
     };
-  }, [isOpen]);
+  }, [isRendered, isOpen]);
 
   // Handle Escape key press
   useEffect(() => {
