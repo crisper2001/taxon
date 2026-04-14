@@ -27,6 +27,11 @@
   --color-accent-hover: #2563eb;
 }
 
+/* Remove shadows from mobile sidebar buttons in dark mode */
+.dark #sidebar button {
+  box-shadow: none !important;
+}
+
 /* Global Custom Morphic Checkbox */
 input[type="checkbox"] {
   appearance: none;

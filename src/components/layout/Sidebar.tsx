@@ -40,7 +40,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onExit, actio
 
         {/* Header/Branding */}
         <div className="pb-4 pt-2 border-b border-black/5 dark:border-white/5">
-          <button onClick={handleExit} title={t('closeKey' as any)} className="flex items-center justify-center gap-3 w-full p-3 rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md group">
+          <button onClick={handleExit} title={t('closeKey' as any)} className="flex items-center justify-center gap-3 w-full p-3 rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md border border-transparent dark:border-white/10 dark:hover:border-white/20 group">
             <h2 className="text-2xl font-black flex items-center gap-2 text-accent tracking-tight group-hover:opacity-100">
               <Icon name="Leaf" size={28} /> Taxon
             </h2>
@@ -50,7 +50,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onExit, actio
         {/* Key Management Actions */}
         <div className="flex flex-col gap-2 text-sm font-semibold">
           {displayActions.map((action, idx) => (
-            <button key={idx} onClick={() => { action.onClick(); onClose(); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md group">
+            <button key={idx} onClick={() => { action.onClick(); onClose(); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md border border-transparent dark:border-white/10 dark:hover:border-white/20 group">
               <Icon name={action.icon} className={`opacity-80 group-hover:opacity-100 ${action.iconClass || ''}`} /> {action.label}
             </button>
           ))}
@@ -58,7 +58,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onExit, actio
 
         {/* Settings & Info (Pushed to bottom) */}
         <div className="mt-auto flex flex-col gap-2 pt-5 border-t border-black/5 dark:border-white/5 text-sm font-semibold">
-          <button onClick={() => { openPreferences(); onClose(); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md group">
+          <button onClick={() => { openPreferences(); onClose(); }} className="flex items-center gap-3 w-full p-3 text-left rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md border border-transparent dark:border-white/10 dark:hover:border-white/20 group">
             <Icon name="Settings2" className="opacity-80 group-hover:opacity-100" /> {t('preferences')}
           </button>
         </div>
