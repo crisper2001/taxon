@@ -124,12 +124,12 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
         case 'response': {
           if (msg.data?.answer && msg.data.answer.trim().length > 0) {
             content = msg.data.answer;
-          } else if (appMode === 'build' && (msg.data?.suggested_features?.length || msg.data?.suggested_entities?.length)) {
+          } else if (appMode === 'build') {
             content = '';
           } else {
             const features = msg.data?.features_used || [];
             if (features.length > 0) {
-              const matchingEntities = findMatchingEntities(features, keyData);
+              const matchingEntities = keyData ? findMatchingEntities(features, keyData) : [];
               const count = matchingEntities.length;
               const matchesText = matchingEntities
                 .map(e => `<span class="clickable-entity text-accent font-semibold cursor-pointer hover:underline" data-id="${e.id}">${e.name}</span>`)
@@ -212,14 +212,33 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
   }
 
   const sendMessage = async (overrideText?: string, overrideHistory?: RawChatMessage[], regenerateAiIndex?: number) => {
-    const text = overrideText !== undefined ? overrideText : userInput;
-    if ((!text.trim() && !selectedImage) || isThinking || (appMode === 'identify' && !keyData)) return;
+    const isRegenerate = overrideHistory !== undefined;
+    const text = isRegenerate ? (overrideText || '') : userInput;
+
+    let currentImage = selectedImage;
+    if (isRegenerate && overrideHistory) {
+      const lastMsg = overrideHistory[overrideHistory.length - 1] as any;
+      if (lastMsg.imageUrl && lastMsg.imageBase64 && lastMsg.imageMimeType) {
+        currentImage = { url: lastMsg.imageUrl, base64: lastMsg.imageBase64, mimeType: lastMsg.imageMimeType } as any;
+      } else {
+        currentImage = null;
+      }
+    }
+
+    if ((!text.trim() && !currentImage) || isThinking || (appMode === 'identify' && !keyData)) return;
 
     let currentHistory = overrideHistory || rawChatHistory;
-    const currentImage = selectedImage;
 
-    if (overrideText === undefined) {
-      const userMessage: RawChatMessage = { sender: 'user', content: text, ...(currentImage ? { imageUrl: currentImage.url } : {}) } as any;
+    if (!isRegenerate) {
+      const userMessage: RawChatMessage = {
+        sender: 'user',
+        content: text,
+        ...(currentImage ? {
+          imageUrl: currentImage.url,
+          imageBase64: currentImage.base64,
+          imageMimeType: currentImage.mimeType
+        } : {})
+      } as any;
       currentHistory = [...currentHistory, userMessage];
       setRawChatHistory(currentHistory);
       setUserInput('');

@@ -35,6 +35,12 @@ export const ChatMessageBubble = React.memo<ChatMessageBubbleProps>(({
   const [editValue, setEditValue] = useState(msg.content);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
 
+  useEffect(() => {
+    setAddedFeatures(new Set());
+    setAddedEntities(new Set());
+    setAddedAll(false);
+  }, [msg.currentVersionIndex, msg.data]);
+
   const handleUndo = () => {
     if (msg.draftSnapshot) {
       window.dispatchEvent(new CustomEvent('restore-builder-snapshot', { detail: msg.draftSnapshot }));
