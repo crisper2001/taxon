@@ -191,6 +191,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                         <div className="text-sm font-bold text-text/70 -mt-2">
                             {t('createdBy' as any) || 'Created by'} {packageJson.author}
                         </div>
+                        <div className="text-xs font-bold text-text/50 -mt-1">
+                            {t('licensedUnder' as any) || 'Licensed under'} <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">AGPL-3.0</a>
+                        </div>
                         <p className="text-sm text-text/80 leading-relaxed">
                             {t('aboutDescription' as any) || 'A web application to create, edit, and use identification keys.'}
                         </p>
