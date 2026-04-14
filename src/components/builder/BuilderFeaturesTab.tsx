@@ -4,22 +4,58 @@ import type { DraftKeyData, DraftFeature } from '../../types';
 import { ConfirmModal, BuilderFeatureModal } from '../modals';
 import { processImage } from '../../utils/imageUtils';
 import { useTreeDragAndDrop, useSearchAutoScroll } from '../../hooks';
+import { BuilderListHeader } from './BuilderListHeader';
+import { BuilderListItem } from './BuilderListItem';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
 const MemoizedFeatureItem = React.memo(({
   f, depth, hasChildren, isFirst, isLast, isSelected, isCollapsed, dragOverId, isDragged, anyDragged, draggedItemType, draggedItemParentId, draggedItemId, isSearchDimmed, isSearchMatch,
   t, setSelectedFeatureId, toggleFeatureCollapse, duplicateFeature, setDeleteTarget, addState,
-  featureTreeDnd, setDragOverId, setDraggedItem, moveStateToFeature, moveFeature, reorderFeatures, updateFeature
+  featureTreeDnd, setDragOverId, setDraggedItem, moveStateToFeature, moveFeature, reorderFeatures, updateFeature,
+  dragStateRef, collapsedFeaturesRef
 }: any) => {
+  const checkFeatureCycle = (draggedId: string, targetId: string) => {
+    let current: string | undefined = targetId;
+    const features = dragStateRef.current.draftKey.features;
+    while (current) {
+      if (current === draggedId) return true;
+      current = features.find((x: any) => x.id === current)?.parentId;
+    }
+    return false;
+  };
+
   const iconName = f.type === 'state' ? 'ListTree' : 'Hash';
   const isDragOverCenter = dragOverId === f.id;
   const isDragOverTop = dragOverId === `before-${f.id}`;
-  const isDragOverBottom = dragOverId === `after-${f.id}` && (isCollapsed || f.type !== 'state' || !f.states || f.states.length === 0);
+  const isDragOverBottom = dragOverId === `after-${f.id}` && (isCollapsed || !hasChildren);
 
   return (
-    <div
-      data-search-match={isSearchMatch ? "true" : undefined}
+    <BuilderListItem
+      id={f.id} name={f.name || t('kbUnnamedFeature')} depth={depth}
+      isFirst={isFirst} isLast={isLast} isSelected={isSelected}
+      isCollapsed={isCollapsed} hasChildren={hasChildren}
+      isDragOverCenter={isDragOverCenter} isDragOverTop={isDragOverTop} isDragOverBottom={isDragOverBottom}
+      isDragged={isDragged} anyDragged={anyDragged}
+      isSearchDimmed={isSearchDimmed} isSearchMatch={isSearchMatch}
+      iconName={iconName} imageUrl={f.media?.[0]?.url} className="feature-item"
+      onClick={(e) => { e.stopPropagation(); setSelectedFeatureId(f.id); }}
+      onToggleCollapse={(e) => { e.stopPropagation(); toggleFeatureCollapse(f.id); }}
+      badges={
+        <>
+          {f.matchType === 'AND' && <span className="ml-2 text-[10px] bg-accent/20 text-accent px-1.5 py-0.5 rounded font-bold">AND</span>}
+          {f.matchType === 'SINGLE' && <span className="ml-2 text-[10px] bg-accent/20 text-accent px-1.5 py-0.5 rounded font-bold">SINGLE</span>}
+        </>
+      }
+      actions={
+        <>
+          {f.type === 'state' && <button onClick={(e) => { e.stopPropagation(); addState(f.id); if (isCollapsed) toggleFeatureCollapse(f.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbAddState')}><Icon name="Plus" size={14} /></button>}
+          {!isFirst && <button onClick={(e) => { e.stopPropagation(); moveFeature(f.id, 'up'); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('moveUp' as any) || 'Move Up'}><Icon name="ArrowUp" size={14} /></button>}
+          {!isLast && <button onClick={(e) => { e.stopPropagation(); moveFeature(f.id, 'down'); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('moveDown' as any) || 'Move Down'}><Icon name="ArrowDown" size={14} /></button>}
+          <button onClick={(e) => { e.stopPropagation(); duplicateFeature(f.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbDuplicate')}><Icon name="Copy" size={14} /></button>
+          <button onClick={(e) => { e.stopPropagation(); setDeleteTarget({ type: 'feature', id: f.id }); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-red-500 hover:bg-red-500/10' : 'text-red-400 hover:text-red-500 hover:bg-red-500/10'}`} title={t('kbDelete')}><Icon name="Trash2" size={14} /></button>
+        </>
+      }
       draggable
       data-feature-id={f.id}
       onContextMenu={(e) => e.preventDefault()}
@@ -33,34 +69,29 @@ const MemoizedFeatureItem = React.memo(({
           }
         } else if (draggedItemType === 'feature' && draggedItemId !== f.id) {
           e.preventDefault(); e.stopPropagation();
+          if (checkFeatureCycle(draggedItemId, f.id)) { setDragOverId(null); return; }
           const rect = e.currentTarget.getBoundingClientRect();
           const y = e.clientY - rect.top;
-          if (y < rect.height * 0.25) {
-            if (dragOverId !== `before-${f.id}`) setDragOverId(`before-${f.id}`);
-          } else if (y > rect.height * 0.75) {
-            if (dragOverId !== `after-${f.id}`) setDragOverId(`after-${f.id}`);
-          } else {
-            if (dragOverId !== f.id) setDragOverId(f.id);
-          }
+          const isExpanded = !isCollapsed && hasChildren;
+          if (y < rect.height * 0.25) { if (dragOverId !== `before-${f.id}`) setDragOverId(`before-${f.id}`); }
+          else if (y > rect.height * 0.75 && !isExpanded) { if (dragOverId !== `after-${f.id}`) setDragOverId(`after-${f.id}`); }
+          else { if (dragOverId !== f.id) setDragOverId(f.id); }
         }
       }}
       onDragLeave={() => featureTreeDnd.onDragLeave(f.id)}
       onDrop={(e) => {
         if (draggedItemType === 'state') {
-          e.preventDefault(); e.stopPropagation();
-          setDragOverId(null);
-          if (draggedItemParentId !== f.id && f.type === 'state') {
-            moveStateToFeature(draggedItemId, draggedItemParentId, f.id);
-          }
+          e.preventDefault(); e.stopPropagation(); setDragOverId(null);
+          if (draggedItemParentId !== f.id && f.type === 'state') moveStateToFeature(draggedItemId, draggedItemParentId, f.id);
         } else if (draggedItemType === 'feature' && draggedItemId !== f.id) {
           e.preventDefault(); e.stopPropagation();
+          if (checkFeatureCycle(draggedItemId, f.id)) { setDraggedItem(null); return; }
           const rect = e.currentTarget.getBoundingClientRect();
           const y = e.clientY - rect.top;
-          if (y < rect.height * 0.25 || y > rect.height * 0.75) {
-            reorderFeatures(draggedItemId, f.id, y < rect.height * 0.25 ? 'before' : 'after');
-          } else {
-            updateFeature(draggedItemId, { parentId: f.id });
-          }
+          const isExpanded = !isCollapsed && hasChildren;
+          if (y < rect.height * 0.25) reorderFeatures(draggedItemId, f.id, 'before');
+          else if (y > rect.height * 0.75 && !isExpanded) reorderFeatures(draggedItemId, f.id, 'after');
+          else updateFeature(draggedItemId, { parentId: f.id });
         }
         setDraggedItem(null);
       }}
@@ -69,10 +100,7 @@ const MemoizedFeatureItem = React.memo(({
         if (anyDragged) e.stopPropagation();
         const touch = e.touches[0];
         featureTreeDnd.lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
-        if (featureTreeDnd.ghostRef.current) {
-          featureTreeDnd.ghostRef.current.style.left = `${touch.clientX}px`;
-          featureTreeDnd.ghostRef.current.style.top = `${touch.clientY}px`;
-        }
+        if (featureTreeDnd.ghostRef.current) { featureTreeDnd.ghostRef.current.style.left = `${touch.clientX}px`; featureTreeDnd.ghostRef.current.style.top = `${touch.clientY}px`; }
         if (!anyDragged) return;
         const el = document.elementFromPoint(touch.clientX, touch.clientY);
         const targetFeature = el?.closest('[data-feature-id]');
@@ -81,16 +109,27 @@ const MemoizedFeatureItem = React.memo(({
           if (targetState) {
             const targetId = targetState.getAttribute('data-parent-id');
             if (targetId && targetId !== draggedItemId) {
-              setDragOverId(`after-${targetId}`);
+              if (checkFeatureCycle(draggedItemId, targetId)) {
+                setDragOverId(null);
+              } else {
+                setDragOverId(`after-${targetId}`);
+              }
             }
           } else if (targetFeature) {
             const targetId = targetFeature.getAttribute('data-feature-id');
             if (targetId && targetId !== draggedItemId) {
+            if (checkFeatureCycle(draggedItemId, targetId)) {
+              setDragOverId(null);
+            } else {
               const rect = targetFeature.getBoundingClientRect();
               const y = touch.clientY - rect.top;
+              const targetDraftFeat = dragStateRef.current.draftKey.features.find((x: any) => x.id === targetId);
+              const targetHasChildren = dragStateRef.current.draftKey.features.some((x: any) => x.parentId === targetId) || (targetDraftFeat?.type === 'state' && (targetDraftFeat.states?.length || 0) > 0);
+              const isExpanded = !collapsedFeaturesRef.current.has(targetId) && targetHasChildren;
               if (y < rect.height * 0.25) setDragOverId(`before-${targetId}`);
-              else if (y > rect.height * 0.75) setDragOverId(`after-${targetId}`);
+              else if (y > rect.height * 0.75 && !isExpanded) setDragOverId(`after-${targetId}`);
               else setDragOverId(targetId);
+            }
             }
           } else setDragOverId(null);
         } else setDragOverId(null);
@@ -100,68 +139,21 @@ const MemoizedFeatureItem = React.memo(({
         if (draggedItemType === 'feature') {
           if (e.cancelable) e.preventDefault();
           if (dragOverId) {
-            if (dragOverId.startsWith('before-')) reorderFeatures(draggedItemId, dragOverId.replace('before-', ''), 'before');
-            else if (dragOverId.startsWith('after-')) reorderFeatures(draggedItemId, dragOverId.replace('after-', ''), 'after');
-            else if (dragOverId !== draggedItemId) updateFeature(draggedItemId, { parentId: dragOverId });
+            const targetRawId = dragOverId.replace('before-', '').replace('after-', '');
+            if (!checkFeatureCycle(draggedItemId, targetRawId)) {
+              if (dragOverId.startsWith('before-')) reorderFeatures(draggedItemId, targetRawId, 'before');
+              else if (dragOverId.startsWith('after-')) reorderFeatures(draggedItemId, targetRawId, 'after');
+              else if (dragOverId !== draggedItemId) updateFeature(draggedItemId, { parentId: dragOverId });
+            }
           }
           setDraggedItem(null); setDragOverId(null);
         }
       }}
       onTouchCancel={featureTreeDnd.onTouchCancel}
-      onClick={() => setSelectedFeatureId(f.id)}
-      className={`builder-list-item feature-item flex items-center gap-2 p-1.5 rounded-xl transition-all duration-300 relative group/item cursor-pointer hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm ${isSelected ? 'bg-accent/20 shadow-inner ring-2 ring-accent' : 'border border-transparent'} ${isDragOverCenter ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${isDragOverTop || isDragOverBottom ? 'z-20' : ''} ${isDragged ? 'opacity-50' : ''} ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20 shadow-inner' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}
-      style={{ paddingLeft: `calc(${1.5 + depth * 1.5}rem + 0.5rem)`, touchAction: anyDragged ? 'none' : 'auto', contentVisibility: (isDragOverTop || isDragOverBottom) ? 'visible' : 'auto' } as React.CSSProperties}
-    >
-      <div className={`absolute -top-[3px] left-0 right-0 h-[2px] bg-accent z-30 pointer-events-none transition-opacity duration-200 ${isDragOverTop ? 'opacity-100' : 'opacity-0'}`} />
-      <div className={`absolute -bottom-[3px] left-0 right-0 h-[2px] bg-accent z-30 pointer-events-none transition-opacity duration-200 ${isDragOverBottom ? 'opacity-100' : 'opacity-0'}`} />
-      {hasChildren && (
-        <button
-          onClick={(e) => { e.stopPropagation(); toggleFeatureCollapse(f.id); }}
-          className={`w-7 h-7 flex items-center justify-center rounded-md cursor-pointer absolute z-20 transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-500 hover:bg-black/10 dark:hover:bg-white/10'}`}
-          style={{ left: `calc(${depth * 1.5}rem)` }}
-        >
-          <Icon name="ChevronRight" size={16} className={`transition-transform duration-200 ${!isCollapsed ? 'rotate-90' : ''}`} />
-        </button>
-      )}
-      {f.media && f.media.length > 0 ? (
-        <img src={f.media[0].url} alt={f.name} className="w-10 h-10 object-cover rounded-lg shadow-sm shrink-0" />
-      ) : (
-        <div className="w-10 h-10 bg-header-bg/80 rounded-lg shadow-sm shrink-0 flex items-center justify-center text-gray-400">
-          <Icon name={iconName} size={20} className={`shrink-0 ${isSelected ? 'opacity-100 text-accent' : 'opacity-60'}`} />
-        </div>
-      )}
-      <span className="truncate flex-1 text-sm font-medium">
-        {f.name || t('kbUnnamedFeature')}
-        {f.matchType === 'AND' && <span className="ml-2 text-[10px] bg-accent/20 text-accent px-1.5 py-0.5 rounded font-bold">AND</span>}
-        {f.matchType === 'SINGLE' && <span className="ml-2 text-[10px] bg-accent/20 text-accent px-1.5 py-0.5 rounded font-bold">SINGLE</span>}
-      </span>
-      <div className="max-md:hidden opacity-0 group-hover/item:opacity-100 flex items-center gap-0.5 transition-opacity z-20 shrink-0 pr-1">
-        {f.type === 'state' && (
-          <button onClick={(e) => { e.stopPropagation(); addState(f.id); if (isCollapsed) toggleFeatureCollapse(f.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbAddState')}>
-            <Icon name="Plus" size={14} />
-          </button>
-        )}
-        {!isFirst && (
-          <button onClick={(e) => { e.stopPropagation(); moveFeature(f.id, 'up'); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('moveUp' as any) || 'Move Up'}>
-            <Icon name="ArrowUp" size={14} />
-          </button>
-        )}
-        {!isLast && (
-          <button onClick={(e) => { e.stopPropagation(); moveFeature(f.id, 'down'); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('moveDown' as any) || 'Move Down'}>
-            <Icon name="ArrowDown" size={14} />
-          </button>
-        )}
-        <button onClick={(e) => { e.stopPropagation(); duplicateFeature(f.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbDuplicate')}>
-          <Icon name="Copy" size={14} />
-        </button>
-        <button onClick={(e) => { e.stopPropagation(); setDeleteTarget({ type: 'feature', id: f.id }); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-red-500 hover:bg-red-500/10' : 'text-red-400 hover:text-red-500 hover:bg-red-500/10'}`} title={t('kbDelete')}>
-          <Icon name="Trash2" size={14} />
-        </button>
-      </div>
-    </div>
+    />
   );
 }, (prev, next) => {
-  return prev.f === next.f && prev.depth === next.depth && prev.hasChildren === next.hasChildren && prev.isFirst === next.isFirst && prev.isLast === next.isLast && prev.isSelected === next.isSelected && prev.isCollapsed === next.isCollapsed && prev.dragOverId === next.dragOverId && prev.isDragged === next.isDragged && prev.anyDragged === next.anyDragged && prev.draggedItemType === next.draggedItemType && prev.draggedItemParentId === next.draggedItemParentId && prev.draggedItemId === next.draggedItemId && prev.isSearchDimmed === next.isSearchDimmed && prev.isSearchMatch === next.isSearchMatch && prev.t === next.t;
+  return prev.f === next.f && prev.depth === next.depth && prev.hasChildren === next.hasChildren && prev.isFirst === next.isFirst && prev.isLast === next.isLast && prev.isSelected === next.isSelected && prev.isCollapsed === next.isCollapsed && prev.dragOverId === next.dragOverId && prev.isDragged === next.isDragged && prev.anyDragged === next.anyDragged && prev.draggedItemType === next.draggedItemType && prev.draggedItemParentId === next.draggedItemParentId && prev.draggedItemId === next.draggedItemId && prev.isSearchDimmed === next.isSearchDimmed && prev.isSearchMatch === next.isSearchMatch && prev.t === next.t && prev.dragStateRef === next.dragStateRef && prev.collapsedFeaturesRef === next.collapsedFeaturesRef;
 });
 
 const MemoizedStateItem = React.memo(({
@@ -170,39 +162,83 @@ const MemoizedStateItem = React.memo(({
   setDraggedItem, setDragOverId, dragStateRef, reorderStates, moveStateToFeature,
   lastTouchPos, touchTimeout, ghostRef, moveState, reorderFeatures
 }: any) => {
+  const checkFeatureCycle = (draggedId: string, targetId: string) => {
+    let current: string | undefined = targetId;
+    const features = dragStateRef.current.draftKey.features;
+    while (current) {
+      if (current === draggedId) return true;
+      current = features.find((x: any) => x.id === current)?.parentId;
+    }
+    return false;
+  };
+
   const isDragOverCenter = dragOverId === s.id;
   const isDragOverTop = dragOverId === `before-${s.id}`;
   const isDragOverBottom = dragOverId === `after-${s.id}`;
   const isDragOverParentBottom = dragOverId === `after-${f.id}` && isLast;
 
   return (
-    <div
-      className={`builder-list-item state-item flex items-center gap-2 p-1.5 rounded-xl transition-all duration-300 relative group/state cursor-pointer hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm ${isSelected ? 'bg-accent/20 shadow-inner ring-2 ring-accent' : 'border border-transparent opacity-80 hover:opacity-100'} ${isDragOverCenter ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${isDragOverTop || isDragOverBottom || isDragOverParentBottom ? 'z-20' : ''} ${isDragged ? 'opacity-50' : ''} ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20 shadow-inner' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}
+    <BuilderListItem
+      id={s.id} name={s.name || t('kbStateName') || 'Unnamed State'} depth={depth}
+      isFirst={isFirst} isLast={isLast} isSelected={isSelected}
+      isCollapsed={false} hasChildren={false}
+      isDragOverCenter={isDragOverCenter} isDragOverTop={isDragOverTop} isDragOverBottom={isDragOverBottom}
+      isDragOverParentBottom={isDragOverParentBottom}
+      isDragged={isDragged} anyDragged={anyDragged}
+      isSearchDimmed={isSearchDimmed} isSearchMatch={isSearchMatch}
+      iconName="List" stateIndicator={true} imageUrl={s.media?.[0]?.url} className="state-item"
       onClick={(e) => { e.stopPropagation(); setSelectedFeatureId(s.id); }}
-      style={{ paddingLeft: `calc(${1.5 + depth * 1.5}rem + 0.5rem)`, touchAction: anyDragged ? 'none' : 'auto', contentVisibility: (isDragOverTop || isDragOverBottom || isDragOverParentBottom) ? 'visible' : 'auto' } as React.CSSProperties}
+      actions={
+        <>
+          {!isFirst && <button onClick={(e) => { e.stopPropagation(); moveState(f.id, s.id, 'up'); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('moveUp' as any) || 'Move Up'}><Icon name="ArrowUp" size={14} /></button>}
+          {!isLast && <button onClick={(e) => { e.stopPropagation(); moveState(f.id, s.id, 'down'); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('moveDown' as any) || 'Move Down'}><Icon name="ArrowDown" size={14} /></button>}
+          <button onClick={(e) => { e.stopPropagation(); duplicateState(f.id, s.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbDuplicate')}><Icon name="Copy" size={14} /></button>
+          <button onClick={(e) => { e.stopPropagation(); setDeleteTarget({ type: 'state', id: s.id, parentId: f.id }); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-red-500 hover:bg-red-500/10' : 'text-red-400 hover:text-red-500 hover:bg-red-500/10'}`} title={t('kbDelete')}><Icon name="Trash2" size={14} /></button>
+        </>
+      }
       draggable data-state-id={s.id} data-parent-id={f.id}
-      onDragStart={(e) => { e.stopPropagation(); setDraggedItem({ type: 'state', id: s.id, parentId: f.id }); }}
-      onDragEnd={() => { setDraggedItem(null); setDragOverId(null); }}
+      onDragStart={(e) => {
+        e.stopPropagation();
+        setDraggedItem({ type: 'state', id: s.id, parentId: f.id });
+      }}
+      onDragEnd={() => {
+        setDraggedItem(null);
+        setDragOverId(null);
+      }}
       onDragOver={(e) => {
-        e.preventDefault(); e.stopPropagation();
+        e.preventDefault();
+        e.stopPropagation();
         if (draggedItemType === 'state' && draggedItemId !== s.id) {
           const rect = e.currentTarget.getBoundingClientRect();
           const y = e.clientY - rect.top;
-          if (y < rect.height * 0.5) { if (dragOverId !== `before-${s.id}`) setDragOverId(`before-${s.id}`); }
-          else { if (dragOverId !== `after-${s.id}`) setDragOverId(`after-${s.id}`); }
+          if (y < rect.height * 0.5) {
+            if (dragOverId !== `before-${s.id}`) setDragOverId(`before-${s.id}`);
+          } else {
+            if (dragOverId !== `after-${s.id}`) setDragOverId(`after-${s.id}`);
+          }
         } else if (draggedItemType === 'feature' && draggedItemId !== f.id) {
-          if (dragOverId !== `after-${f.id}`) setDragOverId(`after-${f.id}`);
+          if (checkFeatureCycle(draggedItemId, f.id)) {
+            setDragOverId(null);
+          } else if (dragOverId !== `after-${f.id}`) {
+            setDragOverId(`after-${f.id}`);
+          }
         }
       }}
-      onDragLeave={() => { setDragOverId(null); }}
+      onDragLeave={() => {
+        setDragOverId(null);
+      }}
       onDrop={(e) => {
-        e.preventDefault(); e.stopPropagation(); setDragOverId(null);
+        e.preventDefault();
+        e.stopPropagation();
+        setDragOverId(null);
         if (draggedItemType === 'state' && draggedItemId !== s.id) {
           const rect = e.currentTarget.getBoundingClientRect();
           const position = (e.clientY - rect.top) < rect.height * 0.5 ? 'before' : 'after';
           reorderStates(draggedItemParentId, f.id, draggedItemId, s.id, position);
         } else if (draggedItemType === 'feature' && draggedItemId !== f.id) {
-          reorderFeatures(draggedItemId, f.id, 'after');
+          if (!checkFeatureCycle(draggedItemId, f.id)) {
+            reorderFeatures(draggedItemId, f.id, 'after');
+          }
         }
         setDraggedItem(null);
       }}
@@ -217,23 +253,31 @@ const MemoizedStateItem = React.memo(({
         if (anyDragged) e.stopPropagation();
         const touch = e.touches[0];
         lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
-        if (ghostRef.current) { ghostRef.current.style.left = `${touch.clientX}px`; ghostRef.current.style.top = `${touch.clientY}px`; }
-        if (!anyDragged) { if (touchTimeout.current) clearTimeout(touchTimeout.current); return; }
+        if (ghostRef.current) {
+          ghostRef.current.style.left = `${touch.clientX}px`;
+          ghostRef.current.style.top = `${touch.clientY}px`;
+        }
+        if (!anyDragged) {
+          if (touchTimeout.current) clearTimeout(touchTimeout.current);
+          return;
+        }
         const el = document.elementFromPoint(touch.clientX, touch.clientY);
         const targetState = el?.closest('[data-state-id]');
         const targetFeature = el?.closest('[data-feature-id]');
         if (targetState) {
           const id = targetState.getAttribute('data-state-id');
           if (id && id !== s.id && draggedItemType === 'state') {
-             const rect = targetState.getBoundingClientRect();
-             if (touch.clientY - rect.top < rect.height * 0.5) setDragOverId(`before-${id}`);
-             else setDragOverId(`after-${id}`);
+            const rect = targetState.getBoundingClientRect();
+            if (touch.clientY - rect.top < rect.height * 0.5) setDragOverId(`before-${id}`);
+            else setDragOverId(`after-${id}`);
           }
         } else if (targetFeature) {
           const fid = targetFeature.getAttribute('data-feature-id');
           const isStateFeat = dragStateRef.current.draftKey.features.find((x: any) => x.id === fid)?.type === 'state';
           if (fid && isStateFeat && fid !== f.id && draggedItemType === 'state') setDragOverId(fid);
-        } else setDragOverId(null);
+        } else {
+          setDragOverId(null);
+        }
       }}
       onTouchEnd={(e) => {
         if (anyDragged) e.stopPropagation();
@@ -255,28 +299,16 @@ const MemoizedStateItem = React.memo(({
               if (targetFeature && targetFeature.type === 'state') moveStateToFeature(latestDraggedItem.id, latestDraggedItem.parentId!, latestDragOverId);
             }
           }
-          setDraggedItem(null); setDragOverId(null);
+          setDraggedItem(null);
+          setDragOverId(null);
         }
       }}
-      onTouchCancel={() => { if (touchTimeout.current) clearTimeout(touchTimeout.current); setDraggedItem(null); setDragOverId(null); }}
-    >
-      <div className={`absolute -top-[3px] left-0 right-0 h-[2px] bg-accent z-30 pointer-events-none transition-opacity duration-200 ${isDragOverTop ? 'opacity-100' : 'opacity-0'}`} />
-      <div className={`absolute -bottom-[3px] left-0 right-0 h-[2px] bg-accent z-30 pointer-events-none transition-opacity duration-200 ${isDragOverBottom || isDragOverParentBottom ? 'opacity-100' : 'opacity-0'}`} />
-      {s.media && s.media.length > 0 ? (
-        <img src={s.media[0].url} alt={s.name} className="w-8 h-8 object-cover rounded-lg shadow-sm shrink-0" />
-      ) : (
-        <div className="w-8 h-8 bg-header-bg/80 rounded-lg shadow-sm shrink-0 flex items-center justify-center text-gray-400">
-          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isSelected ? 'bg-accent' : 'bg-text opacity-50'}`}></span>
-        </div>
-      )}
-      <span className="truncate flex-1 text-sm font-medium">{s.name || t('kbStateName') || 'Unnamed State'}</span>
-      <div className="max-md:hidden opacity-0 group-hover/state:opacity-100 flex items-center gap-0.5 transition-opacity z-20 shrink-0 pr-1">
-        {!isFirst && <button onClick={(e) => { e.stopPropagation(); moveState(f.id, s.id, 'up'); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('moveUp' as any) || 'Move Up'}><Icon name="ArrowUp" size={14} /></button>}
-        {!isLast && <button onClick={(e) => { e.stopPropagation(); moveState(f.id, s.id, 'down'); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('moveDown' as any) || 'Move Down'}><Icon name="ArrowDown" size={14} /></button>}
-        <button onClick={(e) => { e.stopPropagation(); duplicateState(f.id, s.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbDuplicate')}><Icon name="Copy" size={14} /></button>
-        <button onClick={(e) => { e.stopPropagation(); setDeleteTarget({ type: 'state', id: s.id, parentId: f.id }); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-red-500 hover:bg-red-500/10' : 'text-red-400 hover:text-red-500 hover:bg-red-500/10'}`} title={t('kbDelete')}><Icon name="Trash2" size={14} /></button>
-      </div>
-    </div>
+      onTouchCancel={() => {
+        if (touchTimeout.current) clearTimeout(touchTimeout.current);
+        setDraggedItem(null);
+        setDragOverId(null);
+      }}
+    />
   );
 }, (prev, next) => {
   return prev.s === next.s && prev.f === next.f && prev.depth === next.depth && prev.isFirst === next.isFirst && prev.isLast === next.isLast && prev.isSelected === next.isSelected && prev.dragOverId === next.dragOverId && prev.isDragged === next.isDragged && prev.anyDragged === next.anyDragged && prev.draggedItemType === next.draggedItemType && prev.draggedItemParentId === next.draggedItemParentId && prev.draggedItemId === next.draggedItemId && prev.isSearchDimmed === next.isSearchDimmed && prev.isSearchMatch === next.isSearchMatch && prev.t === next.t;
@@ -316,6 +348,8 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
   const [matchCount, setMatchCount] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const collapsedFeaturesRef = useRef(collapsedFeatures);
+  collapsedFeaturesRef.current = collapsedFeatures;
 
   useEffect(() => {
     if (!searchTerm) {
@@ -851,6 +885,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
             setDraggedItem={setDraggedItem} moveStateToFeature={moveStateToFeature}
             isSearchDimmed={isSearchDimmed} isSearchMatch={isSearchMatch} moveFeature={moveFeature}
             reorderFeatures={reorderFeatures} updateFeature={updateFeature}
+            dragStateRef={dragStateRef} collapsedFeaturesRef={collapsedFeaturesRef}
           />
         );
       } else {
@@ -879,68 +914,20 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
 
   return (
     <div className="flex flex-col w-full h-full animate-fade-in">
-      <div className="p-3.5 border-b border-black/5 dark:border-white/5 flex flex-wrap justify-between items-center bg-header-bg/85 backdrop-blur-md shadow-sm shrink-0 z-10 gap-2">
-        <div className="panel-title font-bold flex items-center gap-2 text-lg tracking-tight min-w-0 pr-2">
-          <Icon name="ListTree" size={20} className="shrink-0 text-accent" />
-          <span className="truncate text-accent">{t('kbFeatures')}</span>
-          <div className="flex items-center gap-1 shrink-0">
-            <span className="bg-accent text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-sm" title={t('kbFeatures')}>
-              {draftKey.features.length}
-            </span>
-            <span className="bg-accent/20 text-accent text-xs font-bold px-2 py-0.5 rounded-full shadow-sm" title={t('kbStates')}>
-              {draftKey.features.reduce((acc, f) => acc + (f.type === 'state' ? f.states.length : 0), 0)}
-            </span>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div
-            className={`search-container group flex items-center gap-1 py-1.5 px-3 rounded-full relative transition-all duration-300 focus-within:bg-bg/80 focus-within:shadow-inner focus-within:backdrop-blur-md border border-transparent focus-within:border-white/10 cursor-text shrink-0 ${matchCount > 0 || searchTerm ? 'bg-bg/80 shadow-inner backdrop-blur-md border-white/10' : 'hover:bg-bg/50 cursor-pointer'}`}
-            onClick={() => searchInputRef.current?.focus()}
-          >
-            <Icon name="Search" className="shrink-0 text-gray-500" />
-            <input
-              ref={searchInputRef}
-              type="search"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={t('search')}
-              className={`transition-all duration-300 ease-in-out border-none bg-transparent outline-none text-sm p-0 ${matchCount > 0 || searchTerm ? 'w-24 sm:w-32 opacity-100' : 'w-0 opacity-0 group-hover:w-32 group-hover:opacity-100 focus:w-32 focus:opacity-100'}`}
-            />
-            {searchTerm && (
-              <button type="button" onClick={(e) => { e.stopPropagation(); setSearchTerm(''); searchInputRef.current?.focus(); }} className="p-0.5 hover:bg-accent/20 rounded cursor-pointer flex items-center justify-center text-gray-500 hover:text-accent transition-colors shrink-0" title={t('clearSearch')}>
-                <Icon name="X" size={14} />
-              </button>
-            )}
-            {matchCount > 0 && (
-              <div className="flex items-center gap-0.5 transition-opacity opacity-100 text-accent">
-                <span className="text-xs font-medium whitespace-nowrap px-1">{currentMatchIndex + 1} / {matchCount}</span>
-                <button type="button" onClick={(e) => { e.stopPropagation(); setCurrentMatchIndex(prev => prev > 0 ? prev - 1 : matchCount - 1); }} className="p-0.5 hover:bg-accent/20 rounded cursor-pointer flex items-center justify-center" title={t('prevMatch')}><Icon name="ChevronUp" size={14} /></button>
-                <button type="button" onClick={(e) => { e.stopPropagation(); setCurrentMatchIndex(prev => prev < matchCount - 1 ? prev + 1 : 0); }} className="p-0.5 hover:bg-accent/20 rounded cursor-pointer flex items-center justify-center" title={t('nextMatch')}><Icon name="ChevronDown" size={14} /></button>
-              </div>
-            )}
-          </div>
-          <button onClick={addFeature} className="shrink-0 px-3 py-1.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-lg hover:bg-accent-hover transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg flex items-center gap-1 cursor-pointer" title={t('kbAddFeature')}><Icon name="Plus" size={14} /> <span className="hidden sm:inline">{t('kbAdd' as any)}</span></button>
-        </div>
-      </div>
+      <BuilderListHeader
+        title={t('kbFeatures')}
+        icon="ListTree"
+        count1={draftKey.features.length}
+        count1Title={t('kbFeatures')}
+        count2={draftKey.features.reduce((acc, f) => acc + (f.type === 'state' ? f.states.length : 0), 0)}
+        count2Title={t('kbStates')}
+        searchTerm={searchTerm} setSearchTerm={setSearchTerm} searchInputRef={searchInputRef}
+        matchCount={matchCount} currentMatchIndex={currentMatchIndex} setCurrentMatchIndex={setCurrentMatchIndex}
+        onAdd={addFeature} addTitle={t('kbAddFeature')} addLabel={t('kbAdd' as any)} t={t as any}
+      />
       <div
         ref={containerRef}
-        className={`panel-content grow p-3 space-y-1 overflow-y-auto transition-colors ${dragOverId === 'root-feature' ? 'bg-accent/5 ring-2 ring-inset ring-accent' : ''}`}
-        data-root-drop="true"
-        onDragOver={(e) => {
-          e.preventDefault();
-          if (draggedItem?.type === 'feature' && dragOverId !== 'root-feature') setDragOverId('root-feature');
-        }}
-        onDragLeave={() => {
-          if (dragOverId === 'root-feature') setDragOverId(null);
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          if (dragOverId === 'root-feature' && draggedItem?.type === 'feature') {
-            updateFeature(draggedItem.id, { parentId: undefined });
-          }
-          setDragOverId(null);
-          setDraggedItem(null);
-        }}
+        className="panel-content grow p-3 space-y-1 overflow-y-auto transition-colors"
       >
         {renderFeatureList()}
       </div>

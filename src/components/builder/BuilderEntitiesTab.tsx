@@ -4,21 +4,50 @@ import type { DraftKeyData, DraftEntity } from '../../types';
 import { processImage } from '../../utils/imageUtils';
 import { useTreeDragAndDrop, useSearchAutoScroll } from '../../hooks';
 import { BuilderEntityModal } from '../modals';
+import { BuilderListHeader } from './BuilderListHeader';
+import { BuilderListItem } from './BuilderListItem';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
 const MemoizedEntityItem = React.memo(({
   e, depth, hasChildren, isFirst, isLast, isSelected, isCollapsed, dragOverId, isDragged, anyDragged, isSearchDimmed, isSearchMatch,
   t, setSelectedEntityId, toggleEntityCollapse, duplicateEntity, setDeleteTarget, treeDnd,
-  moveEntity, reorderEntities, updateEntity, draggedItem, setDragOverId, setDraggedItem
+  moveEntity, reorderEntities, updateEntity, draggedItem, setDragOverId, setDraggedItem,
+  dragStateRef, collapsedEntitiesRef
 }: any) => {
+  const checkEntityCycle = (draggedId: string, targetId: string) => {
+    let current: string | undefined = targetId;
+    const entities = dragStateRef.current.draftKey.entities;
+    while (current) {
+      if (current === draggedId) return true;
+      current = entities.find((x: any) => x.id === current)?.parentId;
+    }
+    return false;
+  };
+
   const isDragOverCenter = dragOverId === e.id;
   const isDragOverTop = dragOverId === `before-${e.id}`;
-  const isDragOverBottom = dragOverId === `after-${e.id}`;
+  const isDragOverBottom = dragOverId === `after-${e.id}` && (isCollapsed || !hasChildren);
 
   return (
-    <div
-      data-search-match={isSearchMatch ? "true" : undefined}
+    <BuilderListItem
+      id={e.id} name={e.name || t('kbUnnamedEntity')} depth={depth}
+      isFirst={isFirst} isLast={isLast} isSelected={isSelected}
+      isCollapsed={isCollapsed} hasChildren={hasChildren}
+      isDragOverCenter={isDragOverCenter} isDragOverTop={isDragOverTop} isDragOverBottom={isDragOverBottom}
+      isDragged={isDragged} anyDragged={anyDragged}
+      isSearchDimmed={isSearchDimmed} isSearchMatch={isSearchMatch}
+      iconName="Leaf" imageUrl={e.media?.[0]?.url} className="entity-item"
+      onClick={() => setSelectedEntityId(e.id)}
+      onToggleCollapse={(ev) => { ev.stopPropagation(); toggleEntityCollapse(e.id); }}
+      actions={
+        <>
+          {!isFirst && <button onClick={(ev) => { ev.stopPropagation(); moveEntity(e.id, 'up'); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('moveUp' as any) || 'Move Up'}><Icon name="ArrowUp" size={14} /></button>}
+          {!isLast && <button onClick={(ev) => { ev.stopPropagation(); moveEntity(e.id, 'down'); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('moveDown' as any) || 'Move Down'}><Icon name="ArrowDown" size={14} /></button>}
+          <button onClick={(ev) => { ev.stopPropagation(); duplicateEntity(e.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbDuplicate')}><Icon name="Copy" size={14} /></button>
+          <button onClick={(ev) => { ev.stopPropagation(); setDeleteTarget({ type: 'entity', id: e.id }); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-red-500 hover:bg-red-500/10' : 'text-red-400 hover:text-red-500 hover:bg-red-500/10'}`} title={t('kbDelete')}><Icon name="Trash2" size={14} /></button>
+        </>
+      }
       draggable
       data-entity-id={e.id}
       onContextMenu={(ev) => ev.preventDefault()}
@@ -27,28 +56,26 @@ const MemoizedEntityItem = React.memo(({
       onDragOver={(ev) => {
         ev.preventDefault(); ev.stopPropagation();
         if (draggedItem?.type === 'entity' && draggedItem.id !== e.id) {
+          if (checkEntityCycle(draggedItem.id, e.id)) { setDragOverId(null); return; }
           const rect = ev.currentTarget.getBoundingClientRect();
           const y = ev.clientY - rect.top;
-          if (y < rect.height * 0.25) {
-            if (dragOverId !== `before-${e.id}`) setDragOverId(`before-${e.id}`);
-          } else if (y > rect.height * 0.75) {
-            if (dragOverId !== `after-${e.id}`) setDragOverId(`after-${e.id}`);
-          } else {
-            if (dragOverId !== e.id) setDragOverId(e.id);
-          }
+          const isExpanded = !isCollapsed && hasChildren;
+          if (y < rect.height * 0.25) { if (dragOverId !== `before-${e.id}`) setDragOverId(`before-${e.id}`); }
+          else if (y > rect.height * 0.75 && !isExpanded) { if (dragOverId !== `after-${e.id}`) setDragOverId(`after-${e.id}`); }
+          else { if (dragOverId !== e.id) setDragOverId(e.id); }
         }
       }}
       onDragLeave={() => setDragOverId(null)}
       onDrop={(ev) => {
         ev.preventDefault(); ev.stopPropagation(); setDragOverId(null);
         if (draggedItem?.type === 'entity' && draggedItem.id !== e.id) {
+          if (checkEntityCycle(draggedItem.id, e.id)) { setDraggedItem(null); return; }
           const rect = ev.currentTarget.getBoundingClientRect();
           const y = ev.clientY - rect.top;
-          if (y < rect.height * 0.25 || y > rect.height * 0.75) {
-            reorderEntities(draggedItem.id, e.id, y < rect.height * 0.25 ? 'before' : 'after');
-          } else {
-            updateEntity(draggedItem.id, { parentId: e.id });
-          }
+          const isExpanded = !isCollapsed && hasChildren;
+          if (y < rect.height * 0.25) reorderEntities(draggedItem.id, e.id, 'before');
+          else if (y > rect.height * 0.75 && !isExpanded) reorderEntities(draggedItem.id, e.id, 'after');
+          else updateEntity(draggedItem.id, { parentId: e.id });
         }
         setDraggedItem(null);
       }}
@@ -64,14 +91,24 @@ const MemoizedEntityItem = React.memo(({
         if (!anyDragged) return;
         const el = document.elementFromPoint(touch.clientX, touch.clientY);
         const targetEntity = el?.closest('[data-entity-id]');
-        if (targetEntity && draggedItem?.type === 'entity') {
-          const targetId = targetEntity.getAttribute('data-entity-id');
-          if (targetId && targetId !== e.id) {
-            const rect = targetEntity.getBoundingClientRect();
-            if (touch.clientY - rect.top < rect.height * 0.25) setDragOverId(`before-${targetId}`);
-            else if (touch.clientY - rect.top > rect.height * 0.75) setDragOverId(`after-${targetId}`);
-            else setDragOverId(targetId);
-          }
+        if (draggedItem?.type === 'entity') {
+          if (targetEntity) {
+            const targetId = targetEntity.getAttribute('data-entity-id');
+            if (targetId && targetId !== e.id) {
+              if (checkEntityCycle(draggedItem.id, targetId)) {
+                setDragOverId(null);
+              } else {
+                const rect = targetEntity.getBoundingClientRect();
+                const y = touch.clientY - rect.top;
+                const targetDraftEnt = dragStateRef.current.draftKey.entities.find((x: any) => x.id === targetId);
+                const targetHasChildren = dragStateRef.current.draftKey.entities.some((x: any) => x.parentId === targetId);
+                const isExpanded = !collapsedEntitiesRef.current.has(targetId) && targetHasChildren;
+                if (y < rect.height * 0.25) setDragOverId(`before-${targetId}`);
+                else if (y > rect.height * 0.75 && !isExpanded) setDragOverId(`after-${targetId}`);
+                else setDragOverId(targetId);
+              }
+            }
+          } else setDragOverId(null);
         } else setDragOverId(null);
       }}
       onTouchEnd={(ev) => {
@@ -79,61 +116,21 @@ const MemoizedEntityItem = React.memo(({
         if (draggedItem?.type === 'entity') {
           if (ev.cancelable) ev.preventDefault();
           if (dragOverId) {
-            if (dragOverId.startsWith('before-')) reorderEntities(draggedItem.id, dragOverId.replace('before-', ''), 'before');
-            else if (dragOverId.startsWith('after-')) reorderEntities(draggedItem.id, dragOverId.replace('after-', ''), 'after');
-            else if (dragOverId !== draggedItem.id) updateEntity(draggedItem.id, { parentId: dragOverId });
+            const targetRawId = dragOverId.replace('before-', '').replace('after-', '');
+            if (!checkEntityCycle(draggedItem.id, targetRawId)) {
+              if (dragOverId.startsWith('before-')) reorderEntities(draggedItem.id, targetRawId, 'before');
+              else if (dragOverId.startsWith('after-')) reorderEntities(draggedItem.id, targetRawId, 'after');
+              else if (dragOverId !== draggedItem.id) updateEntity(draggedItem.id, { parentId: dragOverId });
+            }
           }
           setDraggedItem(null); setDragOverId(null);
         }
       }}
       onTouchCancel={treeDnd.onTouchCancel}
-      onClick={() => setSelectedEntityId(e.id)}
-      className={`builder-list-item entity-item flex items-center gap-2 p-1.5 rounded-xl transition-all duration-300 relative group/item cursor-pointer hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm ${isSelected ? 'bg-accent/20 shadow-inner ring-2 ring-accent' : 'border border-transparent'} ${isDragOverCenter ? 'ring-2 ring-accent ring-inset bg-accent/10 scale-[1.02] z-20' : ''} ${isDragOverTop || isDragOverBottom ? 'z-20' : ''} ${isDragged ? 'opacity-50' : ''} ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20 shadow-inner' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}
-      style={{ paddingLeft: `calc(${1.5 + depth * 1.5}rem + 0.5rem)`, touchAction: anyDragged ? 'none' : 'auto', contentVisibility: (isDragOverTop || isDragOverBottom) ? 'visible' : 'auto' } as React.CSSProperties}
-    >
-      <div className={`absolute -top-[3px] left-0 right-0 h-[2px] bg-accent z-30 pointer-events-none transition-opacity duration-200 ${isDragOverTop ? 'opacity-100' : 'opacity-0'}`} />
-      <div className={`absolute -bottom-[3px] left-0 right-0 h-[2px] bg-accent z-30 pointer-events-none transition-opacity duration-200 ${isDragOverBottom ? 'opacity-100' : 'opacity-0'}`} />
-      {hasChildren && (
-        <button
-          onClick={(ev) => { ev.stopPropagation(); toggleEntityCollapse(e.id); }}
-          className={`w-7 h-7 flex items-center justify-center rounded-md cursor-pointer absolute z-20 transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-500 hover:bg-black/10 dark:hover:bg-white/10'}`}
-          style={{ left: `calc(${depth * 1.5}rem)` }}
-        >
-          <Icon name="ChevronRight" size={16} className={`transition-transform duration-200 ${!isCollapsed ? 'rotate-90' : ''}`} />
-        </button>
-      )}
-
-      {e.media && e.media.length > 0 ? (
-        <img src={e.media[0].url} alt={e.name} className="w-10 h-10 object-cover rounded-lg shadow-sm shrink-0" />
-      ) : (
-        <div className="w-10 h-10 bg-header-bg/80 rounded-lg shadow-sm shrink-0 flex items-center justify-center text-gray-400">
-          <Icon name="Leaf" size={20} className={`shrink-0 ${isSelected ? 'opacity-100 text-accent' : 'opacity-60'}`} />
-        </div>
-      )}
-      <span className="truncate flex-1 text-sm font-medium">{e.name || t('kbUnnamedEntity')}</span>
-
-      <div className="max-md:hidden opacity-0 group-hover/item:opacity-100 flex items-center gap-0.5 transition-opacity z-20 shrink-0 pr-1">
-        {!isFirst && (
-          <button onClick={(ev) => { ev.stopPropagation(); moveEntity(e.id, 'up'); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('moveUp' as any) || 'Move Up'}>
-            <Icon name="ArrowUp" size={14} />
-          </button>
-        )}
-        {!isLast && (
-          <button onClick={(ev) => { ev.stopPropagation(); moveEntity(e.id, 'down'); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('moveDown' as any) || 'Move Down'}>
-            <Icon name="ArrowDown" size={14} />
-          </button>
-        )}
-        <button onClick={(ev) => { ev.stopPropagation(); duplicateEntity(e.id); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-accent hover:bg-accent/10' : 'text-gray-400 hover:text-accent hover:bg-black/10 dark:hover:bg-white/10'}`} title={t('kbDuplicate')}>
-          <Icon name="Copy" size={14} />
-        </button>
-        <button onClick={(ev) => { ev.stopPropagation(); setDeleteTarget({ type: 'entity', id: e.id }); }} className={`p-1.5 rounded-md cursor-pointer transition-colors ${isSelected ? 'text-red-500 hover:bg-red-500/10' : 'text-red-400 hover:text-red-500 hover:bg-red-500/10'}`} title={t('kbDelete')}>
-          <Icon name="Trash2" size={14} />
-        </button>
-      </div>
-    </div>
+    />
   );
 }, (prev, next) => {
-  return prev.e === next.e && prev.depth === next.depth && prev.hasChildren === next.hasChildren && prev.isFirst === next.isFirst && prev.isLast === next.isLast && prev.isSelected === next.isSelected && prev.isCollapsed === next.isCollapsed && prev.dragOverId === next.dragOverId && prev.isDragged === next.isDragged && prev.anyDragged === next.anyDragged && prev.isSearchDimmed === next.isSearchDimmed && prev.isSearchMatch === next.isSearchMatch && prev.t === next.t;
+  return prev.e === next.e && prev.depth === next.depth && prev.hasChildren === next.hasChildren && prev.isFirst === next.isFirst && prev.isLast === next.isLast && prev.isSelected === next.isSelected && prev.isCollapsed === next.isCollapsed && prev.dragOverId === next.dragOverId && prev.isDragged === next.isDragged && prev.anyDragged === next.anyDragged && prev.isSearchDimmed === next.isSearchDimmed && prev.isSearchMatch === next.isSearchMatch && prev.t === next.t && prev.dragStateRef === next.dragStateRef && prev.collapsedEntitiesRef === next.collapsedEntitiesRef;
 });
 
 interface BuilderEntitiesTabProps {
@@ -169,6 +166,10 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
   const [matchCount, setMatchCount] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const dragStateRef = useRef({ dragOverId, draggedItem, draftKey });
+  dragStateRef.current = { dragOverId, draggedItem, draftKey };
+  const collapsedEntitiesRef = useRef(collapsedEntities);
+  collapsedEntitiesRef.current = collapsedEntities;
 
   useEffect(() => {
     if (!searchTerm) {
@@ -393,6 +394,7 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
           isSearchDimmed={isSearchDimmed} isSearchMatch={isSearchMatch}
           moveEntity={moveEntity} reorderEntities={reorderEntities} updateEntity={updateEntity}
           draggedItem={draggedItem} setDragOverId={setDragOverId} setDraggedItem={setDraggedItem}
+          dragStateRef={dragStateRef} collapsedEntitiesRef={collapsedEntitiesRef}
         />
       );
     });
@@ -400,63 +402,17 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
 
   return (
     <div className="flex flex-col w-full h-full animate-fade-in">
-      <div className="p-3.5 border-b border-black/5 dark:border-white/5 flex flex-wrap justify-between items-center bg-header-bg/85 backdrop-blur-md shadow-sm shrink-0 z-10 gap-2">
-        <div className="panel-title font-bold flex items-center gap-2 text-lg tracking-tight min-w-0 pr-2">
-          <Icon name="List" size={20} className="shrink-0 text-accent" />
-          <span className="truncate text-accent">{t('kbEntities')}</span>
-          <span className="bg-accent text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-sm shrink-0">
-            {draftKey.entities.length}
-          </span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div
-            className={`search-container group flex items-center gap-1 py-1.5 px-3 rounded-full relative transition-all duration-300 focus-within:bg-bg/80 focus-within:shadow-inner focus-within:backdrop-blur-md border border-transparent focus-within:border-white/10 cursor-text shrink-0 ${matchCount > 0 || searchTerm ? 'bg-bg/80 shadow-inner backdrop-blur-md border-white/10' : 'hover:bg-bg/50 cursor-pointer'}`}
-            onClick={() => searchInputRef.current?.focus()}
-          >
-            <Icon name="Search" className="shrink-0 text-gray-500" />
-            <input
-              ref={searchInputRef}
-              type="search"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={t('search')}
-              className={`transition-all duration-300 ease-in-out border-none bg-transparent outline-none text-sm p-0 ${matchCount > 0 || searchTerm ? 'w-24 sm:w-32 opacity-100' : 'w-0 opacity-0 group-hover:w-32 group-hover:opacity-100 focus:w-32 focus:opacity-100'}`}
-            />
-            {searchTerm && (
-              <button type="button" onClick={(e) => { e.stopPropagation(); setSearchTerm(''); searchInputRef.current?.focus(); }} className="p-0.5 hover:bg-accent/20 rounded cursor-pointer flex items-center justify-center text-gray-500 hover:text-accent transition-colors shrink-0" title={t('clearSearch')}>
-                <Icon name="X" size={14} />
-              </button>
-            )}
-            {matchCount > 0 && (
-              <div className="flex items-center gap-0.5 transition-opacity opacity-100 text-accent">
-                <span className="text-xs font-medium whitespace-nowrap px-1">{currentMatchIndex + 1} / {matchCount}</span>
-                <button type="button" onClick={(e) => { e.stopPropagation(); setCurrentMatchIndex(prev => prev > 0 ? prev - 1 : matchCount - 1); }} className="p-0.5 hover:bg-accent/20 rounded cursor-pointer flex items-center justify-center" title={t('prevMatch')}><Icon name="ChevronUp" size={14} /></button>
-                <button type="button" onClick={(e) => { e.stopPropagation(); setCurrentMatchIndex(prev => prev < matchCount - 1 ? prev + 1 : 0); }} className="p-0.5 hover:bg-accent/20 rounded cursor-pointer flex items-center justify-center" title={t('nextMatch')}><Icon name="ChevronDown" size={14} /></button>
-              </div>
-            )}
-          </div>
-          <button onClick={addEntity} className="shrink-0 px-3 py-1.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-lg hover:bg-accent-hover transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg flex items-center gap-1 cursor-pointer" title={t('kbAddEntity')}><Icon name="Plus" size={14} /> <span className="hidden sm:inline">{t('kbAdd' as any)}</span></button>
-        </div>
-      </div>
+      <BuilderListHeader
+        title={t('kbEntities')}
+        icon="List"
+        count1={draftKey.entities.length}
+        searchTerm={searchTerm} setSearchTerm={setSearchTerm} searchInputRef={searchInputRef}
+        matchCount={matchCount} currentMatchIndex={currentMatchIndex} setCurrentMatchIndex={setCurrentMatchIndex}
+        onAdd={addEntity} addTitle={t('kbAddEntity')} addLabel={t('kbAdd' as any)} t={t as any}
+      />
       <div
         ref={containerRef}
-        className={`panel-content grow p-3 space-y-1 overflow-y-auto transition-colors ${dragOverId === 'root-entity' ? 'bg-accent/5 ring-2 ring-inset ring-accent' : ''}`}
-        data-root-drop="true"
-        onDragOver={(e) => {
-          e.preventDefault();
-          if (draggedItem?.type === 'entity' && dragOverId !== 'root-entity') setDragOverId('root-entity');
-        }}
-        onDragLeave={() => {
-          if (dragOverId === 'root-entity') setDragOverId(null);
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          if (dragOverId === 'root-entity' && draggedItem?.type === 'entity') {
-            updateEntity(draggedItem.id, { parentId: undefined });
-          }
-          setDragOverId(null);
-          setDraggedItem(null);
-        }}
+        className="panel-content grow p-3 space-y-1 overflow-y-auto transition-colors"
       >
         {renderEntityList()}
       </div>
