@@ -314,24 +314,22 @@ const App: React.FC = () => {
     addToast(t('featuresCleared'));
   };
 
-  const exportLoadedKeyToNative = async () => {
-    if (!keyData) return;
-
+  const convertAndSaveKey = async (keyToConvert: KeyData): Promise<boolean> => {
     const features: DraftFeature[] = [];
     const featureMap = new Map<string, DraftFeature>();
 
-    for (const [id, f] of keyData.allFeatures.entries()) {
+    for (const [id, f] of keyToConvert.allFeatures.entries()) {
       if (f.isState) continue;
 
       const draftF: DraftFeature = {
         id: f.id,
         name: f.name,
         description: f.description,
-        type: f.type,
+        type: f.type === 'numeric' ? 'numeric' : 'state',
         base_unit: f.base_unit,
         unit_prefix: f.unit_prefix,
         matchType: f.matchType,
-        media: keyData.featureMedia.get(f.id) ? [...keyData.featureMedia.get(f.id)!] : undefined,
+        media: keyToConvert.featureMedia.get(f.id) ? [...keyToConvert.featureMedia.get(f.id)!] : undefined,
         states: []
       };
       features.push(draftF);
@@ -344,7 +342,7 @@ const App: React.FC = () => {
           if (parentId) {
             const parentDraft = featureMap.get(parentId);
             if (parentDraft) {
-              const media = keyData.featureMedia.get(n.id);
+              const media = keyToConvert.featureMedia.get(n.id);
               parentDraft.states.push({
                 id: n.id,
                 name: n.name,
@@ -359,14 +357,14 @@ const App: React.FC = () => {
         }
       }
     };
-    setFeatureHierarchy(keyData.featureTree);
+    setFeatureHierarchy(keyToConvert.featureTree);
 
     const entities: DraftEntity[] = [];
     const entityMap = new Map<string, DraftEntity>();
 
-    for (const [id, e] of keyData.allEntities.entries()) {
+    for (const [id, e] of keyToConvert.allEntities.entries()) {
       const scores: Record<string, any> = {};
-      const eScores = keyData.entityScores.get(id);
+      const eScores = keyToConvert.entityScores.get(id);
       if (eScores) {
         for (const [featId, score] of eScores.entries()) {
           if ('value' in score) scores[featId] = score.value;
@@ -377,9 +375,9 @@ const App: React.FC = () => {
       const draftE: DraftEntity = {
         id,
         name: e.name,
-        description: keyData.entityProfiles.get(id)?.description,
+        description: keyToConvert.entityProfiles.get(id)?.description,
         scores,
-        media: keyData.entityMedia.get(id) ? [...keyData.entityMedia.get(id)!] : undefined
+        media: keyToConvert.entityMedia.get(id) ? [...keyToConvert.entityMedia.get(id)!] : undefined
       };
       entities.push(draftE);
       entityMap.set(id, draftE);
@@ -392,17 +390,17 @@ const App: React.FC = () => {
         if (n.children) setEntityHierarchy(n.children, n.id);
       }
     };
-    setEntityHierarchy(keyData.entityTree);
+    setEntityHierarchy(keyToConvert.entityTree);
 
     const draft: DraftKeyData = {
-      title: keyData.keyTitle || 'Exported Key',
-      authors: keyData.keyAuthors || '',
-      description: keyData.keyDescription || '',
+      title: keyToConvert.keyTitle || 'Exported Key',
+      authors: keyToConvert.keyAuthors || '',
+      description: keyToConvert.keyDescription || '',
       features,
       entities
     };
 
-    const fileName = `${(keyData.keyTitle || 'key').replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`;
+    const fileName = `${(keyToConvert.keyTitle || 'key').replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`;
     const jsonString = JSON.stringify(draft, null, 2);
 
     let saved = false;
@@ -416,8 +414,9 @@ const App: React.FC = () => {
         await writable.write(jsonString);
         await writable.close();
         saved = true;
+        return true;
       } catch (err: any) {
-        if (err.name === 'AbortError') return; // User cancelled the save dialog
+        if (err.name === 'AbortError') return false; // User cancelled the save dialog
         console.error('File picker failed, falling back:', err);
       }
     }
@@ -432,7 +431,14 @@ const App: React.FC = () => {
       downloadAnchorNode.click();
       downloadAnchorNode.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
+      return true;
     }
+    return false;
+  };
+
+  const exportLoadedKeyToNative = async () => {
+    if (!keyData) return;
+    await convertAndSaveKey(keyData);
   };
 
   const processZipFile = async (file: File, targetMode: 'identify' | 'build') => {
@@ -449,6 +455,13 @@ const App: React.FC = () => {
     try {
       const parser = new LucidKeyParser();
       const data = await parser.processKeyFromZip(file);
+      if (targetMode === 'identify') {
+        const saved = await convertAndSaveKey(data);
+        if (!saved) {
+          addToast(t('canceled' as any));
+          return;
+        }
+      }
       setKeyData(data);
       setAppMode(targetMode);
       setIsHome(false);
@@ -761,11 +774,11 @@ const App: React.FC = () => {
         {/* Global SVG Gradients for Icons */}
         <svg width="0" height="0" className="absolute pointer-events-none" aria-hidden="true" style={{ visibility: 'hidden' }}>
           <defs>
-            <linearGradient id="accent-gradient" x1="0%" y1="0%" x2="100%" y2="100%" gradientUnits="userSpaceOnUse">
+            <linearGradient id="accent-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="var(--color-accent, var(--accent-color))" style={{ stopColor: 'color-mix(in srgb, var(--color-accent, var(--accent-color)), white 15%)' }} />
               <stop offset="100%" stopColor="var(--color-accent, var(--accent-color))" style={{ stopColor: 'color-mix(in srgb, var(--color-accent, var(--accent-color)), black 10%)' }} />
             </linearGradient>
-            <linearGradient id="red-gradient" x1="0%" y1="0%" x2="100%" y2="100%" gradientUnits="userSpaceOnUse">
+            <linearGradient id="red-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#ef4444" style={{ stopColor: 'color-mix(in srgb, #ef4444, white 15%)' }} />
               <stop offset="100%" stopColor="#ef4444" style={{ stopColor: 'color-mix(in srgb, #ef4444, black 10%)' }} />
             </linearGradient>

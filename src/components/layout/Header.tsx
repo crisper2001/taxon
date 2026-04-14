@@ -38,11 +38,6 @@ export const Header: React.FC<HeaderProps> = ({ isSidebarOpen, setSidebarOpen, l
               <button onClick={triggerOpenNativeKey} title={t('openNativeKey')} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0">
                 <Icon name="FolderOpen" size={24} className="opacity-80" />
               </button>
-              {keyData && keyData.sourceFormat === 'lucid' && (
-                <button onClick={exportLoadedKeyToNative} title={t('convertToNative' as any) || 'Convert to Native Key'} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0">
-                  <Icon name="FileJson" size={24} className="opacity-80" />
-                </button>
-              )}
 
               <button onClick={openPreferences} title={t('preferences')} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0">
                 <Icon name="Settings2" size={24} className="opacity-80" />
@@ -55,9 +50,6 @@ export const Header: React.FC<HeaderProps> = ({ isSidebarOpen, setSidebarOpen, l
       {centerContent || (
         <button id="status-display" onClick={openKeyInfo} disabled={!keyData || isLoading || !!error || appMode === 'build'} className="absolute left-1/2 -translate-x-1/2 text-center italic text-gray-500 disabled:cursor-default enabled:cursor-pointer enabled:not-italic enabled:font-bold enabled:text-text px-3 md:px-4 py-1.5 tracking-tight flex items-center justify-center gap-2 overflow-hidden max-w-[150px] sm:max-w-xs md:max-w-md text-sm md:text-base z-10 rounded-full transition-all duration-300 enabled:opacity-90 enabled:hover:opacity-100 enabled:hover:bg-hover-bg/80 shadow-sm border border-transparent dark:border-white/10 enabled:hover:border-black/10 dark:enabled:hover:border-white/20 enabled:hover:shadow-md">
           <span className="truncate">{appMode === 'build' ? t('builderMode') : statusText}</span>
-          {appMode !== 'build' && keyData?.sourceFormat === 'lucid' && (
-            <span className="text-[9px] font-bold bg-accent/10 text-accent px-1.5 py-0.5 rounded border border-accent/20 uppercase tracking-widest shrink-0 leading-none mt-0.5" title={t('formatLucidDesc' as any) || 'Imported from Lucid Key format'}>{t('formatLucid' as any) || 'Lucid'}</span>
-          )}
         </button>
       )}
       <div className="flex items-center z-20">
