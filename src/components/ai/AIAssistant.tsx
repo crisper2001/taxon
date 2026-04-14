@@ -308,7 +308,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
 4. **Language:** Always formulate your conversational "answer" and the "updated_description" in ${targetLanguage}.
 5. **JSON Output:** Respond ONLY with a single JSON object with this structure:
     - \`updated_description\`: (string) The running description of the entity.
-    - \`features_used\`: (array of objects) With \`id\`, \`description\`, and optionally \`value\`. For categorical features, ALWAYS use the specific state's \`id\` instead of the parent feature's \`id\`.
+    - \`features_used\`: (array of objects) With \`id\`, \`description\`, and optionally \`value\`. For categorical features, ALWAYS set \`id\` to the specific state's ID. DO NOT use the parent feature's ID, and DO NOT use the \`value\` field for categorical features.
     - \`entities_used\`: (array of objects) With \`id\` and \`name\` of entities explicitly mentioned.
     - \`answer\`: (string) Your conversational answer to a question (MUST be empty if identifying a specimen).
     - \`suggested_features\`: (array) ALWAYS empty [] in this mode.
@@ -369,7 +369,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
       }));
 
     const imagePayload = currentImage ? { mimeType: currentImage.mimeType, data: currentImage.base64 } : undefined;
-    const model = currentImage ? 'gemini-flash-latest' : 'gemini-3.1-flash-lite-preview';
+    const model = currentImage ? 'gemini-flash-latest' : 'gemma-4-26b-a4b-it';
 
     console.log("=== AI Request Debug ===");
     console.log("System Instruction:", systemInstruction);
@@ -377,26 +377,11 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
     console.log("Prompt:", prompt);
 
     try {
-      let response;
-      try {
-        response = await callGeminiAPI(prompt, model, geminiApiKey, systemInstruction, historyPayload, imagePayload);
-      } catch (err) {
-        try {
-          if (model !== 'gemini-3.1-flash-lite-preview') {
-            response = await callGeminiAPI(prompt, 'gemini-3.1-flash-lite-preview', geminiApiKey, systemInstruction, historyPayload, imagePayload);
-          } else {
-            throw err;
-          }
-        } catch (fallbackErr) {
-          try {
-            response = await callGeminiAPI(prompt, 'gemini-2.5-flash-lite', geminiApiKey, systemInstruction, historyPayload, imagePayload);
-          } catch (secondFallbackErr) {
-            response = await callGeminiAPI(prompt, 'gemini-2.5-flash', geminiApiKey, systemInstruction, historyPayload, imagePayload);
-          }
-        }
-      }
+      const usedModel = model;
+      const response = await callGeminiAPI(prompt, model, geminiApiKey, systemInstruction, historyPayload, imagePayload);
 
       console.log("=== AI Response Debug ===");
+      console.log("Model Used:", usedModel);
       console.log("Response:", JSON.stringify(response, null, 2));
 
       // Stop "thinking" indicator
