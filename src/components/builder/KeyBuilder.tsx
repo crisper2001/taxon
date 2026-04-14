@@ -706,9 +706,9 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
   );
 
   const sidebarActions: SidebarAction[] = [
-    { icon: 'FilePlus', label: t('kbNewKey' as any), onClick: handleRequestNewKey },
+    { icon: 'File', label: t('kbNewKey' as any), onClick: handleRequestNewKey },
     { icon: 'FolderOpen', label: t('openNativeKey'), onClick: handleRequestOpenKey },
-    { icon: 'Download', label: t('exportJson'), onClick: exportJson },
+    { icon: 'Save', label: t('exportJson'), onClick: exportJson },
     { icon: 'Info', label: t('kbMetadata'), onClick: () => setShowMetadataModal(true) },
     { icon: 'Play', label: t('kbTestKey' as any), onClick: () => onTestKey?.(draftKey), iconClass: 'text-accent' }
   ];
