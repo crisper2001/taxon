@@ -26,7 +26,7 @@ export async function callGeminiAPI(
   }
 
   // Combine history (if any) with the current new prompt
-  const rawContents = history 
+  const rawContents = history
     ? [...history, { role: 'user', parts: currentParts }]
     : [{ role: 'user', parts: currentParts }];
 
@@ -87,9 +87,9 @@ export async function callGeminiAPI(
                   action: { type: Type.STRING, description: "Set to 'delete' to remove this feature" },
                   base_unit: { type: Type.STRING, description: "Base unit for numeric features (e.g. metre, square metre, cubic metre, litre, degrees celcius, degrees planar, none)" },
                   unit_prefix: { type: Type.STRING, description: "Unit prefix for numeric features (e.g. kilo, hecto, deca, deci, centi, milli, micro, none)" },
-                  states: { 
-                    type: Type.ARRAY, 
-                    items: { 
+                  states: {
+                    type: Type.ARRAY,
+                    items: {
                       type: Type.OBJECT,
                       properties: {
                         id: { type: Type.STRING },
@@ -111,7 +111,7 @@ export async function callGeminiAPI(
                         }
                       },
                       required: ['name']
-                    } 
+                    }
                   }
                 },
                 required: ['name', 'type']

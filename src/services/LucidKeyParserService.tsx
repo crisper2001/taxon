@@ -54,7 +54,17 @@ export class LucidKeyParser {
     this.dataDirPath = (dataDirEntry as any).name;
     this.rootPath = this.dataDirPath.substring(0, this.dataDirPath.toLowerCase().indexOf('data/'));
 
-    const innerDataZipPath = `${this.dataDirPath}${this.keyName}.data`;
+    const dataFileEntry = Object.values(this.zip.files).find((file) =>
+      !file.dir &&
+      file.name.toLowerCase().replace(/\\/g, '/').startsWith(this.dataDirPath.toLowerCase()) &&
+      file.name.toLowerCase().endsWith('.data')
+    );
+
+    if (!dataFileEntry) {
+      throw new Error('errKeyDataNotFound');
+    }
+
+    const innerDataZipPath = dataFileEntry.name;
     const keyDataXml = await this.readFromInnerZip(this.zip, innerDataZipPath, 'key.data');
     if (!keyDataXml) {
       throw new Error('errKeyDataNotFound');
@@ -67,6 +77,7 @@ export class LucidKeyParser {
       featureTree: [], entityScores: new Map(),
       entityProfiles: new Map(), totalFeaturesCount: 0, parsingErrors: [],
       featureListForAI: [],
+      sourceFormat: 'lucid',
     };
 
     const keyDoc = this.parser.parseFromString(keyDataXml, "application/xml");
@@ -88,7 +99,8 @@ export class LucidKeyParser {
 
     keyDoc.querySelectorAll('feature_item, state_item').forEach(el => {
       const isState = el.tagName === 'state_item';
-      const type = (isState ? 'state' : el.getAttribute('score_type')) as FeatureType;
+      const rawScoreType = el.getAttribute('score_type');
+      const type = (isState ? 'state' : (rawScoreType === 'numeric' ? 'numeric' : rawScoreType === 'text' ? 'text' : 'state')) as FeatureType;
       if (type === 'text') return;
       const id = el.getAttribute('item_id');
       if (id) {
@@ -103,10 +115,23 @@ export class LucidKeyParser {
         }
         const parentName = parentNodes.length > 0 ? parentNodes.join(' > ') : undefined;
         const name = el.getAttribute('item_name') || 'Unknown Feature';
+
+        let parsedMatchType: 'OR' | 'AND' | 'SINGLE' | undefined;
+        if (!isState) {
+          if (el.getAttribute('single_choice') === 'true') {
+            parsedMatchType = 'SINGLE';
+          } else if (el.getAttribute('match_type') === 'all') {
+            parsedMatchType = 'AND';
+          } else if (el.getAttribute('match_type') === 'any') {
+            parsedMatchType = 'OR';
+          }
+        }
+
         const featureInfo: Feature = {
           id, name, type, isState, parentName,
           base_unit: el.getAttribute('base_unit') ?? undefined,
           unit_prefix: el.getAttribute('unit_prefix') ?? undefined,
+          matchType: parsedMatchType,
         };
         keyData.allFeatures.set(id, featureInfo);
         if (!isState && el.nextElementSibling?.tagName === 'nodes') return;
@@ -151,7 +176,7 @@ export class LucidKeyParser {
     return node;
   }
 
-  private buildEntityNode(xmlNode: Element, allEntities: Map<string, {id: string, name: string}>): EntityNode | null {
+  private buildEntityNode(xmlNode: Element, allEntities: Map<string, { id: string, name: string }>): EntityNode | null {
     const itemElement = xmlNode.querySelector(':scope > entity_item');
     if (!itemElement) return null;
     const id = itemElement.getAttribute('item_id');
@@ -189,7 +214,19 @@ export class LucidKeyParser {
 
   private async processScores(keyData: KeyData) {
     if (!this.zip) return;
-    const innerScoZipPath = `${this.dataDirPath}${this.keyName}.sco`;
+
+    const scoFileEntry = Object.values(this.zip.files).find((file) =>
+      !file.dir &&
+      file.name.toLowerCase().replace(/\\/g, '/').startsWith(this.dataDirPath.toLowerCase()) &&
+      file.name.toLowerCase().endsWith('.sco')
+    );
+
+    if (!scoFileEntry) {
+      console.warn(`Could not find any .sco file in "${this.dataDirPath}". Scores will not be loaded.`);
+      return;
+    }
+
+    const innerScoZipPath = scoFileEntry.name;
     const normalScoXml = await this.readFromInnerZip(this.zip, innerScoZipPath, 'normal.sco');
 
     if (!normalScoXml) {
@@ -319,6 +356,7 @@ export class LucidKeyParser {
       featureTree: [], entityScores: new Map(),
       entityProfiles: new Map(), totalFeaturesCount: 0, parsingErrors: [],
       featureListForAI: [],
+      sourceFormat: 'native',
     };
 
     const entityNodes = new Map<string, EntityNode>();
@@ -354,6 +392,7 @@ export class LucidKeyParser {
         description: f.description,
         base_unit: f.base_unit,
         unit_prefix: f.unit_prefix,
+        matchType: f.matchType,
       });
       keyData.featureListForAI.push({ id: f.id, type: featureType, description: f.description ? `${f.name} - ${f.description}` : f.name });
 

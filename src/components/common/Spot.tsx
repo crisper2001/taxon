@@ -73,7 +73,7 @@ const Body = ({ primaryColor, secondaryColor }: Pick<SpotProps, 'primaryColor' |
  * The fill colors can be customized via props.
  * The component can render either the full body or just the head.
  */
-const Spot: React.FC<SpotProps> = ({
+export const Spot: React.FC<SpotProps> = ({
     primaryColor = '#000000',
     secondaryColor = '#f8fafb',
     mode = 'body',
@@ -84,7 +84,7 @@ const Spot: React.FC<SpotProps> = ({
     const uniqueId = useId().replace(/:/g, '');
     const primaryGradId = `spot-prim-${uniqueId}`;
     const secondaryGradId = `spot-sec-${uniqueId}`;
-    
+
     const primaryWhiteMix = isHeadOnly ? '15%' : '30%';
     const primaryBlackMix = isHeadOnly ? '10%' : '20%';
     const secondaryWhiteMix = isHeadOnly ? '10%' : '20%';
@@ -115,5 +115,3 @@ const Spot: React.FC<SpotProps> = ({
         </svg>
     );
 };
-
-export default Spot;

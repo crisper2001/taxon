@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Panel } from './Panel';
-import { Icon, type IconName } from '../Icon';
+import { Icon, type IconName } from '../common/Icon';
 import type { Media, EntityNode } from '../../types';
-import { useSearchAutoScroll } from '../../hooks/useSearchAutoScroll';
+import { useSearchAutoScroll } from '../../hooks';
 
 // --- EntitiesPanel ---
 interface EntitiesPanelProps {
@@ -12,13 +12,15 @@ interface EntitiesPanelProps {
   entityTree: EntityNode[];
   directMatches: Set<string>;
   indirectMatches: Set<string>;
+  uncertainMatchIds?: Set<string>;
+  misinterpretMatchIds?: Set<string>;
   mediaMap: Map<string, Media[]>;
   onEntityClick: (id: string) => void;
   t: (key: string) => string;
   expandedNodes: Set<string>;
   setExpandedNodes: React.Dispatch<React.SetStateAction<Set<string>>>;
 }
-export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({ title, icon, count, entityTree, directMatches, indirectMatches, mediaMap, onEntityClick, t, expandedNodes, setExpandedNodes }) => {
+export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({ title, icon, count, entityTree, directMatches, indirectMatches, uncertainMatchIds, misinterpretMatchIds, mediaMap, onEntityClick, t, expandedNodes, setExpandedNodes }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [view, setView] = useState<'list' | 'grid'>(() => {
     return (localStorage.getItem('entitiesViewMode') as 'list' | 'grid') || 'grid';
@@ -177,6 +179,8 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({ title, icon, count
             matchingIds={matchingIds}
             directMatches={directMatches}
             indirectMatches={indirectMatches}
+            uncertainMatchIds={uncertainMatchIds}
+            misinterpretedMatchIds={misinterpretMatchIds}
           />
         ))}
       </div>
@@ -195,6 +199,8 @@ interface RenderEntityNodeProps {
   matchingIds: Set<string> | null;
   directMatches: Set<string>;
   indirectMatches: Set<string>;
+  uncertainMatchIds?: Set<string>;
+  misinterpretedMatchIds?: Set<string>;
 }
 
 const RenderEntityNode: React.FC<RenderEntityNodeProps> = (props) => {
@@ -204,7 +210,7 @@ const RenderEntityNode: React.FC<RenderEntityNodeProps> = (props) => {
   return <EntityLeafNode {...props} />;
 };
 
-const EntityGroupNode: React.FC<RenderEntityNodeProps> = ({ node, mediaMap, onEntityClick, view, t, expandedNodes, onToggleNode, matchingIds, directMatches, indirectMatches }) => {
+const EntityGroupNode: React.FC<RenderEntityNodeProps> = ({ node, mediaMap, onEntityClick, view, t, expandedNodes, onToggleNode, matchingIds, directMatches, indirectMatches, uncertainMatchIds, misinterpretedMatchIds }) => {
   const isSearching = matchingIds !== null;
   const isSearchMatch = isSearching && matchingIds.has(node.id);
   const isSearchDimmed = isSearching && !isSearchMatch;
@@ -214,56 +220,74 @@ const EntityGroupNode: React.FC<RenderEntityNodeProps> = ({ node, mediaMap, onEn
     (indirectMatches.has(node.id) && !directMatches.has(node.id)) || (node as any).isDimmed
   );
 
-    const isList = view === 'list';
-    const isExpanded = expandedNodes.has(node.id);
-    const media = mediaMap.get(node.id);
-    const hasMedia = media && media.length > 0;
-    const thumbUrl = hasMedia ? media[0].url : '';
-    return (
-      <div className={`entity-group transition-opacity duration-200 ${isList ? '' : 'col-span-full'}`}>
-        <div data-search-match={isSearchMatch ? "true" : undefined} className={`flex items-center gap-2 p-1.5 rounded-xl transition-all duration-300 ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20 shadow-inner' : ''} ${isFilterDimmed ? 'opacity-50' : ''} hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}>          
-          <div className="w-6 h-6 shrink-0 flex items-center justify-center">
-            {node.children.length > 0 && (
-              <div onClick={() => onToggleNode(node.id)} className="p-1 cursor-pointer rounded hover:bg-black/10 dark:hover:bg-white/10">
-                <Icon name="ChevronRight" className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-              </div>
+  const isList = view === 'list';
+  const isExpanded = expandedNodes.has(node.id);
+  const media = mediaMap.get(node.id);
+  const hasMedia = media && media.length > 0;
+  const thumbUrl = hasMedia ? media[0].url : '';
+
+  const isMisinterpreted = misinterpretedMatchIds?.has(node.id);
+  const isUncertain = uncertainMatchIds?.has(node.id);
+
+  const imageClasses = `bg-header-bg/80 shadow-sm rounded-lg shrink-0 object-cover ${isList ? 'w-10 h-10' : 'w-full aspect-square'}`;
+
+  return (
+    <div className={`entity-group transition-opacity duration-200 ${isList ? '' : 'col-span-full'}`}>
+      <div data-search-match={isSearchMatch ? "true" : undefined} className={`flex items-center gap-2 p-1.5 rounded-xl transition-all duration-300 ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20 shadow-inner' : ''} ${isFilterDimmed ? 'opacity-50' : ''} hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}>
+        <div className="w-6 h-6 shrink-0 flex items-center justify-center">
+          {node.children.length > 0 && (
+            <div onClick={() => onToggleNode(node.id)} className="p-1 cursor-pointer rounded hover:bg-black/10 dark:hover:bg-white/10">
+              <Icon name="ChevronRight" className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+            </div>
+          )}
+        </div>
+        <div onClick={() => onEntityClick(node.id)} className={`flex gap-1.5 cursor-pointer min-w-0 ${isList ? 'items-center grow' : 'flex-col items-center text-center w-[140px]'}`}>
+          {hasMedia ? (
+            <img src={thumbUrl} alt={node.name} loading="lazy" className={imageClasses} />
+          ) : (
+            <div className={`${imageClasses} flex items-center justify-center text-gray-400`}>
+              <Icon name="ImageOff" size={isList ? 20 : 32} />
+            </div>
+          )}
+          <div className={`flex items-center gap-1.5 min-w-0 ${isList ? '' : 'justify-center w-full mt-1'}`}>
+            <span className="text-md truncate leading-tight">{node.name}</span>
+            {isMisinterpreted && (
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-yellow-500/10 text-yellow-500 shrink-0" title={t('badgeMisinterpreted' as any) || 'Misinterpreted match'}>
+                <Icon name="TriangleAlert" size={12} />
+              </span>
             )}
-          </div>
-          <div onClick={() => onEntityClick(node.id)} className="flex items-center gap-2 grow cursor-pointer min-w-0">
-            {hasMedia ? (
-              <img src={thumbUrl} alt={node.name} loading="lazy" className="w-10 h-10 object-cover rounded-lg shadow-sm shrink-0" />
-            ) : (
-              <div className="w-10 h-10 bg-header-bg/80 rounded-lg shadow-sm shrink-0 object-cover flex items-center justify-center text-gray-400">
-                <Icon name="ImageOff" size="20" />
-              </div>
+            {isUncertain && (
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-gray-500/10 text-gray-500 shrink-0 border border-gray-500/20" title={t('badgeUncertain' as any) || 'Uncertain match'}>
+                <span className="font-bold text-[12px] leading-none">?</span>
+              </span>
             )}
-            <span className={`text-md ${isList ? 'font-medium' : ''}`}>{node.name}</span>
           </div>
         </div>
-        {isExpanded && (
-          <div className={`${isList ? 'pl-8' : 'pl-16 grid gap-4 col-span-full'}`}
-            style={isList ? {} : { gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}>
-            {node.children.map(child => {
-              const childProps = { node: child, mediaMap, onEntityClick, view, t, expandedNodes, onToggleNode, matchingIds, directMatches, indirectMatches };
-              if (view === 'grid' && child.isGroup) {
-                // In grid mode, wrap child groups to apply a smaller padding via negative margin.
-                // The wrapper becomes the grid item, taking over the col-span-full responsibility.
-                return (
-                  <div key={child.id} className="-ml-8 col-span-full">
-                    <RenderEntityNode {...childProps} />
-                  </div>
-                );
-              }
-              // Render leaves in grid mode, and all nodes in list mode, as before.
-              return <RenderEntityNode key={child.id} {...childProps} />;
-            })}
-          </div>
-        )}
       </div>
-    );
+      {isExpanded && (
+        <div className={`${isList ? 'pl-8' : 'pl-16 grid gap-4 col-span-full'}`}
+          style={isList ? {} : { gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}>
+          {node.children.map(child => {
+            const childProps = { node: child, mediaMap, onEntityClick, view, t, expandedNodes, onToggleNode, matchingIds, directMatches, indirectMatches, uncertainMatchIds, misinterpretedMatchIds };
+            if (view === 'grid' && child.isGroup) {
+              // In grid mode, wrap child groups to apply a smaller padding via negative margin.
+              // The wrapper becomes the grid item, taking over the col-span-full responsibility.
+              return (
+                <div key={child.id} className="-ml-8 col-span-full">
+                  <RenderEntityNode {...childProps} />
+                </div>
+              );
+            }
+            // Render leaves in grid mode, and all nodes in list mode, as before.
+            return <RenderEntityNode key={child.id} {...childProps} />;
+          })}
+        </div>
+      )}
+    </div>
+  );
 };
 
-const EntityLeafNode = React.memo<RenderEntityNodeProps>(({ node, mediaMap, onEntityClick, view, t, expandedNodes, onToggleNode, matchingIds, directMatches, indirectMatches }) => {
+const EntityLeafNode = React.memo<RenderEntityNodeProps>(({ node, mediaMap, onEntityClick, view, t, expandedNodes, onToggleNode, matchingIds, directMatches, indirectMatches, uncertainMatchIds, misinterpretedMatchIds }) => {
   const isSearching = matchingIds !== null;
   const isSearchMatch = isSearching && matchingIds.has(node.id);
   const isSearchDimmed = isSearching && !isSearchMatch;
@@ -279,6 +303,9 @@ const EntityLeafNode = React.memo<RenderEntityNodeProps>(({ node, mediaMap, onEn
   const isList = view === 'list';
   const imageClasses = `bg-header-bg/80 shadow-sm rounded-lg shrink-0 object-cover ${isList ? 'w-10 h-10' : 'w-full aspect-square'}`;
 
+  const isMisinterpreted = misinterpretedMatchIds?.has(node.id);
+  const isUncertain = uncertainMatchIds?.has(node.id);
+
   return (
     <div
       key={node.id}
@@ -293,21 +320,33 @@ const EntityLeafNode = React.memo<RenderEntityNodeProps>(({ node, mediaMap, onEn
           <Icon name="ImageOff" size={isList ? 20 : 32} />
         </div>
       )}
-      <span className="text-md">{node.name}</span>
+      <div className={`flex items-center gap-1.5 min-w-0 ${isList ? '' : 'justify-center w-full mt-1'}`}>
+        <span className="text-md truncate leading-tight">{node.name}</span>
+        {isMisinterpreted && (
+          <span className="flex items-center justify-center w-5 h-5 rounded-full bg-yellow-500/10 text-yellow-500 shrink-0" title={t('badgeMisinterpreted' as any) || 'Misinterpreted match'}>
+            <Icon name="TriangleAlert" size={12} />
+          </span>
+        )}
+        {isUncertain && (
+          <span className="flex items-center justify-center w-5 h-5 rounded-full bg-gray-500/10 text-gray-500 shrink-0 border border-gray-500/20" title={t('badgeUncertain' as any) || 'Uncertain match'}>
+            <span className="font-bold text-[12px] leading-none">?</span>
+          </span>
+        )}
+      </div>
     </div>
   );
 }, (prev, next) => {
   if (prev.node !== next.node) return false;
   if (prev.view !== next.view) return false;
-  
+
   const wasSearching = prev.matchingIds !== null;
   const isSearching = next.matchingIds !== null;
   if (wasSearching !== isSearching) return false;
 
   if (isSearching) {
-      const wasMatch = prev.matchingIds!.has(prev.node.id);
-      const isMatch = next.matchingIds!.has(next.node.id);
-      if (wasMatch !== isMatch) return false;
+    const wasMatch = prev.matchingIds!.has(prev.node.id);
+    const isMatch = next.matchingIds!.has(next.node.id);
+    if (wasMatch !== isMatch) return false;
   }
 
   const wasIndirect = prev.indirectMatches.has(prev.node.id);
@@ -321,6 +360,14 @@ const EntityLeafNode = React.memo<RenderEntityNodeProps>(({ node, mediaMap, onEn
   const wasDimmed = (prev.node as any).isDimmed;
   const isDimmed = (next.node as any).isDimmed;
   if (wasDimmed !== isDimmed) return false;
+
+  const wasUncertain = prev.uncertainMatchIds?.has(prev.node.id);
+  const isUncertain = next.uncertainMatchIds?.has(next.node.id);
+  if (wasUncertain !== isUncertain) return false;
+
+  const wasMisinterpreted = prev.misinterpretedMatchIds?.has(prev.node.id);
+  const isMisinterpreted = next.misinterpretedMatchIds?.has(next.node.id);
+  if (wasMisinterpreted !== isMisinterpreted) return false;
 
   return true;
 });

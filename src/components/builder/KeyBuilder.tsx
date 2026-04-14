@@ -1,19 +1,25 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAppContext } from '../../context/AppContext';
-import { Icon } from '../Icon';
+import { Icon } from '../common/Icon';
 import { ConfirmModal, Modal } from '../modals';
 import type { DraftKeyData, Media } from '../../types';
 import { BuilderMetadataTab } from './BuilderMetadataTab';
 import { BuilderFeaturesTab } from './BuilderFeaturesTab';
 import { BuilderEntitiesTab } from './BuilderEntitiesTab';
 import { BuilderScoringTab } from './BuilderScoringTab';
-import { Header } from '../Header';
-import { useSwipe } from '../../hooks/useSwipe';
-import { Sidebar, type SidebarAction } from '../Sidebar';
+import { Header } from '../layout';
+import { useSwipe } from '../../hooks';
+import { translations } from '../../constants';
+import { Sidebar, type SidebarAction } from '../layout';
 
 interface KeyBuilderProps {
   onExit: () => void;
   initialData?: DraftKeyData;
+  builderStateRef?: React.MutableRefObject<{
+    history: DraftKeyData[];
+    historyIndex: number;
+    savedHistoryIndex: number;
+  }>;
   onChange?: (draft: DraftKeyData) => void;
   onTestKey?: (draft: DraftKeyData) => void;
   onNewKey?: () => void;
@@ -21,10 +27,9 @@ interface KeyBuilderProps {
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
-export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onChange, onTestKey, onNewKey }) => {
+export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, builderStateRef, onChange, onTestKey, onNewKey }) => {
   const appContext = useAppContext();
-  const { t, triggerOpenNativeKey, isAiPanelVisible, setAiPanelVisible, openPreferences } = appContext;
-  const hideAi = (appContext as any).hideAi;
+  const { t, triggerOpenNativeJson, isAiPanelVisible, setAiPanelVisible, openPreferences, addToast } = appContext;
   const [activeTab, setActiveTab] = useState<'features' | 'entities' | 'scoring'>('features');
   const [showMetadataModal, setShowMetadataModal] = useState(false);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -42,59 +47,109 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
 
   const getInitialDraft = () => {
     if (initialData) return initialData;
-    const saved = localStorage.getItem('draftKeyData');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) { }
-    }
     return { title: t('kbNewIdentKey' as any) || 'New Identification Key', authors: '', description: '', features: [], entities: [] };
   };
 
-  const [history, setHistory] = useState<DraftKeyData[]>(() => [getInitialDraft()]);
-  const [historyIndex, setHistoryIndex] = useState(0);
-  const [isSaved, setIsSaved] = useState(false);
-  const isFirstRender = useRef(true);
+  const [historyState, setHistoryState] = useState<{
+    history: DraftKeyData[];
+    historyIndex: number;
+    savedHistoryIndex: number;
+  }>(() => {
+    if (builderStateRef?.current?.history.length) {
+      return {
+        history: builderStateRef.current.history,
+        historyIndex: builderStateRef.current.historyIndex,
+        savedHistoryIndex: builderStateRef.current.savedHistoryIndex || 0
+      };
+    }
+    return {
+      history: [getInitialDraft()],
+      historyIndex: 0,
+      savedHistoryIndex: 0
+    };
+  });
+
+  const history = historyState.history;
+  const historyIndex = historyState.historyIndex;
+  const savedHistoryIndex = historyState.savedHistoryIndex;
   const [keyPromptMode, setKeyPromptMode] = useState<'new' | 'open' | null>(null);
+  const [cachedKeyPromptMode, setCachedKeyPromptMode] = useState<'new' | 'open' | null>(null);
 
   useEffect(() => {
-    if (initialData) {
-      setHistory([initialData]);
-      setHistoryIndex(0);
-      setActiveTab('features');
-      setSelectedFeatureId(null);
-      setSelectedEntityId(null);
+    if (keyPromptMode) setCachedKeyPromptMode(keyPromptMode);
+  }, [keyPromptMode]);
+
+  const lastProcessedInitialData = useRef(initialData);
+
+  const draftKey = history[historyIndex] || { title: '', authors: '', description: '', features: [], entities: [] };
+  const draftKeyRef = useRef(draftKey);
+  draftKeyRef.current = draftKey;
+
+  useEffect(() => {
+    if (initialData && initialData !== lastProcessedInitialData.current) {
+      lastProcessedInitialData.current = initialData;
+      if (initialData !== draftKeyRef.current) {
+        setHistoryState({
+          history: [initialData],
+          historyIndex: 0,
+          savedHistoryIndex: 0
+        });
+        setActiveTab('features');
+        setSelectedFeatureId(null);
+        setSelectedEntityId(null);
+      }
     }
   }, [initialData]);
 
-  const draftKey = history[historyIndex] || { title: '', authors: '', description: '', features: [], entities: [] };
+  useEffect(() => {
+    if (builderStateRef) {
+      builderStateRef.current = { history, historyIndex, savedHistoryIndex };
+    }
+  }, [history, historyIndex, savedHistoryIndex, builderStateRef]);
 
   useEffect(() => {
     onChange?.(draftKey);
-    localStorage.setItem('draftKeyData', JSON.stringify(draftKey));
-
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-    setIsSaved(true);
-    const timer = setTimeout(() => setIsSaved(false), 2000);
-    return () => clearTimeout(timer);
   }, [draftKey, onChange]);
 
+  const isUnsaved = historyIndex !== savedHistoryIndex;
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('draftHasUnsavedChanges', String(isUnsaved));
+    } catch (e) { }
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isUnsaved) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isUnsaved]);
+
   const updateDraftKey = useCallback((updater: (prev: DraftKeyData) => DraftKeyData) => {
-    setHistory(prevHistory => {
-      const currentDraft = prevHistory[historyIndex] || { title: '', authors: '', description: '', features: [], entities: [] };
+    setHistoryState(prevState => {
+      const currentDraft = prevState.history[prevState.historyIndex] || { title: '', authors: '', description: '', features: [], entities: [] };
       const nextState = updater(currentDraft);
-      const newHistory = prevHistory.slice(0, historyIndex + 1);
+      const newHistory = prevState.history.slice(0, Math.max(0, prevState.historyIndex) + 1);
       newHistory.push(nextState);
-      if (newHistory.length > 50) newHistory.shift();
-      return newHistory;
+      let newSavedIndex = prevState.savedHistoryIndex;
+      if (newHistory.length > 50) {
+        newHistory.shift();
+        newSavedIndex--;
+      }
+      return {
+        history: newHistory,
+        historyIndex: newHistory.length - 1,
+        savedHistoryIndex: newSavedIndex
+      };
     });
-    setHistoryIndex(prev => Math.min(prev + 1, 49));
-  }, [historyIndex]);
+  }, []);
 
   useEffect(() => {
     const handleUndoHistory = () => {
-      setHistoryIndex(prev => Math.max(0, prev - 1));
+      setHistoryState(prev => prev.historyIndex > 0 ? { ...prev, historyIndex: prev.historyIndex - 1 } : prev);
     };
     const handleRestoreSnapshot = (e: any) => {
       const snapshot = e.detail;
@@ -337,8 +392,12 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
     };
   }, [t, updateDraftKey]);
 
-  const undo = () => { if (historyIndex > 0) setHistoryIndex(prev => prev - 1); };
-  const redo = () => { if (historyIndex < history.length - 1) setHistoryIndex(prev => prev + 1); };
+  const undo = () => {
+    setHistoryState(prev => prev.historyIndex > 0 ? { ...prev, historyIndex: prev.historyIndex - 1 } : prev);
+  };
+  const redo = () => {
+    setHistoryState(prev => prev.historyIndex < prev.history.length - 1 ? { ...prev, historyIndex: prev.historyIndex + 1 } : prev);
+  };
 
   const [selectedFeatureId, setSelectedFeatureId] = useState<string | null>(null);
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
@@ -365,14 +424,40 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
     activeTab === 'scoring'
   );
 
-  const exportJson = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(draftKey, null, 2));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `${draftKey.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'draft_key'}.json`);
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
+  const exportJson = async () => {
+    const fileName = `${draftKey.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'draft_key'}.json`;
+    const jsonString = JSON.stringify(draftKey, null, 2);
+
+    let saved = false;
+    if ('showSaveFilePicker' in window) {
+      try {
+        const handle = await (window as any).showSaveFilePicker({
+          suggestedName: fileName,
+          types: [{ description: 'JSON File', accept: { 'application/json': ['.json'] } }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(jsonString);
+        await writable.close();
+        saved = true;
+        setHistoryState(prev => ({ ...prev, savedHistoryIndex: prev.historyIndex }));
+      } catch (err: any) {
+        if (err.name === 'AbortError') return; // User cancelled the save dialog
+        console.error('File picker failed, falling back:', err);
+      }
+    }
+
+    if (!saved) {
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const downloadAnchorNode = document.createElement('a');
+      downloadAnchorNode.href = url;
+      downloadAnchorNode.download = fileName;
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setHistoryState(prev => ({ ...prev, savedHistoryIndex: prev.historyIndex }));
+    }
   };
 
   const updateFeatureMedia = (featureId: string, index: number, updates: Partial<Media>) => {
@@ -426,11 +511,18 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
   };
 
   const handleCreateNew = () => {
-    setHistory([{ title: t('kbNewIdentKey' as any) || 'New Identification Key', authors: '', description: '', features: [], entities: [] }]);
-    setHistoryIndex(0);
+    const newDraft = { title: t('kbNewIdentKey' as any) || 'New Identification Key', authors: '', description: '', features: [], entities: [] };
+    setHistoryState({
+      history: [newDraft],
+      historyIndex: 0,
+      savedHistoryIndex: 0
+    });
     setActiveTab('features');
     setSelectedFeatureId(null);
     setSelectedEntityId(null);
+    try {
+      localStorage.setItem('draftHasUnsavedChanges', 'false');
+    } catch (e) { }
     onNewKey?.();
   };
 
@@ -438,7 +530,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
     if (keyPromptMode === 'new') {
       handleCreateNew();
     } else if (keyPromptMode === 'open') {
-      triggerOpenNativeKey();
+      triggerOpenNativeJson();
     }
     setKeyPromptMode(null);
   };
@@ -546,6 +638,22 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
         draftKey.features.find(f => f.id === editingMedia.itemId)?.states.find(s => s.id === editingMedia.stateId)?.media?.[editingMedia.mediaIndex]
   ) : null;
 
+  const handleRequestNewKey = () => {
+    if (isUnsaved) {
+      setKeyPromptMode('new');
+    } else {
+      handleCreateNew();
+    }
+  };
+
+  const handleRequestOpenKey = () => {
+    if (isUnsaved) {
+      setKeyPromptMode('open');
+    } else {
+      triggerOpenNativeJson();
+    }
+  };
+
   const ActionButton = ({ onClick, disabled, title, icon, iconClass = '' }: any) => (
     <button onClick={onClick} disabled={disabled} title={title} className="p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
       <Icon name={icon} size={24} className={`opacity-80 ${iconClass}`} />
@@ -554,9 +662,9 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
 
   const builderLeftActions = (
     <>
-      <ActionButton onClick={() => setKeyPromptMode('new')} title={t('kbNewKey' as any)} icon="FilePlus" />
-      <ActionButton onClick={() => setKeyPromptMode('open')} title={t('openNativeKey')} icon="FolderOpen" />
-      <ActionButton onClick={exportJson} title={t('exportJson')} icon="Download" />
+      <ActionButton onClick={handleRequestNewKey} title={t('kbNewKey' as any)} icon="File" />
+      <ActionButton onClick={handleRequestOpenKey} title={t('openNativeKey')} icon="FolderOpen" />
+      <ActionButton onClick={exportJson} title={t('exportJson')} icon="Save" />
       <ActionButton onClick={() => setShowMetadataModal(true)} title={t('kbMetadata')} icon="Info" />
       <ActionButton onClick={() => onTestKey?.(draftKey)} title={t('kbTestKey' as any)} icon="Play" iconClass="text-accent" />
       <ActionButton onClick={openPreferences} title={t('preferences')} icon="Settings2" />
@@ -594,15 +702,12 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
         <ActionButton onClick={undo} disabled={historyIndex <= 0} title={t('kbUndo')} icon="Undo" />
         <ActionButton onClick={redo} disabled={historyIndex >= history.length - 1} title={t('kbRedo')} icon="Redo" />
       </div>
-      <span className={`absolute left-full ml-3 text-xs font-bold text-green-500 dark:text-green-400 flex items-center gap-1 transition-opacity duration-500 whitespace-nowrap pointer-events-none ${isSaved ? 'opacity-100' : 'opacity-0'}`}>
-        <Icon name="Check" size={14} /> <span className="hidden md:inline">{t('saved' as any)}</span>
-      </span>
     </div>
   );
 
   const sidebarActions: SidebarAction[] = [
-    { icon: 'FilePlus', label: t('kbNewKey' as any), onClick: () => setKeyPromptMode('new') },
-    { icon: 'FolderOpen', label: t('openNativeKey'), onClick: () => setKeyPromptMode('open') },
+    { icon: 'FilePlus', label: t('kbNewKey' as any), onClick: handleRequestNewKey },
+    { icon: 'FolderOpen', label: t('openNativeKey'), onClick: handleRequestOpenKey },
     { icon: 'Download', label: t('exportJson'), onClick: exportJson },
     { icon: 'Info', label: t('kbMetadata'), onClick: () => setShowMetadataModal(true) },
     { icon: 'Play', label: t('kbTestKey' as any), onClick: () => onTestKey?.(draftKey), iconClass: 'text-accent' }
@@ -610,8 +715,10 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
 
   return (
     <div className="flex flex-col h-full w-full bg-bg">
-      {/* Mobile Sidebar */}
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} onExit={onExit} actions={sidebarActions} />
+      {/* Mobile Sidebar - wrapped to control visibility and prevent shadow bleed */}
+      <div className={`transition-all duration-300 ${isSidebarOpen ? 'visible' : 'invisible'}`}>
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} onExit={onExit} actions={sidebarActions} />
+      </div>
 
       <Header
         isSidebarOpen={isSidebarOpen}
@@ -642,6 +749,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
                         draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
                         selectedFeatureId={selectedFeatureId} setSelectedFeatureId={setSelectedFeatureId}
                         collapsedFeatures={collapsedFeatures} toggleFeatureCollapse={toggleFeatureCollapse}
+                        setCollapsedFeatures={setCollapsedFeatures}
                         draggedItem={draggedItem} setDraggedItem={setDraggedItem}
                         dragOverId={dragOverId} setDragOverId={setDragOverId}
                         draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
@@ -653,6 +761,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
                         draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
                         selectedEntityId={selectedEntityId} setSelectedEntityId={setSelectedEntityId}
                         collapsedEntities={collapsedEntities} toggleEntityCollapse={toggleEntityCollapse}
+                        setCollapsedEntities={setCollapsedEntities}
                         draggedItem={draggedItem} setDraggedItem={setDraggedItem}
                         dragOverId={dragOverId} setDragOverId={setDragOverId}
                         draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
@@ -670,6 +779,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
                         draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
                         selectedFeatureId={selectedFeatureId} setSelectedFeatureId={setSelectedFeatureId}
                         collapsedFeatures={collapsedFeatures} toggleFeatureCollapse={toggleFeatureCollapse}
+                        setCollapsedFeatures={setCollapsedFeatures}
                         draggedItem={draggedItem} setDraggedItem={setDraggedItem}
                         dragOverId={dragOverId} setDragOverId={setDragOverId}
                         draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
@@ -685,6 +795,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
                         draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
                         selectedEntityId={selectedEntityId} setSelectedEntityId={setSelectedEntityId}
                         collapsedEntities={collapsedEntities} toggleEntityCollapse={toggleEntityCollapse}
+                        setCollapsedEntities={setCollapsedEntities}
                         draggedItem={draggedItem} setDraggedItem={setDraggedItem}
                         dragOverId={dragOverId} setDragOverId={setDragOverId}
                         draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
@@ -697,7 +808,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
 
               <div className={`builder-panel ${activeTab === 'scoring' ? 'active' : ''} min-w-0`}>
                 <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg min-w-0">
-                  <BuilderScoringTab draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any} />
+                  <BuilderScoringTab draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any} isActive={activeTab === 'scoring'} />
                 </div>
               </div>
             </div>
@@ -778,16 +889,16 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, onC
         isDestructive={true}
       />
 
-      <Modal isOpen={keyPromptMode !== null} onClose={() => setKeyPromptMode(null)} title={keyPromptMode === 'new' ? t('kbNewKey' as any) : t('openNativeKey')}>
+      <Modal isOpen={keyPromptMode !== null} onClose={() => setKeyPromptMode(null)} title={cachedKeyPromptMode === 'new' ? t('kbNewKey' as any) : t('openNativeKey')}>
         <div className="p-7 text-text">
           <div className="flex items-start gap-3 text-yellow-500 bg-yellow-500/10 p-4 rounded-xl border border-yellow-500/20 mb-8">
             <Icon name="TriangleAlert" size={24} className="shrink-0 mt-0.5" />
-            <p className="text-sm font-medium leading-relaxed">{keyPromptMode === 'new' ? t('kbNewKeyPrompt' as any) : t('kbOpenKeyPrompt' as any)}</p>
+            <p className="text-sm font-medium leading-relaxed">{cachedKeyPromptMode === 'new' ? t('kbNewKeyPrompt' as any) : t('kbOpenKeyPrompt' as any)}</p>
           </div>
           <div className="flex flex-col-reverse md:flex-row justify-end gap-3 mt-2">
             <button onClick={() => setKeyPromptMode(null)} className="w-full md:w-auto px-5 py-2.5 hover:bg-hover-bg/80 rounded-xl font-bold text-gray-500 transition-all duration-300 cursor-pointer">{t('cancel')}</button>
             <button onClick={() => { exportJson(); handleConfirmPrompt(); }} className="w-full md:w-auto justify-center px-5 py-2.5 bg-panel-bg border border-white/20 dark:border-white/10 rounded-xl hover:bg-hover-bg/80 hover:shadow-md transition-all duration-300 shadow-sm font-bold flex items-center gap-2 cursor-pointer"><Icon name="FileJson" size={16} /> {t('exportJson')}</button>
-            <button onClick={handleConfirmPrompt} className="w-full md:w-auto justify-center px-5 py-2.5 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-xl hover:bg-red-600 transition-all duration-300 shadow-md hover:shadow-lg font-bold cursor-pointer">{keyPromptMode === 'new' ? t('kbDiscardAndCreate' as any) : t('kbDiscardAndOpen' as any)}</button>
+            <button onClick={handleConfirmPrompt} className="w-full md:w-auto justify-center px-5 py-2.5 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-xl hover:bg-red-600 transition-all duration-300 shadow-md hover:shadow-lg font-bold cursor-pointer">{cachedKeyPromptMode === 'new' ? t('kbDiscardAndCreate' as any) : t('kbDiscardAndOpen' as any)}</button>
           </div>
         </div>
       </Modal>

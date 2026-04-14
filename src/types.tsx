@@ -30,6 +30,7 @@ export interface Feature {
   description?: string;
   base_unit?: string;
   unit_prefix?: string;
+  matchType?: 'OR' | 'AND' | 'SINGLE';
 }
 
 export interface FeatureNode {
@@ -82,6 +83,7 @@ export interface KeyData {
   totalFeaturesCount: number;
   featureListForAI: { id: string; type: FeatureType; description: string }[];
   parsingErrors: string[];
+  sourceFormat?: 'lucid' | 'native';
 }
 
 export interface ChosenFeature {
@@ -104,6 +106,7 @@ export interface DraftFeature {
   media?: Media[];
   base_unit?: string;
   unit_prefix?: string;
+  matchType?: 'OR' | 'AND' | 'SINGLE';
 }
 
 export interface DraftEntity {
@@ -123,7 +126,7 @@ export interface DraftKeyData {
   entities: DraftEntity[];
 }
 
-export type ModalState = 
+export type ModalState =
   | { type: 'none' }
   | { type: 'entity'; entityId: string }
   | { type: 'feature'; featureId: string }
@@ -174,5 +177,12 @@ export interface RawChatMessage {
   draftSnapshot?: DraftKeyData;
 }
 
-// Re-export from Icon component to make it available elsewhere
-export type { IconName } from './components/Icon';
+export interface ChatMessage {
+  sender: 'user' | 'ai';
+  content: string;
+  data?: GeminiResponse;
+  versions?: AiMessageVersion[];
+  currentVersionIndex?: number;
+  imageUrl?: string;
+  draftSnapshot?: DraftKeyData;
+}

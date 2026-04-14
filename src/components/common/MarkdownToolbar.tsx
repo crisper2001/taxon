@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import { Icon } from '../Icon';
+import { Icon } from './Icon';
 
 interface MarkdownToolbarProps {
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
@@ -14,10 +14,10 @@ export const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({ textareaRef, o
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selectedText = value.substring(start, end);
-    
+
     const newText = value.substring(0, start) + prefix + selectedText + suffix + value.substring(end);
     onChange(newText);
-    
+
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(start + prefix.length, end + prefix.length);
@@ -29,13 +29,13 @@ export const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({ textareaRef, o
     const textarea = textareaRef.current;
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    
+
     let lineStart = value.lastIndexOf('\n', start - 1);
     lineStart = lineStart === -1 ? 0 : lineStart + 1;
-    
+
     const newText = value.substring(0, lineStart) + prefix + value.substring(lineStart);
     onChange(newText);
-    
+
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(start + prefix.length, end + prefix.length);

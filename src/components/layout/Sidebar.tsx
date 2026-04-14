@@ -1,7 +1,7 @@
 import React from 'react';
-import { Icon } from './Icon';
-import type { IconName } from './Icon';
-import { useAppContext } from '../context/AppContext';
+import { Icon } from '../common/Icon';
+import type { IconName } from '../common/Icon';
+import { useAppContext } from '../../context/AppContext';
 
 export interface SidebarAction {
   icon: IconName;

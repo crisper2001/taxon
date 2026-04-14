@@ -17,6 +17,10 @@ interface AppContextProps {
   appMode: 'identify' | 'build';
   geminiApiKey: string;
   isAiPanelVisible: boolean;
+  enableAi: boolean;
+  enableAnimations: boolean;
+  allowMisinterpretations: boolean;
+  allowUncertainties: boolean;
 
   // Setters
   setLang: (lang: Language) => void;
@@ -24,13 +28,19 @@ interface AppContextProps {
   setGeminiApiKey: (key: string) => void;
   setAppMode: (mode: 'identify' | 'build') => void;
   setAiPanelVisible: (visible: boolean) => void;
+  setEnableAnimations: (mode: boolean) => void;
+  setAllowMisinterpretations: (allow: boolean) => void;
+  setAllowUncertainties: (allow: boolean) => void;
 
   // Actions
   triggerImport: () => void;
   triggerOpenNativeKey: () => void;
+  triggerOpenNativeJson: () => void;
+  exportLoadedKeyToNative: () => void;
   resetKey: () => void;
   openPreferences: () => void;
   openKeyInfo: () => void;
+  addToast: (message: string) => void;
 }
 
 const AppContext = createContext<AppContextProps | undefined>(undefined);

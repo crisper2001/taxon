@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from './Modal';
-import { Icon } from '../Icon';
+import { Icon } from '../common/Icon';
 import { translations } from '../../constants';
-import Spot from '../Spot';
-import { CustomSelect } from '../common/CustomSelect';
+import { Spot } from '../common/Spot';
+import { CustomSelect } from '../common';
 import type { Language, Theme } from '../../types';
 import packageJson from '../../../package.json';
 
@@ -31,8 +31,8 @@ const languageNames: Record<Language, string> = {
 interface PreferencesModalProps {
     isOpen: boolean;
     onClose: () => void;
-    currentPrefs: { lang: Language; theme: Theme; geminiApiKey: string; showToasts: boolean; hideAi: boolean; };
-    onPreferenceChange: (key: 'lang' | 'theme' | 'geminiApiKey' | 'showToasts' | 'hideAi', value: string | boolean) => void;
+    currentPrefs: { lang: Language; theme: Theme; geminiApiKey: string; showToasts: boolean; enableAi: boolean; enableAnimations: boolean; allowMisinterpretations: boolean; allowUncertainties: boolean; };
+    onPreferenceChange: (key: 'lang' | 'theme' | 'geminiApiKey' | 'showToasts' | 'enableAi' | 'enableAnimations' | 'allowMisinterpretations' | 'allowUncertainties', value: string | boolean) => void;
     t: (key: keyof typeof translations['en']) => string;
     availableLanguages: Language[];
     onClearData?: () => void;
@@ -55,7 +55,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={t('preferences')}>
             <div className="flex flex-col bg-bg/80 backdrop-blur-sm rounded-b-3xl">
-                <div className="p-7 h-[450px] overflow-y-auto overflow-x-hidden relative">
+                <div className="p-7 h-[500px] overflow-y-auto overflow-x-hidden relative">
                   <div key={activeTab} className="animate-fade-in-up h-full">
                 {activeTab === 'general' && (
                     <div className="space-y-8">
@@ -68,6 +68,30 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                                 className="input-base w-full font-semibold cursor-pointer"
                                 dropdownClassName="max-h-48 overflow-y-auto"
                             />
+                        </div>
+
+                        <div className="pt-6 border-t border-black/10 dark:border-white/10">
+                            <div className="font-bold mb-3 text-base block tracking-tight text-text/90">{t('identification' as any)}</div>
+                            <div className="space-y-4">
+                                <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-hover-bg/50">
+                                    <span className="font-bold text-base tracking-tight text-text/90">{t('uiAllowMisinterpretations' as any) || 'Allow Misinterpretations'}</span>
+                                    <input
+                                        type="checkbox"
+                                        checked={currentPrefs.allowMisinterpretations}
+                                        onChange={(e) => onPreferenceChange('allowMisinterpretations', e.target.checked)}
+                                        className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-bg bg-bg cursor-pointer shadow-inner"
+                                    />
+                                </label>
+                                <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-hover-bg/50">
+                                    <span className="font-bold text-base tracking-tight text-text/90">{t('uiAllowUncertainties' as any) || 'Allow Uncertainties'}</span>
+                                    <input
+                                        type="checkbox"
+                                        checked={currentPrefs.allowUncertainties}
+                                        onChange={(e) => onPreferenceChange('allowUncertainties', e.target.checked)}
+                                        className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-bg bg-bg cursor-pointer shadow-inner"
+                                    />
+                                </label>
+                            </div>
                         </div>
                         
                         {onClearData && (
@@ -99,7 +123,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                         </div>
                         <div>
                             <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-hover-bg/50">
-                                <span className="font-bold text-base tracking-tight text-text/90">{t('uiShowToasts')}</span>
+                                <span className="font-bold text-base tracking-tight text-text/90">{t('uiShowToasts' as any) || 'Enable Notifications'}</span>
                                 <input
                                     type="checkbox"
                                     checked={currentPrefs.showToasts}
@@ -108,6 +132,17 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                                 />
                             </label>
                         </div>
+                    <div>
+                        <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-hover-bg/50">
+                            <span className="font-bold text-base tracking-tight text-text/90">{t('uiEnableAnimations' as any) || 'Enable Animations'}</span>
+                            <input
+                                type="checkbox"
+                                checked={currentPrefs.enableAnimations}
+                                onChange={(e) => onPreferenceChange('enableAnimations', e.target.checked)}
+                                className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-bg bg-bg cursor-pointer shadow-inner"
+                            />
+                        </label>
+                    </div>
                     </div>
                 )}
 
@@ -115,11 +150,11 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                     <div className="space-y-6">
                         <div>
                             <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-hover-bg/50">
-                                <span className="font-bold text-base tracking-tight text-text/90">{t('uiHideAi' as any)}</span>
+                                <span className="font-bold text-base tracking-tight text-text/90">{t('uiEnableAi' as any) || 'Enable AI Assistant'}</span>
                                 <input
                                     type="checkbox"
-                                    checked={currentPrefs.hideAi}
-                                    onChange={(e) => onPreferenceChange('hideAi', e.target.checked)}
+                                    checked={currentPrefs.enableAi}
+                                    onChange={(e) => onPreferenceChange('enableAi', e.target.checked)}
                                     className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-bg bg-bg cursor-pointer shadow-inner"
                                 />
                             </label>
@@ -156,13 +191,16 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                         <div className="text-sm font-bold text-text/70 -mt-2">
                             {t('createdBy' as any) || 'Created by'} {packageJson.author}
                         </div>
+                        <div className="text-xs font-bold text-text/50 -mt-1">
+                            {t('licensedUnder' as any) || 'Licensed under'} <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">AGPL-3.0</a>
+                        </div>
                         <p className="text-sm text-text/80 leading-relaxed">
                             {t('aboutDescription' as any) || 'A web application to create, edit, and use identification keys.'}
                         </p>
                         <div className="pt-4 flex justify-center w-full">
-                           <a href="https://github.com/crisper2001/taxon" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-5 py-3 bg-panel-bg/80 hover:bg-hover-bg rounded-2xl transition-all duration-300 font-bold text-sm text-text/80 shadow-sm border border-black/5 dark:border-white/5">
-                               <Icon name="Github" size={18} /> GitHub
-                           </a>
+                            <a href="https://github.com/crisper2001/taxon" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-5 py-3 bg-panel-bg/80 hover:bg-hover-bg rounded-2xl transition-all duration-300 font-bold text-sm text-text/80 shadow-sm border border-black/5 dark:border-white/5">
+                                <Icon name="Github" size={18} /> GitHub
+                            </a>
                         </div>
                     </div>
                 )}

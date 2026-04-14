@@ -1,8 +1,8 @@
 import React, { MutableRefObject, useState, useEffect } from 'react';
-import { Icon } from '../Icon';
+import { Icon } from '../common/Icon';
 import { Modal } from './Modal';
-import { MarkdownInput } from '../common/MarkdownInput';
-import { CustomSelect } from '../common/CustomSelect';
+import { MarkdownInput } from '../common';
+import { CustomSelect } from '../common';
 import type { DraftFeature, DraftState } from '../../types';
 
 const reorderArray = <T,>(arr: T[], from: number, to: number): T[] => {
@@ -78,7 +78,7 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
   const stateToRender = selectedState || cachedState;
   const stateParentToRender = selectedStateParent || cachedStateParent;
 
-  const modalTitle = stateToRender && stateParentToRender ? (
+  const modalTitle = cachedMode === 'state' && stateToRender && stateParentToRender ? (
     <div className="flex items-center gap-3 min-w-0">
       <div className="flex flex-col min-w-0">
         <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-0.5 leading-none truncate">{stateParentToRender.name || t('kbUnnamedFeature')}</span>
@@ -110,15 +110,38 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
 
               <MarkdownInput label={t('kbDescription')} value={featureToRender.description || ''} onChange={val => updateFeature(featureToRender.id, { description: val })} rows={3} />
 
-              <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-semibold opacity-80">{t('kbType')}</span>
-                <CustomSelect
-                  value={featureToRender.type}
-                  onChange={val => requestTypeChange(featureToRender.id, val as 'numeric' | 'state')}
-                  options={[{ value: 'state', label: t('kbTypeState') }, { value: 'numeric', label: t('kbTypeNumeric') }]}
-                  className="input-base cursor-pointer"
-                />
-              </label>
+              <div className="flex gap-4">
+                <label className="flex flex-col gap-1.5 flex-1">
+                  <span className="text-sm font-semibold opacity-80">{t('kbType')}</span>
+                  <CustomSelect
+                    value={featureToRender.type}
+                    onChange={val => requestTypeChange(featureToRender.id, val as 'numeric' | 'state')}
+                    options={[{ value: 'state', label: t('kbTypeState') }, { value: 'numeric', label: t('kbTypeNumeric') }]}
+                    className="input-base cursor-pointer"
+                  />
+                </label>
+
+                {featureToRender.type === 'state' && (
+                  <label className="flex flex-col gap-1.5 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-semibold opacity-80">{t('kbMatchType' as any) || 'Matching Type'}</span>
+                      <div title={t('kbMatchTypeHelp' as any) || "OR: Matches any selected state.\nAND: Matches all selected states.\nSINGLE: Restricts to a single selection."} className="text-gray-400 hover:text-accent transition-colors cursor-help mt-0.5">
+                        <Icon name="Info" size={14} />
+                      </div>
+                    </div>
+                    <CustomSelect
+                      value={featureToRender.matchType || 'OR'}
+                      onChange={val => updateFeature(featureToRender.id, { matchType: val as 'OR' | 'AND' | 'SINGLE' })}
+                      options={[
+                        { value: 'OR', label: t('kbMatchAny' as any) || 'Match Any (OR)' },
+                        { value: 'AND', label: t('kbMatchAll' as any) || 'Match All (AND)' },
+                        { value: 'SINGLE', label: t('kbSingleSelection' as any) || 'Single Selection' }
+                      ]}
+                      className="input-base cursor-pointer"
+                    />
+                  </label>
+                )}
+              </div>
 
               {featureToRender.type === 'numeric' && (
                 <div className="flex gap-4">
@@ -166,7 +189,7 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
                 <Icon name="Image" size={18} />
                 <span className="grow text-base">{t('kbImages' as any) || 'Images'}</span>
               </div>
-              <div 
+              <div
                 className={`flex gap-3 overflow-x-auto pb-2 pt-2 px-2 -mx-2 rounded-xl transition-all min-h-[116px] ${dragOverId === 'feature-images' ? 'bg-accent/10 ring-2 ring-accent ring-inset' : ''}`}
                 onDragEnter={(e) => {
                   if (e.dataTransfer.types.includes('Files')) {
@@ -340,7 +363,7 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
                 <Icon name="Image" size={18} />
                 <span className="grow text-base">{t('kbImages' as any) || 'Images'}</span>
               </div>
-              <div 
+              <div
                 className={`flex gap-3 overflow-x-auto pb-2 pt-2 px-2 -mx-2 rounded-xl transition-all min-h-[116px] ${dragOverId === `state-images-${stateToRender.id}` ? 'bg-accent/10 ring-2 ring-accent ring-inset' : ''}`}
                 onDragEnter={(e) => {
                   if (e.dataTransfer.types.includes('Files')) {
@@ -601,13 +624,36 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
                       )}
 
                       {!isDefault && <input type="color" value={v.color || '#3b82f6'} onChange={e => updateStateValue(stateParentToRender.id, stateToRender.id, v.id, { color: e.target.value })} className="w-8 h-8 rounded-lg cursor-pointer border-0 p-0 bg-transparent shrink-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch]:rounded-lg" title="Select color" />}
+                      
+                      {!isDefault && <button onClick={() => {
+                        updateDraftKey(prev => ({
+                          ...prev,
+                          features: prev.features.map(f => f.id === stateParentToRender.id ? {
+                            ...f, states: f.states.map(st => st.id === stateToRender.id ? {
+                              ...st, values: reorderArray((st as any).values || getDefaultStateValues(t), vIndex, vIndex - 1)
+                            } : st)
+                          } : f)
+                        }));
+                      }} title={t('moveUp' as any) || 'Move Up'} className="opacity-0 group-hover/val:opacity-100 text-gray-400 hover:text-accent transition-opacity p-2 bg-black/5 dark:bg-white/5 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer" disabled={vIndex <= 5}><Icon name="ArrowUp" size={16} /></button>}
+                      
+                      {!isDefault && <button onClick={() => {
+                        updateDraftKey(prev => ({
+                          ...prev,
+                          features: prev.features.map(f => f.id === stateParentToRender.id ? {
+                            ...f, states: f.states.map(st => st.id === stateToRender.id ? {
+                              ...st, values: reorderArray((st as any).values || getDefaultStateValues(t), vIndex, vIndex + 1)
+                            } : st)
+                          } : f)
+                        }));
+                      }} title={t('moveDown' as any) || 'Move Down'} className="opacity-0 group-hover/val:opacity-100 text-gray-400 hover:text-accent transition-opacity p-2 bg-black/5 dark:bg-white/5 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer" disabled={vIndex >= ((stateToRender as any).values || getDefaultStateValues(t)).length - 1}><Icon name="ArrowDown" size={16} /></button>}
+                      
                       {!isDefault && <button onClick={() => deleteStateValue(stateParentToRender.id, stateToRender.id, v.id)} className="opacity-0 group-hover/val:opacity-100 text-red-400 hover:text-red-600 transition-opacity p-2 bg-red-400/10 rounded-lg hover:bg-red-400/20"><Icon name="X" size={16} /></button>}
                     </div>
                   );
                 })}
               </div>
             </div>
-            
+
             <div className="flex justify-between items-center mt-2 pt-2">
               <button onClick={() => duplicateState(stateParentToRender.id, stateToRender.id)} className="px-4 py-2 text-gray-500 hover:text-accent bg-panel-bg/50 hover:bg-hover-bg rounded-xl border border-border shadow-sm transition-all font-semibold flex items-center gap-2 cursor-pointer">
                 <Icon name="Copy" size={16} /> {t('kbDuplicate')}
