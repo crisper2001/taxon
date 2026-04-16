@@ -32,6 +32,12 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
     const containerRef = useRef<HTMLDivElement>(null);
     const resizingType = useRef<null | 'v' | 'h'>(null);
     const dragOffset = useRef(0);
+    const layoutRef = useRef(layout);
+
+    useEffect(() => {
+        layoutRef.current = layout;
+    }, [layout]);
+
     const [isResizing, setIsResizing] = useState(false);
     const touchStart = useRef<{ x: number, y: number } | null>(null);
     const [swipeOffset, setSwipeOffset] = useState(0);
@@ -104,9 +110,12 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
     };
 
     const handleMouseUp = useCallback(() => {
+        if (resizingType.current) {
+            setLayout(layoutRef.current);
+        }
         resizingType.current = null;
         setIsResizing(false);
-    }, [setIsResizing]);
+    }, []);
 
     const handleMouseMove = useCallback((e: MouseEvent) => {
         if (!resizingType.current || !containerRef.current) return;
@@ -122,14 +131,18 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
                 newWidth = Math.max(MIN_PANEL_SIZE, Math.min(newWidth, freeWidth - MIN_PANEL_SIZE));
                 const firstFr = (newWidth / freeWidth) * 100;
                 const secondFr = 100 - firstFr;
-                setLayout(prev => ({ ...prev, cols: `${firstFr}fr ${RESIZER_SIZE}px ${secondFr}fr` }));
+                const newCols = `${firstFr}fr ${RESIZER_SIZE}px ${secondFr}fr`;
+                layoutRef.current = { ...layoutRef.current, cols: newCols };
+                containerRef.current.style.setProperty('--grid-cols', newCols);
             } else { // 'h'
                 const freeHeight = Math.max(1, rect.height - FIXED_SPACE);
                 let newHeight = e.clientY - dragOffset.current - (rect.top + 16);
                 newHeight = Math.max(MIN_PANEL_SIZE, Math.min(newHeight, freeHeight - MIN_PANEL_SIZE));
                 const firstFr = (newHeight / freeHeight) * 100;
                 const secondFr = 100 - firstFr;
-                setLayout(prev => ({ ...prev, rows: `${firstFr}fr ${RESIZER_SIZE}px ${secondFr}fr` }));
+                const newRows = `${firstFr}fr ${RESIZER_SIZE}px ${secondFr}fr`;
+                layoutRef.current = { ...layoutRef.current, rows: newRows };
+                containerRef.current.style.setProperty('--grid-rows', newRows);
             }
         });
     }, []);

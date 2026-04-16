@@ -54,12 +54,13 @@ const App: React.FC = () => {
   // AI Panel Resizing State
   const MIN_AI_PANEL_WIDTH = 350;
   const MAX_AI_PANEL_WIDTH = 700;
+  const aiPanelRef = useRef<HTMLDivElement>(null);
   const {
     width: aiPanelWidth,
     isActivelyResizing,
     handleMouseDown: handleAiPanelMouseDown,
     setWidth: setAiPanelWidth
-  } = useResizablePanel(450, MIN_AI_PANEL_WIDTH, MAX_AI_PANEL_WIDTH, isAiPanelVisible, 'aiPanelWidth');
+  } = useResizablePanel(450, MIN_AI_PANEL_WIDTH, MAX_AI_PANEL_WIDTH, isAiPanelVisible, aiPanelRef, 'aiPanelWidth');
 
   const combinedFileInputRef = useRef<HTMLInputElement>(null);
   const jsonFileInputRef = useRef<HTMLInputElement>(null);
@@ -1044,6 +1045,7 @@ const App: React.FC = () => {
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 md:hidden" onClick={() => setAiPanelVisible(false)} />
               )}
               <div
+                ref={aiPanelRef}
                 className="shrink-0 flex items-stretch absolute md:relative right-0 z-40 h-full max-w-[100vw]"
                 style={{
                   width: isAiPanelVisible ? `${aiPanelWidth}px` : '0px', transition: isActivelyResizing ? 'none' : 'width 300ms ease-in-out'

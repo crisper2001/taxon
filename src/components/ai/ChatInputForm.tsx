@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo, useEffect } from 'react';
+import React, { useRef, useState, useMemo, useEffect, useCallback } from 'react';
 import { Icon } from '../common';
 import type { KeyData } from '../../types';
 
@@ -51,12 +51,41 @@ export const ChatInputForm = React.memo<ChatInputFormProps>(({
     }
   }, [mentionSelectedIndex, mentionState.active]);
 
+  let placeholder = t('aiWaiting');
+  if (!geminiApiKey) placeholder = t('aiNeedApi');
+  else if (!isEnabled) placeholder = t('aiNeedKey');
+  else placeholder = appMode === 'build' ? t('aiBuildDescribe' as any) : t('aiDescribe');
+
+  const adjustHeight = useCallback(() => {
+    if (textareaRef.current) {
+      // Prevent setting a gigantic height when the panel width is animating from/to 0px
+      if (textareaRef.current.offsetWidth === 0) return;
+      textareaRef.current.style.height = '0px';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, []);
+
   useEffect(() => {
-  if (textareaRef.current) {
-    textareaRef.current.style.height = 'auto';
-    textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-  }
-}, [userInput, selectedImage]); // Recalculate whenever text or image changes
+    adjustHeight();
+  }, [userInput, selectedImage, placeholder, adjustHeight]); // Recalculate whenever text, image, or placeholder changes
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    let lastWidth = textarea.offsetWidth;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const newWidth = entry.contentRect.width;
+        if (newWidth !== lastWidth) {
+          lastWidth = newWidth;
+          adjustHeight();
+        }
+      }
+    });
+    ro.observe(textarea);
+    return () => ro.disconnect();
+  }, [adjustHeight]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -200,11 +229,6 @@ export const ChatInputForm = React.memo<ChatInputFormProps>(({
     }
     return elements;
   };
-
-  let placeholder = t('aiWaiting');
-  if (!geminiApiKey) placeholder = t('aiNeedApi');
-  else if (!isEnabled) placeholder = t('aiNeedKey');
-  else placeholder = appMode === 'build' ? t('aiBuildDescribe' as any) : t('aiDescribe');
 
   return (
     <form onSubmit={handleSubmit} className="p-3 pt-1 relative flex flex-col shrink-0">

@@ -1,6 +1,13 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 
-export const useResizablePanel = (initialWidth: number, minWidth: number, maxWidth: number, isVisible: boolean, storageKey?: string) => {
+export const useResizablePanel = (
+  initialWidth: number,
+  minWidth: number,
+  maxWidth: number,
+  isVisible: boolean,
+  panelRef: React.RefObject<HTMLDivElement>,
+  storageKey?: string
+) => {
   const [width, setWidth] = useState(() => {
     if (storageKey) {
       const savedWidth = localStorage.getItem(storageKey);
@@ -23,15 +30,23 @@ export const useResizablePanel = (initialWidth: number, minWidth: number, maxWid
   const isResizing = useRef(false);
   const dragOffset = useRef(0);
   const [isActivelyResizing, setIsActivelyResizing] = useState(false);
+  const widthOnResize = useRef(width);
+
+  useEffect(() => {
+    widthOnResize.current = width;
+  }, [width]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     isResizing.current = true;
     setIsActivelyResizing(true);
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    dragOffset.current = clientX - (window.innerWidth - width);
-  }, [width]); // Added width dependency
+    dragOffset.current = clientX - (window.innerWidth - widthOnResize.current);
+  }, []);
 
   const handleMouseUp = useCallback(() => {
+    if (isResizing.current) {
+      setWidth(widthOnResize.current);
+    }
     isResizing.current = false;
     setIsActivelyResizing(false);
   }, []);
@@ -40,13 +55,14 @@ export const useResizablePanel = (initialWidth: number, minWidth: number, maxWid
     if (!isResizing.current) return;
     if (e.cancelable && 'touches' in e) e.preventDefault();
     requestAnimationFrame(() => {
-      if (!isResizing.current) return;
+      if (!isResizing.current || !panelRef.current) return;
       const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
       const newWidth = window.innerWidth - (clientX - dragOffset.current);
       const clampedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
-      setWidth(clampedWidth);
+      widthOnResize.current = clampedWidth;
+      panelRef.current.style.width = `${clampedWidth}px`;
     });
-  }, [minWidth, maxWidth, dragOffset]); // Added dragOffset dependency
+  }, [minWidth, maxWidth, panelRef]);
 
   useEffect(() => {
     if (!isVisible) return;

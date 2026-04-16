@@ -182,7 +182,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = React.memo(({ title, 
     <div
       className={`hidden md:block transition-opacity duration-300 p-2 ${isFooterVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
     >
-      <div className="view-controls flex items-center bg-header-bg rounded-md p-0.5">
+      <div className="view-controls flex items-center bg-header-bg rounded-md p-0.5 shadow-lg">
         <button onClick={() => setView('list')} title={t('listView')} className={`p-1.5 rounded transition-colors duration-200 ${view === 'list' ? 'bg-accent text-white' : 'hover:bg-hover-bg'} cursor-pointer`}><Icon name="List" size={16} /></button>
         <button onClick={() => setView('grid')} title={t('gridView')} className={`p-1.5 rounded transition-colors duration-200 ${view === 'grid' ? 'bg-accent text-white' : 'hover:bg-hover-bg'} cursor-pointer`}><Icon name="LayoutGrid" className="w-4 h-4" /></button>
       </div>

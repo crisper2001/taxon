@@ -56,7 +56,7 @@ export const ChatMessageBubble = React.memo<ChatMessageBubbleProps>(({
   useEffect(() => {
     if (isEditing && editTextareaRef.current) {
       editTextareaRef.current.focus();
-      editTextareaRef.current.style.height = 'auto';
+      editTextareaRef.current.style.height = '0px';
       editTextareaRef.current.style.height = `${editTextareaRef.current.scrollHeight}px`;
       editTextareaRef.current.selectionStart = editTextareaRef.current.value.length;
       editTextareaRef.current.selectionEnd = editTextareaRef.current.value.length;
@@ -117,7 +117,7 @@ export const ChatMessageBubble = React.memo<ChatMessageBubbleProps>(({
               value={editValue}
               onChange={(e) => {
                 setEditValue(e.target.value);
-                e.target.style.height = 'auto';
+                e.target.style.height = '0px';
                 e.target.style.height = `${e.target.scrollHeight}px`;
               }}
               onKeyDown={handleEditKeyDown}
