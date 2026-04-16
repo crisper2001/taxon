@@ -57,7 +57,7 @@ export async function callGeminiAPI(
               items: {
                 type: Type.OBJECT,
                 properties: {
-                  id: { type: Type.STRING, description: "For categorical features, this MUST be the specific state's ID, NEVER the parent feature's ID." },
+                  id: { type: Type.STRING, description: "CRITICAL: For categorical features, this MUST be the specific state's ID (found inside the 'states' array). NEVER use the parent feature's ID." },
                   description: { type: Type.STRING },
                   value: { type: Type.STRING, description: "Only use for numeric features. Leave empty for categorical features." },
                 },

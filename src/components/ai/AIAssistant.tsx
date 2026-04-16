@@ -314,7 +314,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
 1. Determine if the user is describing a specimen for identification OR asking an informational question. Treat all inputs as "Identifying a Specimen" UNLESS the user is explicitly asking a direct question.
 2. **If Identifying a Specimen:**
    - Read the "Current Description" and "New User Message". Synthesize them into an "updated_description". ACCUMULATE traits (e.g., if the user adds a new location or feature, keep the previous ones too). Only replace traits if the user corrects them, and completely clear previous traits ONLY if the user explicitly wants to start over.
-   - Map the traits based ONLY on the "updated_description" (which now includes your visual analysis) to the provided "Feature List". Semantically match user descriptions to the most appropriate feature states. Populate "features_used" with ALL currently active features. DO NOT drop previous features unless corrected/started over.
+   - Map the traits based ONLY on the "updated_description" (which now includes your visual analysis) to the provided "Feature List". Semantically match user descriptions to the most appropriate feature states. Populate "features_used" with ALL currently active features. When mapping categorical features, you MUST use the ID of the specific state, NEVER the parent feature ID. DO NOT drop previous features unless corrected/started over.
    - Try your best to identify the exact entities based on the description and images, and include your best matches from the Entity Profiles in "entities_used".
    - **CRITICAL:** When identifying, you MUST leave "answer" as an empty string (""). You MUST leave "suggested_features" and "suggested_entities" as empty arrays ([]). Do NOT provide conversational text. The system handles the interaction.
 3. **If Asking a Question:**
@@ -327,7 +327,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
 4. **Language:** Always formulate your conversational "answer" and the "updated_description" in ${targetLanguage}.
 5. **JSON Output:** Respond ONLY with a single JSON object with this structure:
     - \`updated_description\`: (string) The running description of the entity.
-    - \`features_used\`: (array of objects) With \`id\`, \`description\`, and optionally \`value\`. For categorical features, ALWAYS set \`id\` to the specific state's ID. DO NOT use the parent feature's ID, and DO NOT use the \`value\` field for categorical features.
+    - \`features_used\`: (array of objects) With \`id\`, \`description\`, and optionally \`value\`. For categorical features, ALWAYS set \`id\` to the specific state's ID (from the 'states' array). NEVER use the parent feature's ID. DO NOT use the \`value\` field for categorical features.
     - \`entities_used\`: (array of objects) With \`id\` and \`name\` of entities explicitly mentioned.
     - \`answer\`: (string) Your conversational answer to a question (MUST be empty if identifying a specimen).
     - \`suggested_features\`: (array) ALWAYS empty [] in this mode.
@@ -388,7 +388,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
       }));
 
     const imagePayload = currentImage ? { mimeType: currentImage.mimeType, data: currentImage.base64 } : undefined;
-    const model = currentImage ? 'gemini-flash-latest' : 'gemma-4-26b-a4b-it';
+    const modelsToTry = ['gemini-flash-latest', 'gemini-flash-lite-latest', 'gemma-4-31b-it', 'gemma-4-26b-a4b-it'];
 
     console.log("=== AI Request Debug ===");
     console.log("System Instruction:", systemInstruction);
@@ -396,8 +396,27 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
     console.log("Prompt:", prompt);
 
     try {
-      const usedModel = model;
-      const response = await callGeminiAPI(prompt, model, geminiApiKey, systemInstruction, historyPayload, imagePayload);
+      let response: any = null;
+      let usedModel = '';
+      let lastError: unknown;
+
+      for (const model of modelsToTry) {
+        try {
+          usedModel = model;
+          response = await callGeminiAPI(prompt, model, geminiApiKey, systemInstruction, historyPayload, imagePayload);
+          break;
+        } catch (err: any) {
+          lastError = err;
+          console.warn(`Model ${model} failed, trying next... Error:`, err.message);
+          if (err.message && err.message.includes('Invalid API key')) {
+            break;
+          }
+        }
+      }
+
+      if (!response) {
+        throw lastError;
+      }
 
       console.log("=== AI Response Debug ===");
       console.log("Model Used:", usedModel);
@@ -603,10 +622,10 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
           {isThinking && chatHistory.length > 0 && chatHistory[chatHistory.length - 1].sender === 'user' && (
             <div className="chat-message flex animate-fade-in-up duration-300 ease-out justify-start mb-2">
               <div className="msg-content w-3/4 p-4 rounded-3xl shadow-sm bg-header-bg/90 backdrop-blur-md rounded-bl-sm border border-white/20 dark:border-white/10">
-                <div className="flex items-center gap-2 mb-3 opacity-70">
+                {/* <div className="flex items-center gap-2 mb-3 opacity-70">
                   <Icon name="LoaderCircle" className="animate-spin w-4 h-4 text-accent" />
                   <span className="text-xs font-medium uppercase tracking-wider text-accent">{t('aiAnalyzing')}</span>
-                </div>
+                </div> */}
                 <div className="space-y-2 animate-pulse">
                   <div className="h-3 bg-border rounded w-full"></div>
                   <div className="h-3 bg-border rounded w-5/6"></div>
