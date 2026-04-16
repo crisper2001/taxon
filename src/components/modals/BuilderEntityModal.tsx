@@ -32,16 +32,22 @@ export const BuilderEntityModal: React.FC<BuilderEntityModalProps> = ({
   const [cachedEntity, setCachedEntity] = useState<DraftEntity | undefined>(selectedEntity);
 
   useEffect(() => {
-    if (selectedEntity) {
+    if (!isOpen && touchTimeout.current) {
+      clearTimeout(touchTimeout.current);
+    }
+  }, [isOpen, touchTimeout]);
+
+  useEffect(() => {
+    if (isOpen) {
       setCachedEntity(selectedEntity);
     }
-  }, [selectedEntity]);
+  }, [isOpen, selectedEntity]);
 
-  const entityToRender = selectedEntity || cachedEntity;
+  const entityToRender = cachedEntity;
 
   const modalTitle = (
     <div className="flex items-center gap-2 min-w-0">
-      <Icon name="Leaf" size={24} className="text-gray-400" />
+      <Icon name="Box" size={24} className="text-gray-400" />
       <span className="truncate">{entityToRender?.name || t('kbUnnamedEntity' as any)}</span>
     </div>
   );
@@ -50,12 +56,12 @@ export const BuilderEntityModal: React.FC<BuilderEntityModalProps> = ({
     <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} size="lg">
       <div className="p-5 md:p-8 overflow-y-auto relative max-h-[85vh] bg-bg/80 backdrop-blur-sm rounded-b-3xl">
         {entityToRender ? (
-          <div className="flex flex-col gap-6 animate-fade-in-up">
+          <div className="flex flex-col gap-6" style={{ willChange: 'auto' }}>
 
-            <div className="flex flex-col gap-4 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
+            <div className="flex flex-col gap-4 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
               <div className="w-full font-bold text-accent flex items-center gap-2 mb-1 text-left tracking-tight shrink-0">
                 <Icon name="Info" size={18} />
-                <span className="grow text-base">{t('kbMetadata')}</span>
+                <span className="grow text-base">{t('info')}</span>
               </div>
               <label className="flex flex-col gap-1.5">
                 <span className="text-sm font-semibold opacity-80">{t('kbName')}</span>
@@ -64,7 +70,7 @@ export const BuilderEntityModal: React.FC<BuilderEntityModalProps> = ({
               <MarkdownInput label={t('kbDescription')} value={entityToRender.description || ''} onChange={val => updateEntity(entityToRender.id, { description: val })} rows={3} />
             </div>
 
-            <div className="flex flex-col gap-3 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
+            <div className="flex flex-col gap-3 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
               <div className="w-full font-bold text-accent flex items-center gap-2 mb-1 text-left tracking-tight shrink-0">
                 <Icon name="Image" size={18} />
                 <span className="grow text-base">{t('kbImages' as any) || 'Images'}</span>
@@ -98,7 +104,7 @@ export const BuilderEntityModal: React.FC<BuilderEntityModalProps> = ({
                 }}
               >
                 {entityToRender.media?.map((m, i) => (
-                  <div key={i} className={`relative shrink-0 group rounded-xl transition-all ${dragOverId === `entity-media-${i}` ? 'ring-2 ring-accent ring-offset-2 ring-offset-bg scale-[1.02]' : ''} ${draggedMedia?.index === i && draggedMedia.itemId === entityToRender.id ? 'opacity-50' : ''}`}
+                  <div key={i} className={`relative shrink-0 group rounded-xl transition-all ${dragOverId === `entity-media-${i}` ? 'ring-2 ring-accent ring-offset-2 ring-offset-panel-bg scale-[1.02]' : ''} ${draggedMedia?.index === i && draggedMedia.itemId === entityToRender.id ? 'opacity-50' : ''}`}
                     draggable
                     data-entity-media-idx={i}
                     onContextMenu={(e) => e.preventDefault()}
@@ -127,16 +133,21 @@ export const BuilderEntityModal: React.FC<BuilderEntityModalProps> = ({
                       }, 300);
                     }}
                     onTouchMove={(e) => {
-                      if (draggedMedia) e.stopPropagation();
                       const touch = e.touches[0];
+                      if (!draggedMedia) {
+                        const dx = touch.clientX - lastTouchPos.current.x;
+                        const dy = touch.clientY - lastTouchPos.current.y;
+                        if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+                          if (touchTimeout.current) clearTimeout(touchTimeout.current);
+                        }
+                        return;
+                      }
+                      e.stopPropagation();
+                      if (e.cancelable) e.preventDefault();
                       lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
                       if (ghostRef.current) {
                         ghostRef.current.style.left = `${touch.clientX}px`;
                         ghostRef.current.style.top = `${touch.clientY}px`;
-                      }
-                      if (!draggedMedia) {
-                        if (touchTimeout.current) clearTimeout(touchTimeout.current);
-                        return;
                       }
                       const el = document.elementFromPoint(touch.clientX, touch.clientY);
                       const targetMedia = el?.closest('[data-entity-media-idx]');
@@ -186,10 +197,10 @@ export const BuilderEntityModal: React.FC<BuilderEntityModalProps> = ({
             </div>
 
             <div className="flex justify-between items-center mt-2 pt-2">
-              <button onClick={() => duplicateEntity(entityToRender.id)} className="px-4 py-2 text-gray-500 hover:text-accent bg-panel-bg/50 hover:bg-hover-bg rounded-xl border border-border shadow-sm transition-all font-semibold flex items-center gap-2 cursor-pointer">
+              <button onClick={() => duplicateEntity(entityToRender.id)} className="px-4 py-2 text-gray-500 hover:text-accent bg-panel-bg/50 hover:bg-hover-bg rounded-xl border border-border shadow-sm transition-all duration-300 font-bold flex items-center gap-2 cursor-pointer hover:shadow-md">
                 <Icon name="Copy" size={16} /> {t('kbDuplicate')}
               </button>
-              <button onClick={() => setDeleteTarget({ type: 'entity', id: entityToRender.id })} className="px-4 py-2 text-red-500 hover:text-white hover:bg-red-500 bg-red-500/10 rounded-xl border border-red-500/20 shadow-sm transition-all font-semibold flex items-center gap-2 cursor-pointer">
+              <button onClick={() => setDeleteTarget({ type: 'entity', id: entityToRender.id })} className="px-4 py-2 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-xl hover:bg-red-600 transition-all duration-300 shadow-md hover:shadow-lg font-bold flex items-center gap-2 cursor-pointer">
                 <Icon name="Trash2" size={16} /> {t('kbDelete')}
               </button>
             </div>

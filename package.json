@@ -2,7 +2,7 @@
   "name": "taxon",
   "homepage": "https://crisper2001.github.io/taxon",
   "private": true,
-  "version": "0.9.1",
+  "version": "0.9.2",
   "author": "Isaque",
   "type": "module",
   "license": "AGPL-3.0-or-later",
@@ -25,7 +25,6 @@
   "devDependencies": {
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
-    "gh-pages": "^6.3.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }

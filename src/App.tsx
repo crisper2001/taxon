@@ -54,12 +54,13 @@ const App: React.FC = () => {
   // AI Panel Resizing State
   const MIN_AI_PANEL_WIDTH = 350;
   const MAX_AI_PANEL_WIDTH = 700;
+  const aiPanelRef = useRef<HTMLDivElement>(null);
   const {
     width: aiPanelWidth,
     isActivelyResizing,
     handleMouseDown: handleAiPanelMouseDown,
     setWidth: setAiPanelWidth
-  } = useResizablePanel(450, MIN_AI_PANEL_WIDTH, MAX_AI_PANEL_WIDTH, isAiPanelVisible, 'aiPanelWidth');
+  } = useResizablePanel(450, MIN_AI_PANEL_WIDTH, MAX_AI_PANEL_WIDTH, isAiPanelVisible, aiPanelRef, 'aiPanelWidth');
 
   const combinedFileInputRef = useRef<HTMLInputElement>(null);
   const jsonFileInputRef = useRef<HTMLInputElement>(null);
@@ -187,16 +188,6 @@ const App: React.FC = () => {
     document.documentElement.style.setProperty('--accent-color', accentColor);
     document.documentElement.style.setProperty('--accent-hover-color', accentHoverColor);
 
-    // Dynamically generate and set the Leaf SVG favicon using the current accent color
-    const svgFavicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${accentColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 22 12 12"/></svg>`;
-    let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-    if (!link) {
-      link = document.createElement('link');
-      link.rel = 'icon';
-      document.head.appendChild(link);
-    }
-    link.href = `data:image/svg+xml,${encodeURIComponent(svgFavicon)}`;
-
     // Dynamically update the browser's theme-color meta tag
     let metaThemeColor = document.querySelector("meta[name='theme-color']");
     if (!metaThemeColor) {
@@ -304,18 +295,18 @@ const App: React.FC = () => {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     if (keyData) {
       setModalState({ type: 'confirmClear' });
     }
-  };
+  }, [keyData]);
 
   const executeReset = () => {
     resetKey();
     addToast(t('featuresCleared'));
   };
 
-  const convertAndSaveKey = async (keyToConvert: KeyData): Promise<boolean> => {
+  const convertAndSaveKey = useCallback(async (keyToConvert: KeyData): Promise<boolean> => {
     const features: DraftFeature[] = [];
     const featureMap = new Map<string, DraftFeature>();
 
@@ -435,12 +426,12 @@ const App: React.FC = () => {
       return true;
     }
     return false;
-  };
+  }, []);
 
-  const exportLoadedKeyToNative = async () => {
+  const exportLoadedKeyToNative = useCallback(async () => {
     if (!keyData) return;
     await convertAndSaveKey(keyData);
-  };
+  }, [keyData, convertAndSaveKey]);
 
   const processZipFile = async (file: File, targetMode: 'identify' | 'build') => {
     if (targetMode === 'build') {
@@ -488,7 +479,7 @@ const App: React.FC = () => {
         if (targetMode === 'identify') {
           const parser = new LucidKeyParser();
           const loadedKeyData = parser.processDraftKey(data);
-          
+
           setKeyData(loadedKeyData);
           resetKey();
           setIdentifyChatHistory([]);
@@ -605,7 +596,7 @@ const App: React.FC = () => {
     }
   };
 
-  const updateFeature = (id: string, value: string | boolean | number, isNumeric = false, parentId?: string) => {
+  const updateFeature = useCallback((id: string, value: string | boolean | number, isNumeric = false, parentId?: string) => {
     isFeatureUpdateRef.current = true;
     setChosenFeatures(prevMap => {
       const newMap = new Map(prevMap);
@@ -653,7 +644,7 @@ const App: React.FC = () => {
 
       return newMap;
     });
-  };
+  }, [keyData]);
 
   const handlePreferenceChange = (key: 'lang' | 'theme' | 'geminiApiKey' | 'showToasts' | 'enableAi' | 'enableAnimations' | 'allowMisinterpretations' | 'allowUncertainties', value: string | boolean) => {
     if (key === 'lang') {
@@ -701,6 +692,14 @@ const App: React.FC = () => {
     setModalState({ type: 'lightbox', media, startIndex });
   }, [modalState]);
 
+  const handleEntityClick = useCallback((id: string) => {
+    setModalState({ type: 'entity', entityId: id });
+  }, []);
+
+  const handleFeatureClick = useCallback((id: string) => {
+    setModalState({ type: 'feature', featureId: id });
+  }, []);
+
   const statusText = isLoading ? t('processing') :
     error ? `${t('error')}: ${error}` :
       keyData ? keyData.keyTitle : t('loadKeyPrompt');
@@ -726,7 +725,7 @@ const App: React.FC = () => {
   );
 
   // --- CONTEXT VALUE ---
-  const contextValue = {
+  const contextValue = useMemo(() => ({
     keyData,
     t,
     isLoading,
@@ -752,7 +751,11 @@ const App: React.FC = () => {
     allowMisinterpretations, setAllowMisinterpretations,
     allowUncertainties, setAllowUncertainties,
     addToast,
-  };
+  }), [
+    keyData, t, isLoading, error, statusText, lang, theme, appMode, geminiApiKey,
+    isAiPanelVisible, exportLoadedKeyToNative, handleReset, enableAi, enableAnimations,
+    allowMisinterpretations, allowUncertainties, addToast
+  ]);
 
   return (
     <AppProvider value={contextValue}>
@@ -832,12 +835,12 @@ const App: React.FC = () => {
           isDestructive={true}
         />
 
-      <ChangelogModal 
-        isOpen={(modalState.type as any) === 'changelog' || (underlyingModalState?.type as any) === 'changelog'} 
-        onClose={handleModalClose} 
-        version={packageJson.version} 
-        t={t as any} 
-      />
+        {/* <ChangelogModal
+          isOpen={(modalState.type as any) === 'changelog' || (underlyingModalState?.type as any) === 'changelog'}
+          onClose={handleModalClose}
+          version={packageJson.version}
+          t={t as any}
+        /> */}
 
         <input
           type="file"
@@ -885,7 +888,7 @@ const App: React.FC = () => {
                 )}
 
                 {appMode === 'build' ? (
-                  <div className="flex grow min-h-0 relative z-10 w-full animate-screen-in">
+                  <div className="flex grow min-h-0 relative z-10 w-full animate-screen-in" style={{ willChange: 'auto' }}>
                     <KeyBuilder
                       onExit={() => {
                         if (currentDraftRef.current) setDraftKeyData(currentDraftRef.current);
@@ -907,39 +910,39 @@ const App: React.FC = () => {
                     />
                   </div>
                 ) : keyData ? (
-                  <div className="flex flex-col grow min-h-0 relative z-10 w-full animate-screen-in">
+                  <div className="flex flex-col grow min-h-0 relative z-10 w-full animate-screen-in" style={{ willChange: 'auto' }}>
                     <ResizablePanels
                       bottomBarItems={[
-                        { id: 'features', icon: 'ListFilter', label: t('features') },
-                        { id: 'remaining', icon: 'List', label: t('entitiesRemaining'), count: directMatches.size },
+                        { id: 'features', icon: 'ListTodo', label: t('features') },
+                        { id: 'remaining', icon: 'ListCheck', label: t('entitiesRemaining'), count: directMatches.size },
                         { id: 'chosen', icon: 'ListChecks', label: t('featuresChosen'), count: chosenFeatureCount },
                         { id: 'discarded', icon: 'ListX', label: t('entitiesDiscarded'), count: discardedEntityIds.size }
                       ]}
                     >
-                      <FeaturesPanel keyData={keyData} chosenFeatures={chosenFeatures} onFeatureChange={updateFeature} onImageClick={(id) => setModalState({ type: 'feature', featureId: id })} t={t} />
+                      <FeaturesPanel keyData={keyData} chosenFeatures={chosenFeatures} onFeatureChange={updateFeature} onImageClick={handleFeatureClick} t={t} />
                       <EntitiesPanel
                         title={t('entitiesRemaining')}
-                        icon="List"
+                        icon="ListCheck"
                         count={directMatches.size}
                         entityTree={remainingTree}
                         directMatches={directMatches}
                         indirectMatches={indirectMatches}
                         uncertainMatchIds={uncertainMatchIds}
-                        misinterpretMatchIds={misinterpretedMatchIds}
-                        mediaMap={keyData.entityMedia} onEntityClick={(id) => setModalState({ type: 'entity', entityId: id })}
+                        misinterpretedMatchIds={misinterpretedMatchIds}
+                        mediaMap={keyData.entityMedia} onEntityClick={handleEntityClick}
                         t={t}
                         expandedNodes={expandedRemainingNodes}
                         setExpandedNodes={setExpandedRemainingNodes} />
-                      <ChosenFeaturesPanel chosenFeatures={chosenFeatures} keyData={keyData} onFeatureChange={updateFeature} onImageClick={(id) => setModalState({ type: 'feature', featureId: id })} t={t} />
+                      <ChosenFeaturesPanel chosenFeatures={chosenFeatures} keyData={keyData} onFeatureChange={updateFeature} onImageClick={handleFeatureClick} t={t} />
                       <EntitiesPanel
                         title={t('entitiesDiscarded')}
                         directMatches={new Set()}
                         indirectMatches={new Set()}
                         uncertainMatchIds={new Set()}
-                        misinterpretMatchIds={new Set()}
+                        misinterpretedMatchIds={new Set()}
                         count={discardedEntityIds.size}
                         icon="ListX" entityTree={discardedTree}
-                        mediaMap={keyData.entityMedia} onEntityClick={(id) => setModalState({ type: 'entity', entityId: id })}
+                        mediaMap={keyData.entityMedia} onEntityClick={handleEntityClick}
                         t={t}
                         expandedNodes={expandedDiscardedNodes}
                         setExpandedNodes={setExpandedDiscardedNodes} />
@@ -967,13 +970,11 @@ const App: React.FC = () => {
             ) : (
               <div className={`absolute inset-0 z-50 flex items-center justify-center w-full bg-bg transition-all duration-500 ease-in-out ${isHome ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
                 <div className={`relative z-10 flex flex-col items-center justify-center w-full p-8 transition-transform duration-500 ease-in-out ${isHome ? 'scale-100' : 'scale-[1.02]'}`}>
-                  <h2 className="text-5xl md:text-6xl font-black flex items-center justify-center gap-3 md:gap-4 mb-8 md:mb-12 animate-fade-in-up text-accent tracking-tight">
-                    <Icon name="Leaf" size="1em" />
-                    <span className="flex items-start gap-2 md:gap-3">
-                      Taxon
-                      <span className="text-[10px] md:text-xs font-bold bg-accent/10 text-accent px-2 py-0.5 rounded-lg border border-accent/20 uppercase tracking-widest mt-1 md:mt-2">Beta</span>
-                    </span>
-                  </h2>
+                  <div className="flex items-start justify-center gap-2 md:gap-3 mb-8 md:mb-12 animate-fade-in-up">
+                    <img src="logo.svg" alt="Taxon Logo" className="h-12 md:h-16 dark:hidden" />
+                    <img src="logo-dark.svg" alt="Taxon Logo" className="h-12 md:h-16 hidden dark:block" />
+                    <span className="text-[10px] md:text-xs font-bold bg-accent/10 text-accent px-2 py-0.5 rounded-lg border border-accent/20 uppercase tracking-widest mt-1 md:mt-2">Beta</span>
+                  </div>
                   <div className="flex flex-col md:flex-row gap-6 w-full max-w-2xl mb-8">
                     <HomeButton
                       onClick={() => {
@@ -1025,13 +1026,13 @@ const App: React.FC = () => {
                     <Icon name="Settings2" size={24} />
                   </button>
                 </div>
-                <button
+                {/* <button
                   onClick={() => setModalState({ type: 'changelog' as any })}
                   className="absolute bottom-6 right-6 md:bottom-10 md:right-10 flex items-center gap-2 px-4 py-2.5 bg-panel-bg/90 backdrop-blur-md border border-black/5 dark:border-white/10 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer text-accent font-bold text-sm"
                 >
                   <Icon name="Sparkles" size={18} />
                   <span>{t('whatsNew' as any) ? t('whatsNew' as any).replace('{version}', packageJson.version) : `What's New in v${packageJson.version}`}</span>
-                </button>
+                </button> */}
               </div>
             )}
           </div>
@@ -1044,6 +1045,7 @@ const App: React.FC = () => {
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 md:hidden" onClick={() => setAiPanelVisible(false)} />
               )}
               <div
+                ref={aiPanelRef}
                 className="shrink-0 flex items-stretch absolute md:relative right-0 z-40 h-full max-w-[100vw]"
                 style={{
                   width: isAiPanelVisible ? `${aiPanelWidth}px` : '0px', transition: isActivelyResizing ? 'none' : 'width 300ms ease-in-out'
@@ -1063,7 +1065,7 @@ const App: React.FC = () => {
                     isVisible={isAiPanelVisible}
                     onClose={() => setAiPanelVisible(false)}
                     keyData={keyData}
-                    onEntityClick={(id) => setModalState({ type: 'entity', entityId: id })}
+                    onEntityClick={handleEntityClick}
                     onImageClick={(url) => handleOpenLightbox([{ url }], 0)}
                     t={t}
                     lang={lang}

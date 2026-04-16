@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { Icon } from '../common/Icon';
-import { ConfirmModal, Modal } from '../modals';
+import { ConfirmModal, Modal, BuilderMetadataModal, BuilderMediaEditModal } from '../modals';
 import type { DraftKeyData, Media } from '../../types';
-import { BuilderMetadataTab } from './BuilderMetadataTab';
 import { BuilderFeaturesTab } from './BuilderFeaturesTab';
 import { BuilderEntitiesTab } from './BuilderEntitiesTab';
 import { BuilderScoringTab } from './BuilderScoringTab';
@@ -411,7 +410,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
 
   const offsetIndex = isMobile ? (activeTab === 'features' ? 0 : activeTab === 'entities' ? 1 : 2) : (activeTab === 'scoring' ? 1 : 0);
 
-  const { swipeOffset, isSwiping, handleTouchStart, handleTouchMove, handleTouchEnd } = useSwipe(
+  const { swipeOffset, isSwiping, handleTouchStart, handleTouchMove, handleTouchEnd, handleTouchCancel } = useSwipe(
     () => {
       if (activeTab === 'features') setActiveTab('entities');
       else if (activeTab === 'entities') setActiveTab('scoring');
@@ -638,6 +637,17 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
         draftKey.features.find(f => f.id === editingMedia.itemId)?.states.find(s => s.id === editingMedia.stateId)?.media?.[editingMedia.mediaIndex]
   ) : null;
 
+  const handleUpdateMedia = (updates: Partial<Media>) => {
+    if (!editingMedia) return;
+    if (editingMedia.type === 'feature') {
+      updateFeatureMedia(editingMedia.itemId, editingMedia.mediaIndex, updates);
+    } else if (editingMedia.type === 'entity') {
+      updateEntityMedia(editingMedia.itemId, editingMedia.mediaIndex, updates);
+    } else if (editingMedia.type === 'state' && editingMedia.stateId) {
+      updateStateMedia(editingMedia.itemId, editingMedia.stateId, editingMedia.mediaIndex, updates);
+    }
+  };
+
   const handleRequestNewKey = () => {
     if (isUnsaved) {
       setKeyPromptMode('new');
@@ -665,7 +675,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
       <ActionButton onClick={handleRequestNewKey} title={t('kbNewKey' as any)} icon="File" />
       <ActionButton onClick={handleRequestOpenKey} title={t('openNativeKey')} icon="FolderOpen" />
       <ActionButton onClick={exportJson} title={t('exportJson')} icon="Save" />
-      <ActionButton onClick={() => setShowMetadataModal(true)} title={t('kbMetadata')} icon="Info" />
+      <ActionButton onClick={() => setShowMetadataModal(true)} title={t('keyInfo')} icon="Info" />
       <ActionButton onClick={() => onTestKey?.(draftKey)} title={t('kbTestKey' as any)} icon="Play" iconClass="text-accent" />
       <ActionButton onClick={openPreferences} title={t('preferences')} icon="Settings2" />
       <div className="w-px h-6 bg-border mx-1 opacity-50" />
@@ -706,10 +716,10 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
   );
 
   const sidebarActions: SidebarAction[] = [
-    { icon: 'FilePlus', label: t('kbNewKey' as any), onClick: handleRequestNewKey },
+    { icon: 'File', label: t('kbNewKey' as any), onClick: handleRequestNewKey },
     { icon: 'FolderOpen', label: t('openNativeKey'), onClick: handleRequestOpenKey },
-    { icon: 'Download', label: t('exportJson'), onClick: exportJson },
-    { icon: 'Info', label: t('kbMetadata'), onClick: () => setShowMetadataModal(true) },
+    { icon: 'Save', label: t('exportJson'), onClick: exportJson },
+    { icon: 'Info', label: t('keyInfo'), onClick: () => setShowMetadataModal(true) },
     { icon: 'Play', label: t('kbTestKey' as any), onClick: () => onTestKey?.(draftKey), iconClass: 'text-accent' }
   ];
 
@@ -728,8 +738,8 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
         onLogoClick={onExit}
       />
 
-      <div className="flex flex-col grow overflow-hidden">
-        <div className="flex flex-row grow overflow-hidden p-0 md:p-4 gap-0 md:gap-4">
+      <div className="flex flex-col grow md:overflow-hidden">
+        <div className="flex flex-row grow md:overflow-hidden p-0 md:p-4 gap-0 md:gap-4">
 
           {/* Builder Main Content */}
           <div
@@ -737,14 +747,15 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchCancel}
           >
-            <div className={`builder-mobile-view ${isSwiping ? 'is-swiping' : ''}`} style={{ '--mobile-tab-offset': `-${offsetIndex * 100}%`, '--swipe-offset': `${swipeOffset}px` } as React.CSSProperties}>
+            <div className={`builder-mobile-view ${isSwiping ? 'is-swiping' : ''}`} style={{ '--mobile-tab-offset': `-${offsetIndex * 100}%`, '--swipe-offset': `${swipeOffset}px`, willChange: 'auto' } as React.CSSProperties}>
 
               {!isMobile ? (
-                <div className={`builder-panel ${['features', 'entities'].includes(activeTab) ? 'active' : ''}`}>
+                <div className={`builder-panel ${['features', 'entities'].includes(activeTab) ? 'active' : ''}`} style={{ willChange: 'auto' }}>
                   {/* Desktop Combined Features & Entities */}
-                  <div className="w-full h-full flex flex-row gap-4">
-                    <div className="w-1/2 h-full flex flex-col bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg overflow-hidden">
+                  <div className="w-full h-full flex flex-row gap-4 min-w-0">
+                    <div className="w-1/2 h-full flex flex-col bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg overflow-hidden min-w-0">
                       <BuilderFeaturesTab
                         draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
                         selectedFeatureId={selectedFeatureId} setSelectedFeatureId={setSelectedFeatureId}
@@ -756,7 +767,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
                         setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
                       />
                     </div>
-                    <div className="w-1/2 h-full flex flex-col bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg overflow-hidden">
+                    <div className="w-1/2 h-full flex flex-col bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg overflow-hidden min-w-0">
                       <BuilderEntitiesTab
                         draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
                         selectedEntityId={selectedEntityId} setSelectedEntityId={setSelectedEntityId}
@@ -773,8 +784,8 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
               ) : (
                 <>
                   {/* Mobile Separated Features */}
-                  <div className={`builder-panel ${activeTab === 'features' ? 'active' : ''}`}>
-                    <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg">
+                  <div className={`builder-panel ${activeTab === 'features' ? 'active' : ''}`} style={{ willChange: 'auto' }}>
+                    <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg min-w-0">
                       <BuilderFeaturesTab
                         draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
                         selectedFeatureId={selectedFeatureId} setSelectedFeatureId={setSelectedFeatureId}
@@ -789,8 +800,8 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
                   </div>
 
                   {/* Mobile Separated Entities */}
-                  <div className={`builder-panel ${activeTab === 'entities' ? 'active' : ''}`}>
-                    <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg">
+                  <div className={`builder-panel ${activeTab === 'entities' ? 'active' : ''}`} style={{ willChange: 'auto' }}>
+                    <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg min-w-0">
                       <BuilderEntitiesTab
                         draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
                         selectedEntityId={selectedEntityId} setSelectedEntityId={setSelectedEntityId}
@@ -806,7 +817,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
                 </>
               )}
 
-              <div className={`builder-panel ${activeTab === 'scoring' ? 'active' : ''} min-w-0`}>
+              <div className={`builder-panel ${activeTab === 'scoring' ? 'active' : ''} min-w-0`} style={{ willChange: 'auto' }}>
                 <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg min-w-0">
                   <BuilderScoringTab draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any} isActive={activeTab === 'scoring'} />
                 </div>
@@ -819,12 +830,12 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
       {/* Mobile Bottom Bar */}
       <div className="flex md:hidden items-center justify-around bg-panel-bg/85 backdrop-blur-xl border border-white/20 dark:border-white/10 p-2 shrink-0 z-20 shadow-lg rounded-3xl m-2" style={{ marginBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}>
         <button onClick={() => setActiveTab('features')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 relative ${activeTab === 'features' ? 'text-accent bg-accent/10 shadow-inner scale-105' : 'text-gray-500 hover:text-accent hover:bg-hover-bg/50'}`}>
-          <Icon name="ListTree" size={22} className={activeTab === 'features' ? 'drop-shadow-sm' : ''} />
+          <Icon name="Tags" size={22} className={activeTab === 'features' ? 'drop-shadow-sm' : ''} />
           <span className="text-[10px] font-bold text-center leading-none tracking-tight">{t('kbFeatures')}</span>
           {draftKey.features.length > 0 && <span className="absolute -top-1 -right-1 bg-accent/95 backdrop-blur-sm border border-white/20 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-md animate-fade-in-up">{draftKey.features.length > 99 ? '99+' : draftKey.features.length}</span>}
         </button>
         <button onClick={() => setActiveTab('entities')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 relative ${activeTab === 'entities' ? 'text-accent bg-accent/10 shadow-inner scale-105' : 'text-gray-500 hover:text-accent hover:bg-hover-bg/50'}`}>
-          <Icon name="List" size={22} className={activeTab === 'entities' ? 'drop-shadow-sm' : ''} />
+          <Icon name="Boxes" size={22} className={activeTab === 'entities' ? 'drop-shadow-sm' : ''} />
           <span className="text-[10px] font-bold text-center leading-none tracking-tight">{t('kbEntities')}</span>
           {draftKey.entities.length > 0 && <span className="absolute -top-1 -right-1 bg-accent/95 backdrop-blur-sm border border-white/20 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-md animate-fade-in-up">{draftKey.entities.length > 99 ? '99+' : draftKey.entities.length}</span>}
         </button>
@@ -834,44 +845,13 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
         </button>
       </div>
 
-      {/* Media Edit Modal */}
-      {editingMedia && activeEditingMedia && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-60 flex items-center justify-center p-4">
-          <div className="bg-panel-bg/95 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-[0_16px_40px_rgba(0,0,0,0.2)] w-full max-w-4xl flex flex-col md:flex-row overflow-hidden max-h-[90vh] animate-fade-in-up">
-            <div className="w-full md:w-1/2 bg-black/5 dark:bg-white/5 flex items-center justify-center p-6 relative">
-              <img src={activeEditingMedia.url} alt={t('preview')} className="max-w-full max-h-full object-contain drop-shadow-md rounded-lg" />
-            </div>
-            <div className="w-full md:w-1/2 p-8 flex flex-col gap-6 overflow-y-auto bg-panel-bg/50">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="text-2xl font-bold text-accent">{t('kbEditMedia')}</h3>
-                <button onClick={() => setEditingMedia(null)} className="p-2 -mr-2 rounded-full hover:bg-hover-bg text-gray-500 hover:text-red-500 transition-colors cursor-pointer"><Icon name="X" size={24} /></button>
-              </div>
-
-              <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-semibold opacity-80">{t('kbCaption')}</span>
-                <textarea rows={4} value={activeEditingMedia.caption || ''} className="input-base text-sm resize-none" onChange={e => {
-                  if (editingMedia.type === 'feature') updateFeatureMedia(editingMedia.itemId, editingMedia.mediaIndex, { caption: e.target.value });
-                  else if (editingMedia.type === 'entity') updateEntityMedia(editingMedia.itemId, editingMedia.mediaIndex, { caption: e.target.value });
-                  else if (editingMedia.type === 'state') updateStateMedia(editingMedia.itemId, editingMedia.stateId!, editingMedia.mediaIndex, { caption: e.target.value });
-                }} />
-              </label>
-
-              <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-semibold opacity-80">{t('kbCopyright')}</span>
-                <input type="text" value={activeEditingMedia.copyright || ''} className="input-base text-sm" onChange={e => {
-                  if (editingMedia.type === 'feature') updateFeatureMedia(editingMedia.itemId, editingMedia.mediaIndex, { copyright: e.target.value });
-                  else if (editingMedia.type === 'entity') updateEntityMedia(editingMedia.itemId, editingMedia.mediaIndex, { copyright: e.target.value });
-                  else if (editingMedia.type === 'state') updateStateMedia(editingMedia.itemId, editingMedia.stateId!, editingMedia.mediaIndex, { copyright: e.target.value });
-                }} />
-              </label>
-
-              <div className="mt-auto flex flex-col md:flex-row justify-end gap-3 pt-6">
-                <button onClick={() => setEditingMedia(null)} className="w-full md:w-auto px-6 py-2.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white font-bold rounded-xl hover:bg-accent-hover transition-all duration-300 shadow-md hover:shadow-lg cursor-pointer">{t('save')}</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <BuilderMediaEditModal
+        isOpen={editingMedia !== null}
+        onClose={() => setEditingMedia(null)}
+        media={activeEditingMedia}
+        t={t as any}
+        onUpdate={handleUpdateMedia}
+      />
 
       <ConfirmModal
         isOpen={deleteTarget !== null}
@@ -889,23 +869,32 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
         isDestructive={true}
       />
 
-      <Modal isOpen={keyPromptMode !== null} onClose={() => setKeyPromptMode(null)} title={cachedKeyPromptMode === 'new' ? t('kbNewKey' as any) : t('openNativeKey')}>
-        <div className="p-7 text-text">
-          <div className="flex items-start gap-3 text-yellow-500 bg-yellow-500/10 p-4 rounded-xl border border-yellow-500/20 mb-8">
-            <Icon name="TriangleAlert" size={24} className="shrink-0 mt-0.5" />
-            <p className="text-sm font-medium leading-relaxed">{cachedKeyPromptMode === 'new' ? t('kbNewKeyPrompt' as any) : t('kbOpenKeyPrompt' as any)}</p>
+      <Modal 
+        isOpen={keyPromptMode !== null} 
+        onClose={() => setKeyPromptMode(null)} 
+        title={
+          <div className="flex items-center gap-2 min-w-0">
+            <Icon name={cachedKeyPromptMode === 'new' ? "File" : "FolderOpen"} size={24} className="text-gray-400 shrink-0" />
+            <span className="truncate">{cachedKeyPromptMode === 'new' ? t('kbNewKey' as any) : t('openNativeKey')}</span>
           </div>
-          <div className="flex flex-col-reverse md:flex-row justify-end gap-3 mt-2">
-            <button onClick={() => setKeyPromptMode(null)} className="w-full md:w-auto px-5 py-2.5 hover:bg-hover-bg/80 rounded-xl font-bold text-gray-500 transition-all duration-300 cursor-pointer">{t('cancel')}</button>
-            <button onClick={() => { exportJson(); handleConfirmPrompt(); }} className="w-full md:w-auto justify-center px-5 py-2.5 bg-panel-bg border border-white/20 dark:border-white/10 rounded-xl hover:bg-hover-bg/80 hover:shadow-md transition-all duration-300 shadow-sm font-bold flex items-center gap-2 cursor-pointer"><Icon name="FileJson" size={16} /> {t('exportJson')}</button>
-            <button onClick={handleConfirmPrompt} className="w-full md:w-auto justify-center px-5 py-2.5 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-xl hover:bg-red-600 transition-all duration-300 shadow-md hover:shadow-lg font-bold cursor-pointer">{cachedKeyPromptMode === 'new' ? t('kbDiscardAndCreate' as any) : t('kbDiscardAndOpen' as any)}</button>
+        }
+      >
+        <div className="p-5 md:p-8 overflow-y-auto relative max-h-[85vh] bg-bg/80 backdrop-blur-sm rounded-b-3xl text-text">
+          <div className="flex flex-col gap-6 animate-fade-in-up" style={{ willChange: 'auto' }}>
+            <div className="flex items-start gap-3 text-yellow-500 bg-yellow-500/10 p-4 rounded-2xl border border-yellow-500/20">
+              <Icon name="TriangleAlert" size={24} className="shrink-0 mt-0.5" />
+              <p className="text-sm font-medium leading-relaxed">{cachedKeyPromptMode === 'new' ? t('kbNewKeyPrompt' as any) : t('kbOpenKeyPrompt' as any)}</p>
+            </div>
+            <div className="flex flex-col-reverse md:flex-row justify-end gap-3 mt-2">
+              <button onClick={() => setKeyPromptMode(null)} className="w-full md:w-auto px-5 py-2.5 hover:bg-hover-bg/80 rounded-xl font-bold text-gray-500 transition-all duration-300 cursor-pointer">{t('cancel')}</button>
+              <button onClick={() => { exportJson(); handleConfirmPrompt(); }} className="w-full md:w-auto justify-center px-5 py-2.5 bg-panel-bg border border-white/20 dark:border-white/10 rounded-xl hover:bg-hover-bg/80 hover:shadow-md transition-all duration-300 shadow-sm font-bold flex items-center gap-2 cursor-pointer"><Icon name="FileJson" size={16} /> {t('exportJson')}</button>
+              <button onClick={handleConfirmPrompt} className="w-full md:w-auto justify-center px-5 py-2.5 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-xl hover:bg-red-600 transition-all duration-300 shadow-md hover:shadow-lg font-bold cursor-pointer">{cachedKeyPromptMode === 'new' ? t('kbDiscardAndCreate' as any) : t('kbDiscardAndOpen' as any)}</button>
+            </div>
           </div>
         </div>
       </Modal>
 
-      <Modal isOpen={showMetadataModal} onClose={() => setShowMetadataModal(false)} title={t('kbMetadata')}>
-        <BuilderMetadataTab draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any} />
-      </Modal>
+      <BuilderMetadataModal isOpen={showMetadataModal} onClose={() => setShowMetadataModal(false)} draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any} />
     </div>
   );
 };

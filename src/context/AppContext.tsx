@@ -40,6 +40,7 @@ interface AppContextProps {
   resetKey: () => void;
   openPreferences: () => void;
   openKeyInfo: () => void;
+  closeKey: () => void;
   addToast: (message: string) => void;
 }
 

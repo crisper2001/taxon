@@ -22,13 +22,13 @@ export const Header: React.FC<HeaderProps> = ({ isSidebarOpen, setSidebarOpen, l
       {/* Left section: Mobile hamburger + Desktop Menu */}
       <div className="flex items-center gap-2 relative w-10 md:w-auto transition-all z-30">
         <button onClick={() => setSidebarOpen(!isSidebarOpen)} title={t('toggleMenu')} className="md:hidden p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center text-accent">
-          <Icon name="Leaf" size={24} />
+          <img src="leaf.svg" alt="Leaf Icon" className="h-6" />
         </button>
 
         {/* Desktop Brand */}
-        <div onClick={handleLogoClick} title={t('closeKey' as any)} className="hidden md:flex items-center gap-2 px-3 py-1.5 shrink-0 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md">
-          <Icon name="Leaf" size={24} className="text-accent" />
-          <span className="font-black text-xl tracking-tight text-accent">Taxon</span>
+        <div onClick={handleLogoClick} title={t('back')} className="hidden md:flex items-center px-3 py-1.5 shrink-0 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md">
+          <img src="logo.svg" alt="Taxon Logo" className="h-6 dark:hidden" />
+          <img src="logo-dark.svg" alt="Taxon Logo" className="h-6 hidden dark:block" />
         </div>
 
         {/* Desktop Horizontal Menu */}
@@ -48,7 +48,7 @@ export const Header: React.FC<HeaderProps> = ({ isSidebarOpen, setSidebarOpen, l
       </div>
 
       {centerContent || (
-        <button id="status-display" onClick={openKeyInfo} disabled={!keyData || isLoading || !!error || appMode === 'build'} className="absolute left-1/2 -translate-x-1/2 text-center italic text-gray-500 disabled:cursor-default enabled:cursor-pointer enabled:not-italic enabled:font-bold enabled:text-text px-3 md:px-4 py-1.5 tracking-tight flex items-center justify-center gap-2 overflow-hidden max-w-[150px] sm:max-w-xs md:max-w-md text-sm md:text-base z-10 rounded-full transition-all duration-300 enabled:opacity-90 enabled:hover:opacity-100 enabled:hover:bg-hover-bg/80 shadow-sm border border-transparent dark:border-white/10 enabled:hover:border-black/10 dark:enabled:hover:border-white/20 enabled:hover:shadow-md">
+        <button id="status-display" onClick={openKeyInfo} disabled={!keyData || isLoading || !!error || appMode === 'build'} title={keyData && appMode === 'identify' ? t('keyInfo') : undefined} className="absolute left-1/2 -translate-x-1/2 text-center italic text-gray-500 disabled:cursor-default enabled:cursor-pointer enabled:not-italic enabled:font-bold enabled:text-text px-3 md:px-4 py-1.5 tracking-tight flex items-center justify-center gap-2 overflow-hidden max-w-[150px] sm:max-w-xs md:max-w-md text-sm md:text-base z-10 rounded-full transition-all duration-300 enabled:opacity-90 enabled:hover:opacity-100 enabled:hover:bg-hover-bg/80 shadow-sm border border-transparent dark:border-white/10 enabled:hover:border-black/10 dark:enabled:hover:border-white/20 enabled:hover:shadow-md">
           <span className="truncate">{appMode === 'build' ? t('builderMode') : statusText}</span>
         </button>
       )}

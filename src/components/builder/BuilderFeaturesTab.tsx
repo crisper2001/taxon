@@ -13,7 +13,7 @@ const MemoizedFeatureItem = React.memo(({
   f, depth, hasChildren, isFirst, isLast, isSelected, isCollapsed, dragOverId, isDragged, anyDragged, draggedItemType, draggedItemParentId, draggedItemId, isSearchDimmed, isSearchMatch,
   t, setSelectedFeatureId, toggleFeatureCollapse, duplicateFeature, setDeleteTarget, addState,
   featureTreeDnd, setDragOverId, setDraggedItem, moveStateToFeature, moveFeature, reorderFeatures, updateFeature,
-  dragStateRef, collapsedFeaturesRef
+  dragStateRef, collapsedFeaturesRef, ghostRef
 }: any) => {
   const checkFeatureCycle = (draggedId: string, targetId: string) => {
     let current: string | undefined = targetId;
@@ -25,7 +25,7 @@ const MemoizedFeatureItem = React.memo(({
     return false;
   };
 
-  const iconName = f.type === 'state' ? 'ListTree' : 'Hash';
+  const iconName = f.type === 'state' ? 'Tag' : 'Hash';
   const isDragOverCenter = dragOverId === f.id;
   const isDragOverTop = dragOverId === `before-${f.id}`;
   const isDragOverBottom = dragOverId === `after-${f.id}` && (isCollapsed || !hasChildren);
@@ -42,10 +42,12 @@ const MemoizedFeatureItem = React.memo(({
       onClick={(e) => { e.stopPropagation(); setSelectedFeatureId(f.id); }}
       onToggleCollapse={(e) => { e.stopPropagation(); toggleFeatureCollapse(f.id); }}
       badges={
-        <>
-          {f.matchType === 'AND' && <span className="ml-2 text-[10px] bg-accent/20 text-accent px-1.5 py-0.5 rounded font-bold">AND</span>}
-          {f.matchType === 'SINGLE' && <span className="ml-2 text-[10px] bg-accent/20 text-accent px-1.5 py-0.5 rounded font-bold">SINGLE</span>}
-        </>
+        f.type === 'state' ? (
+          <>
+            {f.matchType === 'AND' && <span className="ml-2 text-[10px] bg-accent/20 text-accent px-1.5 py-0.5 rounded font-bold">AND</span>}
+            {f.matchType === 'SINGLE' && <span className="ml-2 text-[10px] bg-accent/20 text-accent px-1.5 py-0.5 rounded font-bold">SINGLE</span>}
+          </>
+        ) : null
       }
       actions={
         <>
@@ -97,10 +99,13 @@ const MemoizedFeatureItem = React.memo(({
       }}
       onTouchStart={(e) => featureTreeDnd.onTouchStart(e, f.id)}
       onTouchMove={(e) => {
-        if (anyDragged) e.stopPropagation();
+        if (anyDragged) {
+          e.stopPropagation();
+          if (e.cancelable) e.preventDefault();
+        }
         const touch = e.touches[0];
         featureTreeDnd.lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
-        if (featureTreeDnd.ghostRef.current) { featureTreeDnd.ghostRef.current.style.left = `${touch.clientX}px`; featureTreeDnd.ghostRef.current.style.top = `${touch.clientY}px`; }
+        if (ghostRef.current) { ghostRef.current.style.left = `${touch.clientX}px`; ghostRef.current.style.top = `${touch.clientY}px`; }
         if (!anyDragged) return;
         const el = document.elementFromPoint(touch.clientX, touch.clientY);
         const targetFeature = el?.closest('[data-feature-id]');
@@ -148,12 +153,15 @@ const MemoizedFeatureItem = React.memo(({
           }
           setDraggedItem(null); setDragOverId(null);
         }
+      if (featureTreeDnd.onTouchCancel) {
+        featureTreeDnd.onTouchCancel(e);
+      }
       }}
       onTouchCancel={featureTreeDnd.onTouchCancel}
     />
   );
 }, (prev, next) => {
-  return prev.f === next.f && prev.depth === next.depth && prev.hasChildren === next.hasChildren && prev.isFirst === next.isFirst && prev.isLast === next.isLast && prev.isSelected === next.isSelected && prev.isCollapsed === next.isCollapsed && prev.dragOverId === next.dragOverId && prev.isDragged === next.isDragged && prev.anyDragged === next.anyDragged && prev.draggedItemType === next.draggedItemType && prev.draggedItemParentId === next.draggedItemParentId && prev.draggedItemId === next.draggedItemId && prev.isSearchDimmed === next.isSearchDimmed && prev.isSearchMatch === next.isSearchMatch && prev.t === next.t && prev.dragStateRef === next.dragStateRef && prev.collapsedFeaturesRef === next.collapsedFeaturesRef;
+  return prev.f === next.f && prev.depth === next.depth && prev.hasChildren === next.hasChildren && prev.isFirst === next.isFirst && prev.isLast === next.isLast && prev.isSelected === next.isSelected && prev.isCollapsed === next.isCollapsed && prev.dragOverId === next.dragOverId && prev.isDragged === next.isDragged && prev.anyDragged === next.anyDragged && prev.draggedItemType === next.draggedItemType && prev.draggedItemParentId === next.draggedItemParentId && prev.draggedItemId === next.draggedItemId && prev.isSearchDimmed === next.isSearchDimmed && prev.isSearchMatch === next.isSearchMatch && prev.t === next.t && prev.dragStateRef === next.dragStateRef && prev.collapsedFeaturesRef === next.collapsedFeaturesRef && prev.ghostRef === next.ghostRef;
 });
 
 const MemoizedStateItem = React.memo(({
@@ -186,7 +194,7 @@ const MemoizedStateItem = React.memo(({
       isDragOverParentBottom={isDragOverParentBottom}
       isDragged={isDragged} anyDragged={anyDragged}
       isSearchDimmed={isSearchDimmed} isSearchMatch={isSearchMatch}
-      iconName="List" stateIndicator={true} imageUrl={s.media?.[0]?.url} className="state-item"
+      iconName="CircleCheck" stateIndicator={true} imageUrl={s.media?.[0]?.url} className="state-item"
       onClick={(e) => { e.stopPropagation(); setSelectedFeatureId(s.id); }}
       actions={
         <>
@@ -197,6 +205,7 @@ const MemoizedStateItem = React.memo(({
         </>
       }
       draggable data-state-id={s.id} data-parent-id={f.id}
+      onContextMenu={(e) => e.preventDefault()}
       onDragStart={(e) => {
         e.stopPropagation();
         setDraggedItem({ type: 'state', id: s.id, parentId: f.id });
@@ -250,16 +259,21 @@ const MemoizedStateItem = React.memo(({
         }, 300);
       }}
       onTouchMove={(e) => {
-        if (anyDragged) e.stopPropagation();
         const touch = e.touches[0];
+        if (!anyDragged) {
+          const dx = touch.clientX - lastTouchPos.current.x;
+          const dy = touch.clientY - lastTouchPos.current.y;
+          if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+            if (touchTimeout.current) clearTimeout(touchTimeout.current);
+          }
+          return;
+        }
+        e.stopPropagation();
+        if (e.cancelable) e.preventDefault();
         lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
         if (ghostRef.current) {
           ghostRef.current.style.left = `${touch.clientX}px`;
           ghostRef.current.style.top = `${touch.clientY}px`;
-        }
-        if (!anyDragged) {
-          if (touchTimeout.current) clearTimeout(touchTimeout.current);
-          return;
         }
         const el = document.elementFromPoint(touch.clientX, touch.clientY);
         const targetState = el?.closest('[data-state-id]');
@@ -350,6 +364,27 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
   const searchInputRef = useRef<HTMLInputElement>(null);
   const collapsedFeaturesRef = useRef(collapsedFeatures);
   collapsedFeaturesRef.current = collapsedFeatures;
+
+  const [isFooterVisible, setIsFooterVisible] = useState(false);
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showFooter = useCallback(() => {
+    if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+    setIsFooterVisible(true);
+  }, []);
+
+  const hideFooter = useCallback(() => {
+    hideTimeoutRef.current = setTimeout(() => {
+      setIsFooterVisible(false);
+    }, 300);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (touchTimeout.current) clearTimeout(touchTimeout.current);
+      if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!searchTerm) {
@@ -462,7 +497,14 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
       updateDraftKey(prev => {
         const newFeatures = prev.features.map(f => {
           if (f.id === typeChangeConfirm.featureId) {
-            return { ...f, type: typeChangeConfirm.newType, states: [] };
+            const updatedFeature = { ...f, type: typeChangeConfirm.newType, states: [] };
+            if (typeChangeConfirm.newType === 'numeric') {
+              delete updatedFeature.matchType;
+            } else if (typeChangeConfirm.newType === 'state') {
+              delete updatedFeature.base_unit;
+              delete updatedFeature.unit_prefix;
+            }
+            return updatedFeature;
           }
           return f;
         });
@@ -886,6 +928,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
             isSearchDimmed={isSearchDimmed} isSearchMatch={isSearchMatch} moveFeature={moveFeature}
             reorderFeatures={reorderFeatures} updateFeature={updateFeature}
             dragStateRef={dragStateRef} collapsedFeaturesRef={collapsedFeaturesRef}
+            ghostRef={ghostRef}
           />
         );
       } else {
@@ -913,21 +956,22 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
   };
 
   return (
-    <div className="flex flex-col w-full h-full animate-fade-in">
+    <div className="flex flex-col w-full h-full animate-fade-in min-w-0 relative" style={{ willChange: 'auto' }}>
       <BuilderListHeader
         title={t('kbFeatures')}
-        icon="ListTree"
+        icon="Tags"
         count1={draftKey.features.length}
         count1Title={t('kbFeatures')}
         count2={draftKey.features.reduce((acc, f) => acc + (f.type === 'state' ? f.states.length : 0), 0)}
         count2Title={t('kbStates')}
         searchTerm={searchTerm} setSearchTerm={setSearchTerm} searchInputRef={searchInputRef}
         matchCount={matchCount} currentMatchIndex={currentMatchIndex} setCurrentMatchIndex={setCurrentMatchIndex}
-        onAdd={addFeature} addTitle={t('kbAddFeature')} addLabel={t('kbAdd' as any)} t={t as any}
+        t={t as any}
       />
       <div
         ref={containerRef}
-        className="panel-content grow p-3 space-y-1 overflow-y-auto transition-colors"
+        className="panel-content grow p-3 flex flex-col overflow-y-auto transition-colors"
+        onMouseEnter={showFooter} onMouseLeave={hideFooter}
       >
         {renderFeatureList()}
       </div>
@@ -978,12 +1022,12 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
             left: draggedItem?.type === 'feature' ? featureTreeDnd.lastTouchPos.current.x : lastTouchPos.current.x,
             top: draggedItem?.type === 'feature' ? featureTreeDnd.lastTouchPos.current.y : lastTouchPos.current.y,
             transform: 'translate(-50%, -120%)',
-            willChange: 'left, top'
+            willChange: 'auto'
           }}
         >
           {draggedItem ? (
             <div className="bg-panel-bg/95 backdrop-blur-xl border border-accent/50 shadow-2xl rounded-xl px-4 py-2 flex items-center gap-2 font-bold text-accent text-sm">
-              <Icon name={draggedItem.type === 'state' ? 'List' : (draftKey.features.find(f => f.id === draggedItem.id)?.type === 'state' ? 'ListTree' : 'Hash')} size={16} />
+              <Icon name={draggedItem.type === 'state' ? 'CircleCheck' : (draftKey.features.find(f => f.id === draggedItem.id)?.type === 'state' ? 'Tag' : 'Hash')} size={16} />
               <span className="truncate max-w-[150px]">
                 {draggedItem.type === 'state' ?
                   (draftKey.features.find(f => f.id === draggedItem.parentId)?.states.find(s => s.id === draggedItem.id)?.name || t('kbStateName' as any) || 'Unnamed State')
@@ -1010,6 +1054,19 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
           ) : null}
         </div>
       )}
+
+      {/* Floating Add Button */}
+      <div
+        className={`absolute bottom-6 right-6 md:bottom-4 md:right-4 z-50 transition-opacity duration-300 ${isFooterVisible ? 'opacity-100 pointer-events-auto' : 'max-md:opacity-100 max-md:pointer-events-auto opacity-0 pointer-events-none'}`}
+      >
+        <button
+          onClick={addFeature}
+          className="size-14 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-xl shadow-lg flex items-center justify-center hover:bg-accent-hover active:scale-95 transition-all cursor-pointer"
+          title={t('kbAddFeature')}
+        >
+          <Icon name="Plus" className="size-6" />
+        </button>
+      </div>
 
       <ConfirmModal
         isOpen={typeChangeConfirm !== null}

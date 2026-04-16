@@ -26,6 +26,7 @@ export const useSwipe = (onSwipeLeft: () => void, onSwipeRight: () => void, left
         }
 
         if (isSwiping) {
+            if (e.cancelable) e.preventDefault();
             let effectiveDelta = deltaX;
             if (leftConstraint && deltaX > 0) effectiveDelta *= 0.3;
             if (rightConstraint && deltaX < 0) effectiveDelta *= 0.3;
@@ -45,5 +46,11 @@ export const useSwipe = (onSwipeLeft: () => void, onSwipeRight: () => void, left
         touchStart.current = null;
     };
 
-    return { swipeOffset, isSwiping, handleTouchStart, handleTouchMove, handleTouchEnd };
+    const handleTouchCancel = () => {
+        setIsSwiping(false);
+        setSwipeOffset(0);
+        touchStart.current = null;
+    };
+
+    return { swipeOffset, isSwiping, handleTouchStart, handleTouchMove, handleTouchEnd, handleTouchCancel };
 };

@@ -14,7 +14,7 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose,
   const title = titleRaw.replace('{version}', version);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title}>
+    <Modal isOpen={isOpen} onClose={onClose} title={<div className="flex items-center gap-2 min-w-0"><Icon name="Sparkles" size={24} className="text-accent shrink-0" /><span className="truncate">{title}</span></div>}>
       <div className="p-7 bg-bg/80 backdrop-blur-sm rounded-b-3xl max-h-[75vh] overflow-y-auto custom-scrollbar">
         <div className="flex flex-col gap-8">
 

@@ -66,7 +66,6 @@ const RenderFeatureGroup: React.FC<{
   );
 };
 
-// --- EntityModal ---
 interface EntityModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -98,18 +97,16 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
     mobileTab === 'features'
   );
 
-  // Cache the entityId when the modal opens to prevent content disappearing during close animation
   useEffect(() => {
     if (isOpen) {
       setActiveEntityId(entityId);
-      setNavigationHistory([]); // Reset history when modal is opened from outside
+      setNavigationHistory([]);
       setCollapsedGroups(new Set());
-      setMobileTab('image'); // Reset tab on open
+      setMobileTab('image');
     }
-    setIsCopied(false); // Reset copied state when modal opens/closes
+    setIsCopied(false);
   }, [isOpen, entityId]);
 
-  // Reset scroll position when navigating between different entities within the hierarchy
   useEffect(() => {
     if (isOpen) {
       setShowBackToTop(false);
@@ -295,10 +292,12 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
   const modalTitle = (
     <div className="flex items-center gap-2 min-w-0">
       {navigationHistory.length > 0 && (
-        <button onClick={handleBack} className="p-1.5 rounded-full hover:bg-hover-bg transition-colors border border-transparent hover:border-border hover:shadow-sm cursor-pointer" title={t('back')}><Icon name="ArrowLeft" size={20} /></button>
+        <button onClick={handleBack} className="p-1.5 rounded-full hover:bg-hover-bg transition-colors border border-transparent hover:border-border hover:shadow-sm cursor-pointer shrink-0" title={t('back')}><Icon name="ArrowLeft" size={20} /></button>
       )}
-      <span>{entity.name}</span>
-      <button onClick={handleCopy} className="text-gray-400 hover:text-accent hover:bg-hover-bg p-1.5 rounded-full transition-colors cursor-pointer" title={t('copy' as any)}><Icon name={isCopied ? 'Check' : 'Copy'} size={18} /></button>    </div>
+      <Icon name="Box" size={24} className="text-gray-400 shrink-0" />
+      <span className="truncate">{entity.name}</span>
+      <button onClick={handleCopy} className="text-gray-400 hover:text-accent hover:bg-hover-bg p-1.5 rounded-full transition-colors cursor-pointer shrink-0" title={t('copy' as any)}><Icon name={isCopied ? 'Check' : 'Copy'} size={18} /></button>
+    </div>
   );
 
   return (
@@ -320,24 +319,24 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
             >
               <div className="entity-modal-panel is-details max-md:bg-panel-bg/50 flex flex-col" onScroll={handleScroll}>
                 {entityHierarchy.length > 1 && (
-                  <div className="mb-4 shrink-0 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
+                  <div className="mb-4 shrink-0 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
                     <div className="w-full font-bold flex items-center gap-2 mb-3 text-left tracking-tight">
                       <Icon name="Network" size={18} className="text-accent" />
                       <span className="grow text-base text-accent">{t('hierarchy')}</span>
                     </div>
-                    <div className="flex flex-wrap items-center text-sm text-text opacity-90">
+                    <div className="flex items-center text-sm text-text opacity-90 overflow-x-auto max-w-full pb-1">
                       {entityHierarchy.map((node, index) => {
                         const isLast = index === entityHierarchy.length - 1;
                         return (
                           <React.Fragment key={node.id}>
                             {isLast ? (
-                              <span className="font-bold text-text">{node.name}</span>
+                              <span className="font-bold text-text shrink-0">{node.name}</span>
                             ) : (
-                              <button onClick={() => handleNavigate(node.id)} className="hover:underline hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent/50 rounded-sm cursor-pointer">
+                              <button onClick={() => handleNavigate(node.id)} className="hover:underline hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent/50 rounded-sm cursor-pointer shrink-0">
                                 {node.name}
                               </button>
                             )}
-                            {!isLast && <Icon name="ChevronRight" size={16} className="mx-1 opacity-50" />}
+                            {!isLast && <Icon name="ChevronRight" size={16} className="mx-1 opacity-50 shrink-0" />}
                           </React.Fragment>
                         );
                       })}
@@ -345,7 +344,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
                   </div>
                 )}
                 {profile?.description && (
-                  <div className="mb-4 flex flex-col grow min-h-0 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
+                  <div className="mb-4 flex flex-col grow min-h-0 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
                     <div className="w-full font-bold flex items-center gap-2 mb-3 text-left tracking-tight shrink-0">
                       <Icon name="FileText" size={18} className="text-accent" />
                       <span className="grow text-base text-accent">{t('kbDescription')}</span>
@@ -356,7 +355,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
               </div>
               <div className="entity-modal-panel is-features max-md:bg-panel-bg/50 flex flex-col" onScroll={handleScroll}>
                 {(profile?.characteristics || []).length > 0 && (
-                  <div className="flex flex-col grow min-h-0 mb-4 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
+                  <div className="flex flex-col grow min-h-0 mb-4 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
                     <div className="flex items-center w-full mb-3 shrink-0">
                       <div className="grow font-bold flex items-center gap-2 text-left tracking-tight">
                         <Icon name="List" size={18} className="text-accent" />
@@ -389,7 +388,6 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
           </div>
         </div>
 
-        {/* Mobile Bottom Bar for EntityModal */}
         <div className="flex md:hidden items-center justify-around bg-panel-bg/85 backdrop-blur-xl border border-white/20 dark:border-white/10 p-2 shrink-0 z-20 shadow-lg rounded-3xl m-2 mb-3">
           <button onClick={() => setMobileTab('image')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 ${mobileTab === 'image' ? 'text-accent bg-accent/10 shadow-inner scale-105' : 'text-gray-500 hover:text-accent hover:bg-hover-bg/50'}`}>
             <Icon name="Image" size={22} />

@@ -124,12 +124,12 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
         case 'response': {
           if (msg.data?.answer && msg.data.answer.trim().length > 0) {
             content = msg.data.answer;
-          } else if (appMode === 'build' && (msg.data?.suggested_features?.length || msg.data?.suggested_entities?.length)) {
+          } else if (appMode === 'build') {
             content = '';
           } else {
             const features = msg.data?.features_used || [];
             if (features.length > 0) {
-              const matchingEntities = findMatchingEntities(features, keyData);
+              const matchingEntities = keyData ? findMatchingEntities(features, keyData) : [];
               const count = matchingEntities.length;
               const matchesText = matchingEntities
                 .map(e => `<span class="clickable-entity text-accent font-semibold cursor-pointer hover:underline" data-id="${e.id}">${e.name}</span>`)
@@ -176,6 +176,26 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
     });
   }, [rawChatHistory, t, keyData, appMode]);
 
+  const featuresToSend = useMemo(() => {
+    if (!keyData) return [];
+    const featureNodeMap = new Map<string, any>();
+    const traverse = (nodes: any[]) => {
+      for (const n of nodes) {
+        featureNodeMap.set(n.id, n);
+        if (n.children) traverse(n.children);
+      }
+    };
+    traverse(keyData.featureTree);
+
+    return keyData.featureListForAI.map(f => {
+      const node = featureNodeMap.get(f.id);
+      if (node && node.children && node.children.length > 0 && node.children[0].isState) {
+        return { ...f, states: node.children.map((c: any) => ({ id: c.id, name: c.name })) };
+      }
+      return f;
+    });
+  }, [keyData]);
+
   useEffect(() => {
     if (shouldScrollToBottom.current) {
       chatHistoryRef.current?.scrollTo(0, chatHistoryRef.current.scrollHeight);
@@ -192,14 +212,33 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
   }
 
   const sendMessage = async (overrideText?: string, overrideHistory?: RawChatMessage[], regenerateAiIndex?: number) => {
-    const text = overrideText !== undefined ? overrideText : userInput;
-    if ((!text.trim() && !selectedImage) || isThinking || (appMode === 'identify' && !keyData)) return;
+    const isRegenerate = overrideHistory !== undefined;
+    const text = isRegenerate ? (overrideText || '') : userInput;
+
+    let currentImage = selectedImage;
+    if (isRegenerate && overrideHistory) {
+      const lastMsg = overrideHistory[overrideHistory.length - 1] as any;
+      if (lastMsg.imageUrl && lastMsg.imageBase64 && lastMsg.imageMimeType) {
+        currentImage = { url: lastMsg.imageUrl, base64: lastMsg.imageBase64, mimeType: lastMsg.imageMimeType } as any;
+      } else {
+        currentImage = null;
+      }
+    }
+
+    if ((!text.trim() && !currentImage) || isThinking || (appMode === 'identify' && !keyData)) return;
 
     let currentHistory = overrideHistory || rawChatHistory;
-    const currentImage = selectedImage;
 
-    if (overrideText === undefined) {
-      const userMessage: RawChatMessage = { sender: 'user', content: text, ...(currentImage ? { imageUrl: currentImage.url } : {}) } as any;
+    if (!isRegenerate) {
+      const userMessage: RawChatMessage = {
+        sender: 'user',
+        content: text,
+        ...(currentImage ? {
+          imageUrl: currentImage.url,
+          imageBase64: currentImage.base64,
+          imageMimeType: currentImage.mimeType
+        } : {})
+      } as any;
       currentHistory = [...currentHistory, userMessage];
       setRawChatHistory(currentHistory);
       setUserInput('');
@@ -232,26 +271,6 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
         name: ep.name,
         characteristics: ep.characteristics.map(c => `${c.parent ? c.parent + ': ' : ''}${c.text}`)
       })) : [];
-
-    // We send all features to the AI so it can perform semantic matching (e.g. mapping "square" to "rectangular")
-    const featuresToSend = (keyData?.featureListForAI || []).map(f => {
-      if (!keyData) return f;
-      const findNode = (nodes: any[], id: string): any => {
-        for (const n of nodes) {
-          if (n.id === id) return n;
-          if (n.children) {
-            const found = findNode(n.children, id);
-            if (found) return found;
-          }
-        }
-        return null;
-      };
-      const node = findNode(keyData.featureTree, f.id);
-      if (node && node.children && node.children.length > 0 && node.children[0].isState) {
-        return { ...f, states: node.children.map((c: any) => ({ id: c.id, name: c.name })) };
-      }
-      return f;
-    });
 
     const languageNames: Record<string, string> = {
       'en': 'English',
@@ -295,7 +314,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
 1. Determine if the user is describing a specimen for identification OR asking an informational question. Treat all inputs as "Identifying a Specimen" UNLESS the user is explicitly asking a direct question.
 2. **If Identifying a Specimen:**
    - Read the "Current Description" and "New User Message". Synthesize them into an "updated_description". ACCUMULATE traits (e.g., if the user adds a new location or feature, keep the previous ones too). Only replace traits if the user corrects them, and completely clear previous traits ONLY if the user explicitly wants to start over.
-   - Map the traits based ONLY on the "updated_description" (which now includes your visual analysis) to the provided "Feature List". Semantically match user descriptions to the most appropriate feature states. Populate "features_used" with ALL currently active features. DO NOT drop previous features unless corrected/started over.
+   - Map the traits based ONLY on the "updated_description" (which now includes your visual analysis) to the provided "Feature List". Semantically match user descriptions to the most appropriate feature states. Populate "features_used" with ALL currently active features. When mapping categorical features, you MUST use the ID of the specific state, NEVER the parent feature ID. DO NOT drop previous features unless corrected/started over.
    - Try your best to identify the exact entities based on the description and images, and include your best matches from the Entity Profiles in "entities_used".
    - **CRITICAL:** When identifying, you MUST leave "answer" as an empty string (""). You MUST leave "suggested_features" and "suggested_entities" as empty arrays ([]). Do NOT provide conversational text. The system handles the interaction.
 3. **If Asking a Question:**
@@ -308,7 +327,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
 4. **Language:** Always formulate your conversational "answer" and the "updated_description" in ${targetLanguage}.
 5. **JSON Output:** Respond ONLY with a single JSON object with this structure:
     - \`updated_description\`: (string) The running description of the entity.
-    - \`features_used\`: (array of objects) With \`id\`, \`description\`, and optionally \`value\`. For categorical features, ALWAYS use the specific state's \`id\` instead of the parent feature's \`id\`.
+    - \`features_used\`: (array of objects) With \`id\`, \`description\`, and optionally \`value\`. For categorical features, ALWAYS set \`id\` to the specific state's ID (from the 'states' array). NEVER use the parent feature's ID. DO NOT use the \`value\` field for categorical features.
     - \`entities_used\`: (array of objects) With \`id\` and \`name\` of entities explicitly mentioned.
     - \`answer\`: (string) Your conversational answer to a question (MUST be empty if identifying a specimen).
     - \`suggested_features\`: (array) ALWAYS empty [] in this mode.
@@ -369,7 +388,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
       }));
 
     const imagePayload = currentImage ? { mimeType: currentImage.mimeType, data: currentImage.base64 } : undefined;
-    const model = currentImage ? 'gemini-flash-latest' : 'gemini-3.1-flash-lite-preview';
+    const modelsToTry = ['gemini-flash-latest', 'gemini-flash-lite-latest', 'gemma-4-31b-it', 'gemma-4-26b-a4b-it'];
 
     console.log("=== AI Request Debug ===");
     console.log("System Instruction:", systemInstruction);
@@ -377,26 +396,30 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
     console.log("Prompt:", prompt);
 
     try {
-      let response;
-      try {
-        response = await callGeminiAPI(prompt, model, geminiApiKey, systemInstruction, historyPayload, imagePayload);
-      } catch (err) {
+      let response: any = null;
+      let usedModel = '';
+      let lastError: unknown;
+
+      for (const model of modelsToTry) {
         try {
-          if (model !== 'gemini-3.1-flash-lite-preview') {
-            response = await callGeminiAPI(prompt, 'gemini-3.1-flash-lite-preview', geminiApiKey, systemInstruction, historyPayload, imagePayload);
-          } else {
-            throw err;
-          }
-        } catch (fallbackErr) {
-          try {
-            response = await callGeminiAPI(prompt, 'gemini-2.5-flash-lite', geminiApiKey, systemInstruction, historyPayload, imagePayload);
-          } catch (secondFallbackErr) {
-            response = await callGeminiAPI(prompt, 'gemini-2.5-flash', geminiApiKey, systemInstruction, historyPayload, imagePayload);
+          usedModel = model;
+          response = await callGeminiAPI(prompt, model, geminiApiKey, systemInstruction, historyPayload, imagePayload);
+          break;
+        } catch (err: any) {
+          lastError = err;
+          console.warn(`Model ${model} failed, trying next... Error:`, err.message);
+          if (err.message && err.message.includes('Invalid API key')) {
+            break;
           }
         }
       }
 
+      if (!response) {
+        throw lastError;
+      }
+
       console.log("=== AI Response Debug ===");
+      console.log("Model Used:", usedModel);
       console.log("Response:", JSON.stringify(response, null, 2));
 
       // Stop "thinking" indicator
@@ -599,10 +622,10 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
           {isThinking && chatHistory.length > 0 && chatHistory[chatHistory.length - 1].sender === 'user' && (
             <div className="chat-message flex animate-fade-in-up duration-300 ease-out justify-start mb-2">
               <div className="msg-content w-3/4 p-4 rounded-3xl shadow-sm bg-header-bg/90 backdrop-blur-md rounded-bl-sm border border-white/20 dark:border-white/10">
-                <div className="flex items-center gap-2 mb-3 opacity-70">
+                {/* <div className="flex items-center gap-2 mb-3 opacity-70">
                   <Icon name="LoaderCircle" className="animate-spin w-4 h-4 text-accent" />
                   <span className="text-xs font-medium uppercase tracking-wider text-accent">{t('aiAnalyzing')}</span>
-                </div>
+                </div> */}
                 <div className="space-y-2 animate-pulse">
                   <div className="h-3 bg-border rounded w-full"></div>
                   <div className="h-3 bg-border rounded w-5/6"></div>

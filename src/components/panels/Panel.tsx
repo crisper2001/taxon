@@ -24,21 +24,22 @@ export const Panel: React.FC<PanelProps> = ({ title, icon, count, onSearch, chil
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div 
+    <div
       className="panel flex flex-col h-full w-full bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg overflow-hidden relative"
+      style={{ willChange: 'auto' }}
     >
       <div className="panel-header flex items-center justify-between p-3.5 border-b border-white/10 dark:border-white/5 bg-header-bg/85 backdrop-blur-md shadow-sm shrink-0 z-10">
-        <div className="panel-title font-bold flex items-center gap-2 whitespace-nowrap text-text tracking-tight min-w-0 pr-2">
+        <div className="panel-title font-bold flex-1 min-w-0 flex items-center gap-2 whitespace-nowrap tracking-tight pr-2">
           {icon && <Icon name={icon} className="text-accent opacity-90 shrink-0" />}
-          <span className="truncate">{title}</span>
+          <span className="truncate min-w-0 text-accent text-lg bg-transparent" title={title}>{title}</span>
           <span className="panel-count bg-accent text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-sm shrink-0">{count}</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {actionButton}
           {onSearch && (() => {
             const hasMatches = matchCount !== undefined && matchCount > 0;
             return (
-              <div 
+              <div
                 className={`search-container group flex items-center gap-1 py-1.5 px-3 rounded-full relative transition-all duration-300 focus-within:bg-bg/80 focus-within:shadow-inner focus-within:backdrop-blur-md border border-transparent focus-within:border-white/10 cursor-text shrink-0 ${hasMatches || searchValue ? 'bg-bg/80 shadow-inner backdrop-blur-md border-white/10' : 'hover:bg-bg/50 cursor-pointer'}`}
                 onClick={() => searchInputRef.current?.focus()}
               >
@@ -71,9 +72,9 @@ export const Panel: React.FC<PanelProps> = ({ title, icon, count, onSearch, chil
           })()}
         </div>
       </div>
-      <div 
+      <div
         className="panel-content overflow-y-auto grow p-2"
-        style={{ contain: 'content' }}
+        style={{ contain: 'content', willChange: 'auto' }}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
       >

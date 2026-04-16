@@ -32,6 +32,12 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
     const containerRef = useRef<HTMLDivElement>(null);
     const resizingType = useRef<null | 'v' | 'h'>(null);
     const dragOffset = useRef(0);
+    const layoutRef = useRef(layout);
+
+    useEffect(() => {
+        layoutRef.current = layout;
+    }, [layout]);
+
     const [isResizing, setIsResizing] = useState(false);
     const touchStart = useRef<{ x: number, y: number } | null>(null);
     const [swipeOffset, setSwipeOffset] = useState(0);
@@ -60,6 +66,7 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
         }
 
         if (isSwiping) {
+            if (e.cancelable) e.preventDefault();
             let effectiveDelta = deltaX;
             // Add rubber-band resistance if trying to swipe past boundaries
             if (mobileTab === 0 && deltaX > 0) effectiveDelta *= 0.3;
@@ -86,6 +93,12 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
         touchStart.current = null;
     };
 
+    const handleTouchCancel = () => {
+        setIsSwiping(false);
+        setSwipeOffset(0);
+        touchStart.current = null;
+    };
+
     const handleMouseDown = (e: React.MouseEvent, type: 'v' | 'h') => {
         e.preventDefault();
         resizingType.current = type;
@@ -97,9 +110,12 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
     };
 
     const handleMouseUp = useCallback(() => {
+        if (resizingType.current) {
+            setLayout(layoutRef.current);
+        }
         resizingType.current = null;
         setIsResizing(false);
-    }, [setIsResizing]);
+    }, []);
 
     const handleMouseMove = useCallback((e: MouseEvent) => {
         if (!resizingType.current || !containerRef.current) return;
@@ -115,14 +131,18 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
                 newWidth = Math.max(MIN_PANEL_SIZE, Math.min(newWidth, freeWidth - MIN_PANEL_SIZE));
                 const firstFr = (newWidth / freeWidth) * 100;
                 const secondFr = 100 - firstFr;
-                setLayout(prev => ({ ...prev, cols: `${firstFr}fr ${RESIZER_SIZE}px ${secondFr}fr` }));
+                const newCols = `${firstFr}fr ${RESIZER_SIZE}px ${secondFr}fr`;
+                layoutRef.current = { ...layoutRef.current, cols: newCols };
+                containerRef.current.style.setProperty('--grid-cols', newCols);
             } else { // 'h'
                 const freeHeight = Math.max(1, rect.height - FIXED_SPACE);
                 let newHeight = e.clientY - dragOffset.current - (rect.top + 16);
                 newHeight = Math.max(MIN_PANEL_SIZE, Math.min(newHeight, freeHeight - MIN_PANEL_SIZE));
                 const firstFr = (newHeight / freeHeight) * 100;
                 const secondFr = 100 - firstFr;
-                setLayout(prev => ({ ...prev, rows: `${firstFr}fr ${RESIZER_SIZE}px ${secondFr}fr` }));
+                const newRows = `${firstFr}fr ${RESIZER_SIZE}px ${secondFr}fr`;
+                layoutRef.current = { ...layoutRef.current, rows: newRows };
+                containerRef.current.style.setProperty('--grid-rows', newRows);
             }
         });
     }, []);
@@ -158,13 +178,15 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
                   '--grid-rows': numPanels === 2 ? '100%' : layout.rows,
                   '--grid-cols': numPanels === 2 ? (layout.cols.includes('33.333') ? `50fr ${RESIZER_SIZE}px 50fr` : layout.cols) : layout.cols,
                   '--mobile-tab-offset': `-${mobileTab * 100}%`,
-                  '--swipe-offset': `${swipeOffset}px`
+                  '--swipe-offset': `${swipeOffset}px`,
+                  willChange: 'auto'
                 } as React.CSSProperties}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
+                onTouchCancel={handleTouchCancel}
             >
-                <div style={{ gridArea: '1 / 1 / 2 / 2' }} className="panel-wrapper min-h-0 min-w-0 h-full">{childrenArray[0]}</div>
+                <div style={{ gridArea: '1 / 1 / 2 / 2', willChange: 'auto' }} className="panel-wrapper min-h-0 min-w-0 h-full">{childrenArray[0]}</div>
                 {numPanels >= 2 && (
                   <>
                 <div 
@@ -176,7 +198,7 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
                 >
                     <div className={`w-1 h-full rounded-full transition-all duration-300 ${isResizing && resizingType.current === 'v' ? 'bg-accent shadow-md shadow-accent/50 scale-x-150' : 'bg-transparent group-hover:bg-accent/50 group-hover:scale-x-150'}`}></div>
                 </div>
-                <div style={{ gridArea: '1 / 3 / 2 / 4' }} className="panel-wrapper min-h-0 min-w-0 h-full">{childrenArray[1]}</div>
+                <div style={{ gridArea: '1 / 3 / 2 / 4', willChange: 'auto' }} className="panel-wrapper min-h-0 min-w-0 h-full">{childrenArray[1]}</div>
                   </>
                 )}
                 
@@ -191,8 +213,8 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
                 >
                     <div className={`h-1 w-full rounded-full transition-all duration-300 ${isResizing && resizingType.current === 'h' ? 'bg-accent shadow-md shadow-accent/50 scale-y-150' : 'bg-transparent group-hover:bg-accent/50 group-hover:scale-y-150'}`}></div>
                 </div>
-                <div style={{ gridArea: '3 / 1 / 4 / 2' }} className="panel-wrapper min-h-0 min-w-0 h-full">{childrenArray[2]}</div>
-                <div style={{ gridArea: '3 / 3 / 4 / 4' }} className="panel-wrapper min-h-0 min-w-0 h-full">{childrenArray[3]}</div>
+                <div style={{ gridArea: '3 / 1 / 4 / 2', willChange: 'auto' }} className="panel-wrapper min-h-0 min-w-0 h-full">{childrenArray[2]}</div>
+                <div style={{ gridArea: '3 / 3 / 4 / 4', willChange: 'auto' }} className="panel-wrapper min-h-0 min-w-0 h-full">{childrenArray[3]}</div>
                     </>
                 )}
             </div>

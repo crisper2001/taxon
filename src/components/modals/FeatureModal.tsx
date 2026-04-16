@@ -6,7 +6,6 @@ import { Icon } from '../common/Icon';
 import { Markdown } from '../common';
 import { useSwipe } from '../../hooks';
 
-// --- FeatureModal ---
 interface FeatureModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -15,6 +14,7 @@ interface FeatureModalProps {
     t: (key: string) => string;
     onImageClick: (media: Media[], startIndex: number) => void;
 }
+
 export const FeatureModal: React.FC<FeatureModalProps> = ({ isOpen, onClose, featureId, keyData, t, onImageClick }) => {
     const [activeFeatureId, setActiveFeatureId] = useState(featureId);
     const [mobileTab, setMobileTab] = useState<'image' | 'details'>('image');
@@ -53,8 +53,15 @@ export const FeatureModal: React.FC<FeatureModalProps> = ({ isOpen, onClose, fea
 
     const tabIndex = mobileTab === 'image' ? 0 : 1;
 
+    const modalTitle = (
+        <div className="flex items-center gap-2 min-w-0">
+            <Icon name={feature?.isState ? 'CircleCheck' : (feature?.type === 'state' ? 'Tag' : 'Hash')} size={24} className="text-gray-400 shrink-0" />
+            <span className="truncate">{feature?.name || t('loading')}</span>
+        </div>
+    );
+
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={feature?.name || t('loading')} size="lg">
+        <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} size="lg">
             <div className="flex flex-col h-[75vh] bg-bg/80 backdrop-blur-sm rounded-b-3xl overflow-hidden relative">
                 <div className="flex md:contents flex-col grow min-h-0 overflow-hidden relative" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
                     <div className={`entity-modal-mobile-view grow ${isSwiping ? 'is-swiping' : ''}`} style={{ '--mobile-tab-offset': `-${tabIndex * 100}%`, '--swipe-offset': `${swipeOffset}px` } as React.CSSProperties}>
@@ -70,7 +77,7 @@ export const FeatureModal: React.FC<FeatureModalProps> = ({ isOpen, onClose, fea
                                 {feature && (
                                     <div className="flex flex-col gap-4">
                                         {feature.description && (
-                                            <div className="bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
+                                            <div className="bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
                                                 <div className="w-full font-bold flex items-center gap-2 mb-3 text-left tracking-tight">
                                                     <Icon name="FileText" size={18} className="text-accent" />
                                                     <span className="grow text-base text-accent">{t('kbDescription')}</span>
@@ -78,10 +85,10 @@ export const FeatureModal: React.FC<FeatureModalProps> = ({ isOpen, onClose, fea
                                                 <Markdown content={feature.description} className="text-sm opacity-90" />
                                             </div>
                                         )}
-                                        <div className="bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
+                                        <div className="bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
                                             <div className="w-full font-bold flex items-center gap-2 mb-3 text-left tracking-tight">
                                                 <Icon name="Info" size={18} className="text-accent" />
-                                                <span className="grow text-base text-accent">{t('kbMetadata')}</span>
+                                                <span className="grow text-base text-accent">{t('info')}</span>
                                             </div>
                                             <div className="text-sm opacity-90 flex flex-col gap-2 text-text">
                                                 {!feature.isState ? (
@@ -131,7 +138,6 @@ export const FeatureModal: React.FC<FeatureModalProps> = ({ isOpen, onClose, fea
                         </div>
                     </div>
                 </div>
-                {/* Mobile Bottom Bar */}
                 <div className="flex md:hidden items-center justify-around bg-panel-bg/85 backdrop-blur-xl border border-white/20 dark:border-white/10 p-2 shrink-0 z-20 shadow-lg rounded-3xl m-2 mb-3">
                     <button onClick={() => setMobileTab('image')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 ${mobileTab === 'image' ? 'text-accent bg-accent/10 shadow-inner scale-105' : 'text-gray-500 hover:text-accent hover:bg-hover-bg/50'}`}>
                         <Icon name="Image" size={22} />

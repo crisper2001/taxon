@@ -53,7 +53,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
             : 'bg-panel-bg/50 backdrop-blur-sm border-white/20 dark:border-white/10 hover:bg-hover-bg/80 hover:shadow-md text-text/80 shadow-sm'
         }`;
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={t('preferences')}>
+        <Modal isOpen={isOpen} onClose={onClose} title={<div className="flex items-center gap-2 min-w-0"><Icon name="Settings2" size={24} className="text-gray-400 shrink-0" /><span className="truncate">{t('preferences')}</span></div>}>
             <div className="flex flex-col bg-bg/80 backdrop-blur-sm rounded-b-3xl">
                 <div className="p-7 h-[500px] overflow-y-auto overflow-x-hidden relative">
                   <div key={activeTab} className="animate-fade-in-up h-full">
@@ -79,7 +79,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                                         type="checkbox"
                                         checked={currentPrefs.allowMisinterpretations}
                                         onChange={(e) => onPreferenceChange('allowMisinterpretations', e.target.checked)}
-                                        className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-bg bg-bg cursor-pointer shadow-inner"
+                                        className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-panel-bg bg-panel-bg cursor-pointer shadow-inner"
                                     />
                                 </label>
                                 <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-hover-bg/50">
@@ -88,7 +88,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                                         type="checkbox"
                                         checked={currentPrefs.allowUncertainties}
                                         onChange={(e) => onPreferenceChange('allowUncertainties', e.target.checked)}
-                                        className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-bg bg-bg cursor-pointer shadow-inner"
+                                        className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-panel-bg bg-panel-bg cursor-pointer shadow-inner"
                                     />
                                 </label>
                             </div>
@@ -99,7 +99,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                                 <div className="font-bold mb-3 text-base block tracking-tight text-text/90">{t('data' as any) || 'Data Management'}</div>
                                 <button 
                                     onClick={onClearData} 
-                                    className="w-full flex justify-center items-center gap-2 px-4 py-3 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-colors font-bold cursor-pointer shadow-sm"
+                                className="w-full flex justify-center items-center gap-2 px-4 py-3 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-xl hover:bg-red-600 transition-all duration-300 shadow-md hover:shadow-lg font-bold cursor-pointer"
                                 >
                                     <Icon name="Trash2" size={18} /> {t('clearLocalData' as any)}
                                 </button>
@@ -128,7 +128,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                                     type="checkbox"
                                     checked={currentPrefs.showToasts}
                                     onChange={(e) => onPreferenceChange('showToasts', e.target.checked)}
-                                    className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-bg bg-bg cursor-pointer shadow-inner"
+                                    className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-panel-bg bg-panel-bg cursor-pointer shadow-inner"
                                 />
                             </label>
                         </div>
@@ -139,7 +139,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                                 type="checkbox"
                                 checked={currentPrefs.enableAnimations}
                                 onChange={(e) => onPreferenceChange('enableAnimations', e.target.checked)}
-                                className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-bg bg-bg cursor-pointer shadow-inner"
+                                className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-panel-bg bg-panel-bg cursor-pointer shadow-inner"
                             />
                         </label>
                     </div>
@@ -155,7 +155,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                                     type="checkbox"
                                     checked={currentPrefs.enableAi}
                                     onChange={(e) => onPreferenceChange('enableAi', e.target.checked)}
-                                    className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-bg bg-bg cursor-pointer shadow-inner"
+                                    className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-panel-bg bg-panel-bg cursor-pointer shadow-inner"
                                 />
                             </label>
                         </div>
@@ -178,13 +178,11 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
 
                 {activeTab === 'about' && (
                     <div className="space-y-6 text-center flex flex-col items-center justify-center h-full pt-4">
-                        <h2 className="text-5xl font-black flex items-center justify-center gap-3 mb-2 text-accent tracking-tight">
-                            <Icon name="Leaf" size={48} />
-                            <span className="flex items-start gap-2">
-                                Taxon
-                                <span className="text-[10px] font-bold bg-accent/10 text-accent px-1.5 py-0.5 rounded-md border border-accent/20 uppercase tracking-widest mt-1.5">Beta</span>
-                            </span>
-                        </h2>
+                        <div className="flex items-start justify-center gap-2 mb-2">
+                            <img src="logo.svg" alt="Taxon Logo" className="h-12 dark:hidden" />
+                            <img src="logo-dark.svg" alt="Taxon Logo" className="h-12 hidden dark:block" />
+                            <span className="text-[10px] font-bold bg-accent/10 text-accent px-1.5 py-0.5 rounded-md border border-accent/20 uppercase tracking-widest mt-1.5">Beta</span>
+                        </div>
                         <div className="text-xs text-text/60 font-semibold bg-panel-bg/60 backdrop-blur-sm px-3 py-1 rounded-full border border-black/10 dark:border-white/10 shadow-sm">
                             {t('version' as any) || 'Version'} {packageJson.version}
                         </div>
