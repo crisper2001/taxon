@@ -86,6 +86,7 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
 
   const modalTitle = cachedMode === 'state' && stateToRender && stateParentToRender ? (
     <div className="flex items-center gap-3 min-w-0">
+      <Icon name="CircleCheck" size={24} className="text-gray-400" />
       <div className="flex flex-col min-w-0">
         <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-0.5 leading-none truncate">{stateParentToRender.name || t('kbUnnamedFeature')}</span>
         <span className="truncate leading-tight">{stateToRender.name || t('kbStateName' as any) || 'Unnamed State'}</span>
@@ -93,7 +94,7 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
     </div>
   ) : (
     <div className="flex items-center gap-2 min-w-0">
-      <Icon name={featureToRender?.type === 'state' ? 'ListTree' : 'Hash'} size={24} className="text-gray-400" />
+      <Icon name={featureToRender?.type === 'state' ? 'Tag' : 'Hash'} size={24} className="text-gray-400" />
       <span className="truncate">{featureToRender?.name || t('kbUnnamedFeature')}</span>
     </div>
   );
@@ -102,12 +103,12 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
     <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} size="lg">
       <div className="p-5 md:p-8 overflow-y-auto relative max-h-[85vh] bg-bg/80 backdrop-blur-sm rounded-b-3xl">
         {cachedMode === 'feature' && featureToRender ? (
-          <div className="flex flex-col gap-6 animate-fade-in-up">
+          <div className="flex flex-col gap-6 animate-fade-in-up" style={{ willChange: 'auto' }}>
 
-            <div className="flex flex-col gap-4 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0 relative z-10">
+            <div className="flex flex-col gap-4 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0 relative z-10">
               <div className="w-full font-bold text-accent flex items-center gap-2 mb-1 text-left tracking-tight shrink-0">
                 <Icon name="Info" size={18} />
-                <span className="grow text-base">{t('kbMetadata')}</span>
+                <span className="grow text-base">{t('info')}</span>
               </div>
               <label className="flex flex-col gap-1.5">
                 <span className="text-sm font-semibold opacity-80">{t('kbName')}</span>
@@ -116,14 +117,14 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
 
               <MarkdownInput label={t('kbDescription')} value={featureToRender.description || ''} onChange={val => updateFeature(featureToRender.id, { description: val })} rows={3} />
 
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <label className="flex flex-col gap-1.5 flex-1">
                   <span className="text-sm font-semibold opacity-80">{t('kbType')}</span>
                   <CustomSelect
                     value={featureToRender.type}
                     onChange={val => requestTypeChange(featureToRender.id, val as 'numeric' | 'state')}
                     options={[{ value: 'state', label: t('kbTypeState') }, { value: 'numeric', label: t('kbTypeNumeric') }]}
-                    className="input-base cursor-pointer"
+                    className="input-base cursor-pointer w-full"
                   />
                 </label>
 
@@ -143,14 +144,14 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
                         { value: 'AND', label: t('kbMatchAll' as any) || 'Match All (AND)' },
                         { value: 'SINGLE', label: t('kbSingleSelection' as any) || 'Single Selection' }
                       ]}
-                      className="input-base cursor-pointer"
+                      className="input-base cursor-pointer w-full"
                     />
                   </label>
                 )}
               </div>
 
               {featureToRender.type === 'numeric' && (
-                <div className="flex gap-4">
+                <div className="flex flex-col sm:flex-row gap-4">
                   <label className="flex flex-col gap-1.5 flex-1">
                     <span className="text-sm font-semibold opacity-80">{t('kbUnitPrefix' as any) || 'Unit Prefix'}</span>
                     <CustomSelect
@@ -166,7 +167,7 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
                         { value: 'milli', label: t('unitMilli' as any) },
                         { value: 'micro', label: t('unitMicro' as any) },
                       ]}
-                      className="input-base cursor-pointer"
+                      className="input-base cursor-pointer w-full"
                     />
                   </label>
                   <label className="flex flex-col gap-1.5 flex-1">
@@ -183,14 +184,14 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
                         { value: 'degrees celcius', label: t('unitCelsius' as any) },
                         { value: 'degrees planar', label: t('unitDegree' as any) },
                       ]}
-                      className="input-base cursor-pointer"
+                      className="input-base cursor-pointer w-full"
                     />
                   </label>
                 </div>
               )}
             </div>
 
-            <div className="flex flex-col gap-3 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
+            <div className="flex flex-col gap-3 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
               <div className="w-full font-bold text-accent flex items-center gap-2 mb-1 text-left tracking-tight shrink-0">
                 <Icon name="Image" size={18} />
                 <span className="grow text-base">{t('kbImages' as any) || 'Images'}</span>
@@ -224,7 +225,7 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
                 }}
               >
                 {featureToRender.media?.map((m, i) => (
-                  <div key={i} className={`relative shrink-0 group rounded-xl transition-all ${dragOverId === `feature-media-${i}` ? 'ring-2 ring-accent ring-offset-2 ring-offset-bg scale-[1.02]' : ''} ${draggedMedia?.index === i && draggedMedia.itemId === featureToRender.id ? 'opacity-50' : ''}`}
+                  <div key={i} className={`relative shrink-0 group rounded-xl transition-all ${dragOverId === `feature-media-${i}` ? 'ring-2 ring-accent ring-offset-2 ring-offset-panel-bg scale-[1.02]' : ''} ${draggedMedia?.index === i && draggedMedia.itemId === featureToRender.id ? 'opacity-50' : ''}`}
                     draggable
                     data-feature-media-idx={i}
                     onContextMenu={(e) => e.preventDefault()}
@@ -318,10 +319,10 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
             </div>
 
             {featureToRender.type === 'state' && (
-              <div className="flex flex-col gap-3 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
+              <div className="flex flex-col gap-3 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
                 <div className="flex items-center w-full mb-1 shrink-0">
                   <div className="grow font-bold text-accent flex items-center gap-2 text-left tracking-tight">
-                    <Icon name="List" size={18} />
+                    <Icon name="CircleCheck" size={18} />
                     <span className="grow text-base">{t('kbStates')}</span>
                   </div>
                   <button onClick={() => { addState(featureToRender.id); if (collapsedFeatures.has(featureToRender.id)) toggleFeatureCollapse(featureToRender.id); }} className="text-accent hover:bg-accent/10 px-3 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-1 cursor-pointer border border-transparent hover:border-accent/30">
@@ -333,7 +334,7 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
                     <span className="text-sm opacity-50 italic">{t('kbNoStatesDefined' as any)}</span>
                   ) : (
                     featureToRender.states.map(s => (
-                      <div key={s.id} onClick={() => setSelectedFeatureId(s.id)} className="flex items-center justify-between p-3 rounded-xl bg-bg border border-border hover:border-accent/50 cursor-pointer transition-colors group/editstate shadow-sm hover:shadow-md">
+                      <div key={s.id} onClick={() => setSelectedFeatureId(s.id)} className="flex items-center justify-between p-3 rounded-xl bg-panel-bg border border-border hover:border-accent/50 cursor-pointer transition-colors group/editstate shadow-sm hover:shadow-md">
                         <span className="text-sm font-medium truncate flex-1">{s.name || t('kbStateName' as any) || 'Unnamed State'}</span>
                         <Icon name="ChevronRight" size={16} className="opacity-40 group-hover/editstate:opacity-100 group-hover/editstate:text-accent transition-all" />
                       </div>
@@ -344,22 +345,22 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
             )}
 
             <div className="flex justify-between items-center mt-2 pt-2">
-              <button onClick={() => duplicateFeature(featureToRender.id)} className="px-4 py-2 text-gray-500 hover:text-accent bg-panel-bg/50 hover:bg-hover-bg rounded-xl border border-border shadow-sm transition-all font-semibold flex items-center gap-2 cursor-pointer">
+              <button onClick={() => duplicateFeature(featureToRender.id)} className="px-4 py-2 text-gray-500 hover:text-accent bg-panel-bg/50 hover:bg-hover-bg rounded-xl border border-border shadow-sm transition-all duration-300 font-bold flex items-center gap-2 cursor-pointer hover:shadow-md">
                 <Icon name="Copy" size={16} /> {t('kbDuplicate')}
               </button>
-              <button onClick={() => setDeleteTarget({ type: 'feature', id: featureToRender.id })} className="px-4 py-2 text-red-500 hover:text-white hover:bg-red-500 bg-red-500/10 rounded-xl border border-red-500/20 shadow-sm transition-all font-semibold flex items-center gap-2 cursor-pointer">
+              <button onClick={() => setDeleteTarget({ type: 'feature', id: featureToRender.id })} className="px-4 py-2 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-xl hover:bg-red-600 transition-all duration-300 shadow-md hover:shadow-lg font-bold flex items-center gap-2 cursor-pointer">
                 <Icon name="Trash2" size={16} /> {t('kbDelete')}
               </button>
             </div>
 
           </div>
         ) : cachedMode === 'state' && stateToRender && stateParentToRender ? (
-          <div className="flex flex-col gap-6 animate-fade-in-up">
+          <div className="flex flex-col gap-6 animate-fade-in-up" style={{ willChange: 'auto' }}>
 
-            <div className="flex flex-col gap-4 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
+            <div className="flex flex-col gap-4 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
               <div className="w-full font-bold text-accent flex items-center gap-2 mb-1 text-left tracking-tight shrink-0">
                 <Icon name="Info" size={18} />
-                <span className="grow text-base">{t('kbMetadata')}</span>
+                <span className="grow text-base">{t('info')}</span>
               </div>
               <label className="flex flex-col gap-1.5">
                 <span className="text-sm font-semibold opacity-80">{t('kbName')}</span>
@@ -369,7 +370,7 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
             </div>
 
             {/* State Media Section */}
-            <div className="flex flex-col gap-3 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
+            <div className="flex flex-col gap-3 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
               <div className="w-full font-bold text-accent flex items-center gap-2 mb-1 text-left tracking-tight shrink-0">
                 <Icon name="Image" size={18} />
                 <span className="grow text-base">{t('kbImages' as any) || 'Images'}</span>
@@ -403,7 +404,7 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
                 }}
               >
                 {stateToRender.media?.map((m, i) => (
-                  <div key={i} className={`relative shrink-0 group rounded-xl transition-all ${dragOverId === `state-media-${stateToRender.id}-${i}` ? 'ring-2 ring-accent ring-offset-2 ring-offset-bg scale-[1.02]' : ''} ${draggedMedia?.index === i && draggedMedia.stateId === stateToRender.id ? 'opacity-50' : ''}`}
+                  <div key={i} className={`relative shrink-0 group rounded-xl transition-all ${dragOverId === `state-media-${stateToRender.id}-${i}` ? 'ring-2 ring-accent ring-offset-2 ring-offset-panel-bg scale-[1.02]' : ''} ${draggedMedia?.index === i && draggedMedia.stateId === stateToRender.id ? 'opacity-50' : ''}`}
                     draggable
                     data-state-media-idx={i}
                     onContextMenu={(e) => e.preventDefault()}
@@ -496,7 +497,7 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
             </div>
 
             {/* State Values Section */}
-            <div className="flex flex-col gap-3 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
+            <div className="flex flex-col gap-3 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
               <div className="flex items-center w-full mb-1 shrink-0">
                 <div className="grow font-bold text-accent flex items-center gap-2 text-left tracking-tight">
                   <Icon name="Target" size={18} />
@@ -676,10 +677,10 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
             </div>
 
             <div className="flex justify-between items-center mt-2 pt-2">
-              <button onClick={() => duplicateState(stateParentToRender.id, stateToRender.id)} className="px-4 py-2 text-gray-500 hover:text-accent bg-panel-bg/50 hover:bg-hover-bg rounded-xl border border-border shadow-sm transition-all font-semibold flex items-center gap-2 cursor-pointer">
+              <button onClick={() => duplicateState(stateParentToRender.id, stateToRender.id)} className="px-4 py-2 text-gray-500 hover:text-accent bg-panel-bg/50 hover:bg-hover-bg rounded-xl border border-border shadow-sm transition-all duration-300 font-bold flex items-center gap-2 cursor-pointer hover:shadow-md">
                 <Icon name="Copy" size={16} /> {t('kbDuplicate')}
               </button>
-              <button onClick={() => setDeleteTarget({ type: 'state', id: stateToRender.id, parentId: stateParentToRender.id })} className="px-4 py-2 text-red-500 hover:text-white hover:bg-red-500 bg-red-500/10 rounded-xl border border-red-500/20 shadow-sm transition-all font-semibold flex items-center gap-2 cursor-pointer">
+              <button onClick={() => setDeleteTarget({ type: 'state', id: stateToRender.id, parentId: stateParentToRender.id })} className="px-4 py-2 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-xl hover:bg-red-600 transition-all duration-300 shadow-md hover:shadow-lg font-bold flex items-center gap-2 cursor-pointer">
                 <Icon name="Trash2" size={16} /> {t('kbDelete')}
               </button>
             </div>

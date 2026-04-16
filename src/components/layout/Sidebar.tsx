@@ -42,7 +42,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onExit, actio
         <div className="pb-4 pt-2 border-b border-black/5 dark:border-white/5">
           <button onClick={handleExit} title={t('closeKey' as any)} className="flex items-center justify-center gap-3 w-full p-3 rounded-xl hover:bg-hover-bg/80 hover:backdrop-blur-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md border border-transparent dark:border-white/10 dark:hover:border-white/20 group">
             <h2 className="text-2xl font-black flex items-center gap-2 text-accent tracking-tight group-hover:opacity-100">
-              <Icon name="Leaf" size={28} /> Taxon
+              <img src="logo.svg" alt="Taxon Logo" className="h-6 dark:hidden" />
+              <img src="logo-dark.svg" alt="Taxon Logo" className="h-6 hidden dark:block" />
             </h2>
           </button>
         </div>

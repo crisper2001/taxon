@@ -187,16 +187,6 @@ const App: React.FC = () => {
     document.documentElement.style.setProperty('--accent-color', accentColor);
     document.documentElement.style.setProperty('--accent-hover-color', accentHoverColor);
 
-    // Dynamically generate and set the Leaf SVG favicon using the current accent color
-    const svgFavicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${accentColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 22 12 12"/></svg>`;
-    let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-    if (!link) {
-      link = document.createElement('link');
-      link.rel = 'icon';
-      document.head.appendChild(link);
-    }
-    link.href = `data:image/svg+xml,${encodeURIComponent(svgFavicon)}`;
-
     // Dynamically update the browser's theme-color meta tag
     let metaThemeColor = document.querySelector("meta[name='theme-color']");
     if (!metaThemeColor) {
@@ -897,7 +887,7 @@ const App: React.FC = () => {
                 )}
 
                 {appMode === 'build' ? (
-                  <div className="flex grow min-h-0 relative z-10 w-full animate-screen-in">
+                  <div className="flex grow min-h-0 relative z-10 w-full animate-screen-in" style={{ willChange: 'auto' }}>
                     <KeyBuilder
                       onExit={() => {
                         if (currentDraftRef.current) setDraftKeyData(currentDraftRef.current);
@@ -919,11 +909,11 @@ const App: React.FC = () => {
                     />
                   </div>
                 ) : keyData ? (
-                  <div className="flex flex-col grow min-h-0 relative z-10 w-full animate-screen-in">
+                  <div className="flex flex-col grow min-h-0 relative z-10 w-full animate-screen-in" style={{ willChange: 'auto' }}>
                     <ResizablePanels
                       bottomBarItems={[
-                        { id: 'features', icon: 'ListFilter', label: t('features') },
-                        { id: 'remaining', icon: 'List', label: t('entitiesRemaining'), count: directMatches.size },
+                        { id: 'features', icon: 'ListTodo', label: t('features') },
+                        { id: 'remaining', icon: 'ListCheck', label: t('entitiesRemaining'), count: directMatches.size },
                         { id: 'chosen', icon: 'ListChecks', label: t('featuresChosen'), count: chosenFeatureCount },
                         { id: 'discarded', icon: 'ListX', label: t('entitiesDiscarded'), count: discardedEntityIds.size }
                       ]}
@@ -931,7 +921,7 @@ const App: React.FC = () => {
                       <FeaturesPanel keyData={keyData} chosenFeatures={chosenFeatures} onFeatureChange={updateFeature} onImageClick={handleFeatureClick} t={t} />
                       <EntitiesPanel
                         title={t('entitiesRemaining')}
-                        icon="List"
+                        icon="ListCheck"
                         count={directMatches.size}
                         entityTree={remainingTree}
                         directMatches={directMatches}
@@ -979,13 +969,11 @@ const App: React.FC = () => {
             ) : (
               <div className={`absolute inset-0 z-50 flex items-center justify-center w-full bg-bg transition-all duration-500 ease-in-out ${isHome ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
                 <div className={`relative z-10 flex flex-col items-center justify-center w-full p-8 transition-transform duration-500 ease-in-out ${isHome ? 'scale-100' : 'scale-[1.02]'}`}>
-                  <h2 className="text-5xl md:text-6xl font-black flex items-center justify-center gap-3 md:gap-4 mb-8 md:mb-12 animate-fade-in-up text-accent tracking-tight">
-                    <Icon name="Leaf" size="1em" />
-                    <span className="flex items-start gap-2 md:gap-3">
-                      Taxon
-                      <span className="text-[10px] md:text-xs font-bold bg-accent/10 text-accent px-2 py-0.5 rounded-lg border border-accent/20 uppercase tracking-widest mt-1 md:mt-2">Beta</span>
-                    </span>
-                  </h2>
+                  <div className="flex items-start justify-center gap-2 md:gap-3 mb-8 md:mb-12 animate-fade-in-up">
+                    <img src="logo.svg" alt="Taxon Logo" className="h-12 md:h-16 dark:hidden" />
+                    <img src="logo-dark.svg" alt="Taxon Logo" className="h-12 md:h-16 hidden dark:block" />
+                    <span className="text-[10px] md:text-xs font-bold bg-accent/10 text-accent px-2 py-0.5 rounded-lg border border-accent/20 uppercase tracking-widest mt-1 md:mt-2">Beta</span>
+                  </div>
                   <div className="flex flex-col md:flex-row gap-6 w-full max-w-2xl mb-8">
                     <HomeButton
                       onClick={() => {

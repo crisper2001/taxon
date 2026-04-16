@@ -37,9 +37,7 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **FR3.18:** The system must encode user-uploaded images as base64 and structure them as inline data within the Gemini API payload.
 * **FR3.19:** The system must automatically process, resize (max 1024x1024 pixels), and compress uploaded images to JPEG via an HTML Canvas before transmission to optimize token usage and bandwidth.
 * **FR3.20:** The system must support drag-and-drop, clipboard paste, and manual file selection for uploading images to the AI assistant.
-* **FR3.21:** The system must dynamically select a vision-optimized AI model when an image is attached, and provide an automatic fallback to a lighter model if the primary model request fails.
-* **FR3.22:** The chat interface must include an inline `@` mention system, allowing the user to search and explicitly tag specific features and entities within their prompt to enforce context.
-* **FR3.23:** The system must automatically intercept and collapse adjacent chat messages of the same role (e.g., consecutive user messages) into a single unified payload before transmission to prevent Gemini API 500 sequence errors.
+* **FR3.21:** The system must dynamically select a vision-optimized AI model when an image is attached.
 
 ### 1.4. User Interface & Display
 * **FR4.1:** The application must provide a dedicated Welcome Screen allowing users to branch into either "Identify" or "Create" modes before loading the main interface.
@@ -107,7 +105,7 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 * **BR2.1 (Trait Accumulation):** During identification, the AI must continuously accumulate visual and textual traits into a running "Current Description". Traits are only replaced if corrected by the user, and only cleared if explicitly requested.
 * **BR2.2 (Categorical Mapping):** When mapping user descriptions to categorical features, the AI must output the specific state's ID, never the parent feature's ID.
 * **BR2.3 (Context Pruning):** To optimize token usage, the AI is provided with all features for semantic matching, but only a subset of Entity Profiles. Detailed profiles are only injected if they match keywords in the user's input, were mentioned in the previous turn, or if the current list of matching entities is 10 or fewer.
-* **BR2.4 (Model Selection):** The system defaults to fast, text-optimized models (e.g., `gemini-3.1-flash-lite-preview`) for standard chat, but automatically switches to multimodal models (e.g., `gemini-flash-latest`) when an image payload is detected. Fallback mechanisms to older models (e.g., `gemini-2.5-flash-lite`, `gemini-2.5-flash`) must be in place.
+* **BR2.4 (Model Selection):** The system defaults to fast, text-optimized models (e.g., `gemma-4-26b-a4b-it`) for standard chat, but automatically switches to multimodal models (e.g., `gemini-flash-latest`) when an image payload is detected.
 * **BR2.5 (Builder AI Actions):** When the AI is used in Builder Mode to edit keys:
   * To delete an item, the AI must output the object with `"action": "delete"`.
   * To clear all scores for an entity, the AI must set the specific flag `"clear_scores": true` rather than attempting to delete scores individually.
@@ -150,7 +148,7 @@ Based on the codebase analysis, **Taxon** is an interactive web application desi
 ### UC5: AI-Assisted Identification
 * **Actor:** User
 * **Description:** Instead of manually picking features, the user opens the "Spot" AI Assistant and types a natural language description of the specimen. The AI interprets the description, updates the running characteristics, maps them to the Lucid key's exact features, and highlights the matching entities.
-* **Associated Functional Requirements:** FR3.1, FR3.2, FR3.3, FR3.4, FR3.6, FR3.8, FR3.9, FR3.10, FR3.13, FR3.14, FR3.15, FR3.16, FR3.22, FR3.23
+* **Associated Functional Requirements:** FR3.1, FR3.2, FR3.3, FR3.4, FR3.6, FR3.8, FR3.9, FR3.10, FR3.13, FR3.14, FR3.15, FR3.16
 * **Associated Business Rules:** BR2.1, BR2.2, BR2.3, BR2.6
 
 ### UC6: Ask Questions About the Key

@@ -141,13 +141,11 @@ export const ChosenFeaturesPanel: React.FC<ChosenFeaturesPanelProps> = React.mem
     <div
       onMouseEnter={showFooter}
       onMouseLeave={hideFooter}
-      className={`transition-opacity duration-300 ${isFooterVisible ? 'opacity-100 pointer-events-auto' : 'max-md:opacity-100 max-md:pointer-events-auto opacity-0 pointer-events-none'}`}
+      className={`p-4 md:p-2 transition-opacity duration-300 ${isFooterVisible ? 'opacity-100 pointer-events-auto' : 'max-md:opacity-100 max-md:pointer-events-auto opacity-0 pointer-events-none'}`}
     >
-      <div className="view-controls flex items-center bg-header-bg/85 backdrop-blur-md rounded-xl p-1 shadow-md border border-white/20 dark:border-white/10">
-        <button onClick={resetKey} title={t('clearFeatures')} className="p-1.5 rounded-lg transition-all duration-300 hover:bg-red-500 hover:text-white hover:shadow-sm text-gray-500 cursor-pointer flex items-center justify-center">
-          <Icon name="Trash2" size={16} />
-        </button>
-      </div>
+      <button onClick={resetKey} title={t('clearFeatures')} className="w-14 h-14 md:w-8 md:h-8 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-xl md:rounded-md shadow-lg flex items-center justify-center hover:bg-red-600 active:scale-95 transition-all z-50 cursor-pointer">
+        <Icon name="Trash2" className="w-6 h-6 md:w-[18px] md:h-[18px]" />
+      </button>
     </div>
   ) : undefined;
 
@@ -163,7 +161,7 @@ export const ChosenFeaturesPanel: React.FC<ChosenFeaturesPanelProps> = React.mem
       onNextMatch={() => setCurrentMatchIndex(prev => prev + 1)}
       footer={clearButton}
     >
-      <div ref={containerRef} onMouseEnter={showFooter} onMouseLeave={hideFooter} className="h-full min-h-[50px]">
+      <div ref={containerRef} onMouseEnter={showFooter} onMouseLeave={hideFooter} className="h-full min-h-[50px] p-1 flex flex-col" style={{ willChange: 'auto' }}>
         {chosenTree.map(node => (
           <RenderFeatureNode
             key={node.id}

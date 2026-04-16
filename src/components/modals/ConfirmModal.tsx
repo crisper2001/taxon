@@ -6,7 +6,7 @@ interface ConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  title: string;
+  title: React.ReactNode;
   message: React.ReactNode;
   confirmText?: string;
   cancelText?: string;
@@ -23,7 +23,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   cancelText = 'Cancel',
   isDestructive = false
 }) => {
-  const [cachedTitle, setCachedTitle] = useState(title);
+  const [cachedTitle, setCachedTitle] = useState<React.ReactNode>(title);
   const [cachedMessage, setCachedMessage] = useState(message);
   const [cachedConfirmText, setCachedConfirmText] = useState(confirmText);
   const [cachedCancelText, setCachedCancelText] = useState(cancelText);
@@ -51,8 +51,15 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onConfirm, onClose]);
 
+  const modalTitle = (
+    <div className="flex items-center gap-2 min-w-0">
+      <Icon name={cachedIsDestructive ? "TriangleAlert" : "HelpCircle"} size={24} className={`shrink-0 ${cachedIsDestructive ? "text-red-500" : "text-gray-400"}`} />
+      <span className="truncate">{cachedTitle}</span>
+    </div>
+  );
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={cachedTitle}>
+    <Modal isOpen={isOpen} onClose={onClose} title={modalTitle}>
       <div className="p-7 bg-bg/80 backdrop-blur-sm rounded-b-3xl">
         {typeof cachedMessage === 'string' ? (
           <p className="text-lg text-text/90 mb-8">{cachedMessage}</p>

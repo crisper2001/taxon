@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Panel } from './Panel';
 import { Icon, type IconName } from '../common/Icon';
 import type { Media, EntityNode } from '../../types';
@@ -32,6 +32,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = React.memo(({ title, 
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [matchCount, setMatchCount] = useState(0);
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
 
   const showFooter = () => {
     if (hideTimeoutRef.current) {
@@ -136,13 +137,54 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = React.memo(({ title, 
 
   const effectiveView = isMobile ? 'list' : view;
 
+  const folderPath = useMemo(() => {
+    if (!currentFolderId) return [];
+    const path: EntityNode[] = [];
+    const findPath = (nodes: EntityNode[], target: string, currentPath: EntityNode[]): boolean => {
+      for (const node of nodes) {
+        const newPath = [...currentPath, node];
+        if (node.id === target) {
+          path.push(...newPath);
+          return true;
+        }
+        if (node.children && findPath(node.children, target, newPath)) return true;
+      }
+      return false;
+    };
+    findPath(entityTree, currentFolderId, []);
+    return path;
+  }, [currentFolderId, entityTree]);
+
+  useEffect(() => {
+    if (currentFolderId && folderPath.length === 0) {
+      setCurrentFolderId(null);
+    }
+  }, [currentFolderId, folderPath]);
+
+  const nodesToRender = useMemo(() => {
+    if (effectiveView === 'list') return entityTree;
+    if (matchingIds !== null) {
+      const matches: EntityNode[] = [];
+      const traverse = (nodes: EntityNode[]) => {
+        for (const n of nodes) {
+          if (matchingIds.has(n.id)) matches.push(n);
+          if (n.children) traverse(n.children);
+        }
+      };
+      traverse(entityTree);
+      return matches;
+    }
+    const currentFolderNode = folderPath.length > 0 ? folderPath[folderPath.length - 1] : null;
+    return currentFolderNode ? currentFolderNode.children : entityTree;
+  }, [effectiveView, entityTree, matchingIds, folderPath]);
+
   const viewControls = (
     <div
-      className={`hidden md:block transition-opacity duration-300 ${isFooterVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+      className={`hidden md:block transition-opacity duration-300 p-2 ${isFooterVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
     >
       <div className="view-controls flex items-center bg-header-bg rounded-md p-0.5">
-        <button onClick={() => setView('list')} title={t('listView')} className={`p-1 rounded transition-colors duration-200 ${view === 'list' ? 'bg-accent text-white' : 'hover:bg-hover-bg'} cursor-pointer`}><Icon name="List" size={16} /></button>
-        <button onClick={() => setView('grid')} title={t('gridView')} className={`p-1 rounded transition-colors duration-200 ${view === 'grid' ? 'bg-accent text-white' : 'hover:bg-hover-bg'} cursor-pointer`}><Icon name="LayoutGrid" size={16} /></button>
+        <button onClick={() => setView('list')} title={t('listView')} className={`p-1.5 rounded transition-colors duration-200 ${view === 'list' ? 'bg-accent text-white' : 'hover:bg-hover-bg'} cursor-pointer`}><Icon name="List" size={16} /></button>
+        <button onClick={() => setView('grid')} title={t('gridView')} className={`p-1.5 rounded transition-colors duration-200 ${view === 'grid' ? 'bg-accent text-white' : 'hover:bg-hover-bg'} cursor-pointer`}><Icon name="LayoutGrid" className="w-4 h-4" /></button>
       </div>
     </div>
   );
@@ -163,26 +205,56 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = React.memo(({ title, 
     >
       <div
         ref={containerRef}
-        className={`panel-content-inner p-3 ${effectiveView === 'grid' ? 'grid gap-4' : 'flex flex-col space-y-0.5'}`}
-        style={effectiveView === 'grid' ? { gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' } : {}}
+        className={`panel-content-inner p-1 flex flex-col h-full`}
       >
-        {entityTree.map(node => (
-          <RenderEntityNode
-            key={node.id}
-            node={node}
-            mediaMap={mediaMap}
-            onEntityClick={onEntityClick}
-            view={effectiveView}
-            t={t}
-            expandedNodes={expandedNodes}
-            onToggleNode={handleToggleNode}
-            matchingIds={matchingIds}
-            directMatches={directMatches}
-            indirectMatches={indirectMatches}
-            uncertainMatchIds={uncertainMatchIds}
-            misinterpretedMatchIds={misinterpretedMatchIds}
-          />
-        ))}
+        {effectiveView === 'grid' && currentFolderId && matchingIds === null && folderPath.length > 0 && (
+          <div className="flex items-center gap-4 shrink-0 overflow-x-auto no-scrollbar animate-fade-in p-1 pl-2">
+            <div className="flex items-center text-sm text-text opacity-90 whitespace-nowrap min-w-0">
+              <button onClick={() => setCurrentFolderId(null)} className="hover:underline hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent/50 rounded-sm cursor-pointer shrink-0 flex items-center justify-center">
+                <Icon name="House" size={16} />
+              </button>
+              <Icon name="ChevronRight" size={16} className="mx-1 opacity-50 shrink-0" />
+              {folderPath.map((node, i) => {
+                const isLast = i === folderPath.length - 1;
+                return (
+                  <React.Fragment key={node.id}>
+                    {isLast ? (
+                      <span className="font-bold text-text truncate max-w-[150px]">{node.name}</span>
+                    ) : (
+                      <button onClick={() => setCurrentFolderId(node.id)} className="hover:underline hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent/50 rounded-sm cursor-pointer truncate max-w-[120px]">
+                        {node.name}
+                      </button>
+                    )}
+                    {!isLast && <Icon name="ChevronRight" size={16} className="mx-1 opacity-50 shrink-0" />}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+            <button onClick={() => onEntityClick(currentFolderId)} className="ml-auto p-1.5 text-gray-400 hover:text-accent hover:bg-hover-bg rounded-full transition-colors cursor-pointer shrink-0 border border-transparent hover:border-border hover:shadow-sm" title={t('info' as any) || 'Info'}>
+              <Icon name="Info" size={18} />
+            </button>
+          </div>
+        )}
+        <div key={effectiveView === 'grid' ? (currentFolderId || 'root') : 'list'} className={`animate-fade-in ${effectiveView === 'grid' ? 'grid gap-3 gap-y-2 content-start' : 'flex flex-col'}`} style={effectiveView === 'grid' ? { gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', willChange: 'auto' } : { willChange: 'auto' }}>
+          {nodesToRender.map(node => (
+            <RenderEntityNode
+              key={node.id}
+              node={node}
+              mediaMap={mediaMap}
+              onEntityClick={onEntityClick}
+              view={effectiveView}
+              t={t}
+              expandedNodes={expandedNodes}
+              onToggleNode={handleToggleNode}
+              matchingIds={matchingIds}
+              directMatches={directMatches}
+              indirectMatches={indirectMatches}
+              uncertainMatchIds={uncertainMatchIds}
+              misinterpretedMatchIds={misinterpretedMatchIds}
+              onNavigateInto={setCurrentFolderId}
+            />
+          ))}
+        </div>
       </div>
     </Panel>
   );
@@ -201,6 +273,8 @@ interface RenderEntityNodeProps {
   indirectMatches: Set<string>;
   uncertainMatchIds?: Set<string>;
   misinterpretedMatchIds?: Set<string>;
+  depth?: number;
+  onNavigateInto?: (id: string) => void;
 }
 
 const RenderEntityNode: React.FC<RenderEntityNodeProps> = (props) => {
@@ -210,7 +284,7 @@ const RenderEntityNode: React.FC<RenderEntityNodeProps> = (props) => {
   return <EntityLeafNode {...props} />;
 };
 
-const EntityGroupNode: React.FC<RenderEntityNodeProps> = ({ node, mediaMap, onEntityClick, view, t, expandedNodes, onToggleNode, matchingIds, directMatches, indirectMatches, uncertainMatchIds, misinterpretedMatchIds }) => {
+const EntityGroupNode: React.FC<RenderEntityNodeProps> = ({ node, mediaMap, onEntityClick, view, t, expandedNodes, onToggleNode, matchingIds, directMatches, indirectMatches, uncertainMatchIds, misinterpretedMatchIds, depth = 0, onNavigateInto }) => {
   const isSearching = matchingIds !== null;
   const isSearchMatch = isSearching && matchingIds.has(node.id);
   const isSearchDimmed = isSearching && !isSearchMatch;
@@ -229,56 +303,65 @@ const EntityGroupNode: React.FC<RenderEntityNodeProps> = ({ node, mediaMap, onEn
   const isMisinterpreted = misinterpretedMatchIds?.has(node.id);
   const isUncertain = uncertainMatchIds?.has(node.id);
 
-  const imageClasses = `bg-header-bg/80 shadow-sm rounded-lg shrink-0 object-cover ${isList ? 'w-10 h-10' : 'w-full aspect-square'}`;
+  const hasChildren = node.children && node.children.length > 0;
+
+  const imageClasses = `bg-header-bg/80 shadow-sm rounded-lg shrink-0 object-cover transition-transform duration-200 ${isList ? 'w-10 h-10 cursor-pointer hover:scale-105' : 'w-full aspect-square'}`;
+
+  const handleRowClick = () => {
+    if (isList) {
+      if (hasChildren) onToggleNode(node.id);
+    } else { // grid mode
+      if (hasChildren && matchingIds === null) {
+        onNavigateInto?.(node.id);
+      } else {
+        onEntityClick(node.id);
+      }
+    }
+  };
+
+  const handleIconClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEntityClick(node.id);
+  };
 
   return (
-    <div className={`entity-group transition-opacity duration-200 ${isList ? '' : 'col-span-full'}`}>
-      <div data-search-match={isSearchMatch ? "true" : undefined} className={`flex items-center gap-2 p-1.5 rounded-xl transition-all duration-300 ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20 shadow-inner' : ''} ${isFilterDimmed ? 'opacity-50' : ''} hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}>
-        <div className="w-6 h-6 shrink-0 flex items-center justify-center">
-          {node.children.length > 0 && (
-            <div onClick={() => onToggleNode(node.id)} className="p-1 cursor-pointer rounded hover:bg-black/10 dark:hover:bg-white/10">
-              <Icon name="ChevronRight" className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-            </div>
-          )}
-        </div>
-        <div onClick={() => onEntityClick(node.id)} className={`flex gap-1.5 cursor-pointer min-w-0 ${isList ? 'items-center grow' : 'flex-col items-center text-center w-[140px]'}`}>
-          {hasMedia ? (
-            <img src={thumbUrl} alt={node.name} loading="lazy" className={imageClasses} />
-          ) : (
-            <div className={`${imageClasses} flex items-center justify-center text-gray-400`}>
-              <Icon name="ImageOff" size={isList ? 20 : 32} />
-            </div>
-          )}
-          <div className={`flex items-center gap-1.5 min-w-0 ${isList ? '' : 'justify-center w-full mt-1'}`}>
-            <span className="text-md truncate leading-tight">{node.name}</span>
-            {isMisinterpreted && (
-              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-yellow-500/10 text-yellow-500 shrink-0" title={t('badgeMisinterpreted' as any) || 'Misinterpreted match'}>
-                <Icon name="TriangleAlert" size={12} />
-              </span>
-            )}
-            {isUncertain && (
-              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-gray-500/10 text-gray-500 shrink-0 border border-gray-500/20" title={t('badgeUncertain' as any) || 'Uncertain match'}>
-                <span className="font-bold text-[12px] leading-none">?</span>
-              </span>
-            )}
+    <div className={`entity-group transition-opacity duration-200 ${isList ? '' : 'h-full'}`}>
+      <div data-search-match={isSearchMatch ? "true" : undefined} onClick={handleRowClick} className={`flex gap-2 p-1.5 rounded-xl transition-all duration-300 group/item border border-transparent relative ${isList ? 'items-center' : 'flex-col items-center text-center h-full'} ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20 shadow-inner' : ''} ${isFilterDimmed ? 'opacity-50' : ''} ${!isList || hasChildren ? 'cursor-pointer hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`} style={isList ? { paddingLeft: `calc(${1.5 + depth * 1.5}rem + 0.5rem)` } : {}}>
+        {isList && node.children && node.children.length > 0 && (
+          <button onClick={(e) => { e.stopPropagation(); onToggleNode(node.id); }} className={`flex items-center justify-center rounded-md cursor-pointer absolute z-20 transition-colors w-7 h-7 text-gray-500 hover:bg-black/10 dark:hover:bg-white/10 top-1/2 -translate-y-1/2`} style={{ left: `calc(${depth * 1.5}rem)` }}>
+            <Icon name="ChevronRight" size={isList ? 16 : 20} className={`transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
+          </button>
+        )}
+        {!isList && matchingIds === null && (
+          <button onClick={handleIconClick} className={`w-8 h-8 flex items-center justify-center rounded-md cursor-pointer absolute z-20 transition-all opacity-0 group-hover/item:opacity-100 top-2 right-2 bg-panel-bg text-gray-500 hover:text-accent shadow-sm`} title={t('info' as any) || 'Info'}>
+            <Icon name="Info" size={16} />
+          </button>
+        )}
+        {hasMedia ? (
+          <img src={thumbUrl} alt={node.name} loading="lazy" className={imageClasses} onClick={isList ? handleIconClick : undefined} />
+        ) : (
+          <div className={`${imageClasses} flex items-center justify-center text-gray-400`} onClick={isList ? handleIconClick : undefined}>
+            <Icon name="Box" size={isList ? 20 : 32} className="opacity-60 shrink-0" />
           </div>
+        )}
+        <div className={`flex items-center gap-1.5 min-w-0 ${isList ? 'flex-1' : 'justify-center w-full mt-1'}`}>
+          <span className={`truncate leading-tight text-md ${isList ? 'flex-1' : ''}`}>{node.name}</span>
+          {isMisinterpreted && (
+            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-yellow-500/10 text-yellow-500 shrink-0" title={t('badgeMisinterpreted' as any) || 'Misinterpreted match'}>
+              <Icon name="TriangleAlert" size={12} />
+            </span>
+          )}
+          {isUncertain && (
+            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-gray-500/10 text-gray-500 shrink-0 border border-gray-500/20" title={t('badgeUncertain' as any) || 'Uncertain match'}>
+              <span className="font-bold text-[12px] leading-none">?</span>
+            </span>
+          )}
         </div>
       </div>
-      {isExpanded && (
-        <div className={`${isList ? 'pl-8' : 'pl-16 grid gap-4 col-span-full'}`}
-          style={isList ? {} : { gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}>
+      {isExpanded && isList && (
+        <div className="flex flex-col">
           {node.children.map(child => {
-            const childProps = { node: child, mediaMap, onEntityClick, view, t, expandedNodes, onToggleNode, matchingIds, directMatches, indirectMatches, uncertainMatchIds, misinterpretedMatchIds };
-            if (view === 'grid' && child.isGroup) {
-              // In grid mode, wrap child groups to apply a smaller padding via negative margin.
-              // The wrapper becomes the grid item, taking over the col-span-full responsibility.
-              return (
-                <div key={child.id} className="-ml-8 col-span-full">
-                  <RenderEntityNode {...childProps} />
-                </div>
-              );
-            }
-            // Render leaves in grid mode, and all nodes in list mode, as before.
+            const childProps = { node: child, mediaMap, onEntityClick, view, t, expandedNodes, onToggleNode, matchingIds, directMatches, indirectMatches, uncertainMatchIds, misinterpretedMatchIds, depth: depth + 1, onNavigateInto };
             return <RenderEntityNode key={child.id} {...childProps} />;
           })}
         </div>
@@ -287,7 +370,7 @@ const EntityGroupNode: React.FC<RenderEntityNodeProps> = ({ node, mediaMap, onEn
   );
 };
 
-const EntityLeafNode = React.memo<RenderEntityNodeProps>(({ node, mediaMap, onEntityClick, view, t, expandedNodes, onToggleNode, matchingIds, directMatches, indirectMatches, uncertainMatchIds, misinterpretedMatchIds }) => {
+const EntityLeafNode = React.memo<RenderEntityNodeProps>(({ node, mediaMap, onEntityClick, view, t, expandedNodes, onToggleNode, matchingIds, directMatches, indirectMatches, uncertainMatchIds, misinterpretedMatchIds, depth = 0, onNavigateInto }) => {
   const isSearching = matchingIds !== null;
   const isSearchMatch = isSearching && matchingIds.has(node.id);
   const isSearchDimmed = isSearching && !isSearchMatch;
@@ -301,7 +384,7 @@ const EntityLeafNode = React.memo<RenderEntityNodeProps>(({ node, mediaMap, onEn
   const thumbUrl = hasMedia ? media[0].url : '';
 
   const isList = view === 'list';
-  const imageClasses = `bg-header-bg/80 shadow-sm rounded-lg shrink-0 object-cover ${isList ? 'w-10 h-10' : 'w-full aspect-square'}`;
+  const imageClasses = `bg-header-bg/80 shadow-sm rounded-lg shrink-0 object-cover transition-transform duration-200 ${isList ? 'w-10 h-10 group-hover/item:scale-105' : 'w-full aspect-square'}`;
 
   const isMisinterpreted = misinterpretedMatchIds?.has(node.id);
   const isUncertain = uncertainMatchIds?.has(node.id);
@@ -311,17 +394,18 @@ const EntityLeafNode = React.memo<RenderEntityNodeProps>(({ node, mediaMap, onEn
       key={node.id}
       onClick={() => onEntityClick(node.id)}
       data-search-match={isSearchMatch ? "true" : undefined}
-      className={`entity-item flex gap-2 p-1.5 rounded-xl cursor-pointer hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm transition-all duration-300 ${isList ? 'items-center ml-8' : 'flex-col items-center text-center'} ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20 shadow-inner' : ''} ${isFilterDimmed ? 'opacity-50' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}
+      className={`entity-item flex gap-2 p-1.5 rounded-xl cursor-pointer hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm transition-all duration-300 group/item border border-transparent relative ${isList ? 'items-center' : 'flex-col items-center text-center h-full'} ${isSearchDimmed ? 'opacity-30' : ''} ${isSearchMatch ? 'bg-accent/20 shadow-inner' : ''} ${isFilterDimmed ? 'opacity-50' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}
+      style={isList ? { paddingLeft: `calc(${1.5 + depth * 1.5}rem + 0.5rem)` } : {}}
     >
       {hasMedia ? (
         <img src={thumbUrl} alt={node.name} loading="lazy" className={imageClasses} />
       ) : (
         <div className={`${imageClasses} flex items-center justify-center text-gray-400`}>
-          <Icon name="ImageOff" size={isList ? 20 : 32} />
+          <Icon name="Box" size={isList ? 20 : 32} className="opacity-60 shrink-0" />
         </div>
       )}
-      <div className={`flex items-center gap-1.5 min-w-0 ${isList ? '' : 'justify-center w-full mt-1'}`}>
-        <span className="text-md truncate leading-tight">{node.name}</span>
+      <div className={`flex items-center gap-1.5 min-w-0 ${isList ? 'flex-1' : 'justify-center w-full mt-1'}`}>
+        <span className={`truncate leading-tight text-md ${isList ? 'flex-1' : ''}`}>{node.name}</span>
         {isMisinterpreted && (
           <span className="flex items-center justify-center w-5 h-5 rounded-full bg-yellow-500/10 text-yellow-500 shrink-0" title={t('badgeMisinterpreted' as any) || 'Misinterpreted match'}>
             <Icon name="TriangleAlert" size={12} />

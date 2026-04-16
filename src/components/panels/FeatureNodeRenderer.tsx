@@ -14,6 +14,7 @@ interface RenderFeatureNodeProps {
   onToggleNode: (id: string) => void;
   matchingIds: Set<string> | null;
   parentFeature?: FeatureNode;
+  depth?: number;
 }
 
 export const RenderFeatureNode: React.FC<RenderFeatureNodeProps> = (props) => {
@@ -24,7 +25,7 @@ export const RenderFeatureNode: React.FC<RenderFeatureNodeProps> = (props) => {
 };
 
 const FeatureGroupNode: React.FC<RenderFeatureNodeProps> = ({
-  node, keyData, chosenFeatures, onFeatureChange, onImageClick, t, expandedNodes, onToggleNode, matchingIds
+  node, keyData, chosenFeatures, onFeatureChange, onImageClick, t, expandedNodes, onToggleNode, matchingIds, depth = 0
 }) => {
   const isSearching = matchingIds !== null;
   const isMatch = isSearching && matchingIds.has(node.id);
@@ -33,20 +34,28 @@ const FeatureGroupNode: React.FC<RenderFeatureNodeProps> = ({
   const isExpanded = expandedNodes.has(node.id);
   const media = keyData.featureMedia.get(node.id);
   const hasMedia = media && media.length > 0;
+  const hasChildren = node.children && node.children.length > 0;
 
   return (
     <div className={`feature-node relative transition-opacity duration-200`}>
-      <div data-search-match={isMatch ? "true" : undefined} onClick={() => onToggleNode(node.id)} className={`feature-node-header group flex items-center gap-3 cursor-pointer p-1.5 select-none hover:bg-hover-bg/80 rounded-xl transition-all duration-300 hover:shadow-sm ${isDimmed ? 'opacity-30' : ''} ${isMatch ? 'bg-accent/20 shadow-inner' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}>
-        <Icon name="ChevronRight" className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-        {hasMedia && <img src={media![0].url} alt={node.name} loading="lazy" onClick={(e) => { e.stopPropagation(); onImageClick(node.id); }} className="w-24 h-24 object-cover rounded-lg shadow-sm cursor-pointer shrink-0" />}
-        <span className="grow">{node.name}</span>
-        <button onClick={(e) => { e.stopPropagation(); onImageClick(node.id); }} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 p-1 text-gray-400 hover:text-accent rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-all shrink-0 cursor-pointer" title={t('kbMetadata')}>
-          <Icon name="Info" size={16} />
-        </button>
+      <div data-search-match={isMatch ? "true" : undefined} onClick={() => hasChildren ? onToggleNode(node.id) : onImageClick(node.id)} className={`feature-node-header group/item relative flex items-center gap-2 p-1.5 rounded-xl transition-all duration-300 border border-transparent hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm cursor-pointer ${isDimmed ? 'opacity-30' : ''} ${isMatch ? 'bg-accent/20 shadow-inner' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`} style={{ paddingLeft: `calc(${1.5 + depth * 1.5}rem + 0.5rem)` }}>
+        {hasChildren && (
+          <button onClick={(e) => { e.stopPropagation(); onToggleNode(node.id); }} className={`w-7 h-7 flex items-center justify-center rounded-md cursor-pointer absolute z-20 transition-colors text-gray-500 hover:bg-black/10 dark:hover:bg-white/10 top-1/2 -translate-y-1/2`} style={{ left: `calc(${depth * 1.5}rem)` }}>
+            <Icon name="ChevronRight" size={16} className={`transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
+          </button>
+        )}
+        {hasMedia ? (
+          <img src={media![0].url} alt={node.name} loading="lazy" onClick={(e) => { e.stopPropagation(); onImageClick(node.id); }} className={`w-10 h-10 object-cover rounded-lg shadow-sm cursor-pointer shrink-0 transition-transform duration-200 ${hasChildren ? 'hover:scale-105' : 'group-hover/item:scale-105'}`} />
+        ) : (
+          <div className={`bg-header-bg/80 rounded-lg shadow-sm shrink-0 flex items-center justify-center text-gray-400 w-10 h-10 cursor-pointer transition-transform duration-200 ${hasChildren ? 'hover:scale-105' : 'group-hover/item:scale-105'}`} onClick={(e) => { e.stopPropagation(); onImageClick(node.id); }}>
+            <Icon name={node.type === 'state' ? "Tag" : "Hash"} size={20} className="shrink-0 opacity-60" />
+          </div>
+        )}
+        <span className="truncate flex-1 text-md">{node.name}</span>
       </div>
       {isExpanded && (
-        <div className="feature-node-children pl-8">
-          {node.children.map(child => <RenderFeatureNode key={child.id} {...{ node: child, keyData, chosenFeatures, onFeatureChange, onImageClick, t, expandedNodes, onToggleNode, matchingIds, parentFeature: node }} />)}
+        <div className="feature-node-children flex flex-col">
+          {node.children.map(child => <RenderFeatureNode key={child.id} {...{ node: child, keyData, chosenFeatures, onFeatureChange, onImageClick, t, expandedNodes, onToggleNode, matchingIds, parentFeature: node, depth: depth + 1 }} />)}
         </div>
       )}
     </div>
@@ -54,7 +63,7 @@ const FeatureGroupNode: React.FC<RenderFeatureNodeProps> = ({
 };
 
 const FeatureLeafNode = React.memo<RenderFeatureNodeProps>(({
-  node, keyData, chosenFeatures, onFeatureChange, onImageClick, t, expandedNodes, onToggleNode, matchingIds, parentFeature
+  node, keyData, chosenFeatures, onFeatureChange, onImageClick, t, expandedNodes, onToggleNode, matchingIds, parentFeature, depth = 0
 }) => {
   const isSearching = matchingIds !== null;
   const isMatch = isSearching && matchingIds.has(node.id);
@@ -63,40 +72,45 @@ const FeatureLeafNode = React.memo<RenderFeatureNodeProps>(({
   const media = keyData.featureMedia.get(node.id);
   const hasMedia = media && media.length > 0;
   const isSingleSelection = parentFeature ? keyData.allFeatures.get(parentFeature.id)?.matchType === 'SINGLE' : false;
+  const isState = !!node.isState;
+  const Wrapper = isState ? 'label' : 'div';
 
   return (
-    <div data-search-match={isMatch ? "true" : undefined} className={`feature-item group relative pl-8 py-1.5 pr-2 flex items-center gap-3 hover:bg-hover-bg/80 rounded-xl transition-all duration-300 hover:shadow-sm ${isDimmed ? 'opacity-30' : ''} ${isMatch ? 'bg-accent/20 shadow-inner' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`}>
-      {hasMedia && <img src={media![0].url} alt={node.name} loading="lazy" onClick={() => onImageClick(node.id)} className="w-24 h-24 object-cover rounded-lg shadow-sm cursor-pointer shrink-0" />}
-      {node.type === 'state' ? (
-        <label className="flex items-center gap-2 cursor-pointer grow">
+    <Wrapper data-search-match={isMatch ? "true" : undefined} onClick={!isState ? () => onImageClick(node.id) : undefined} className={`feature-item group/item relative flex items-center gap-2 p-1.5 rounded-xl transition-all duration-300 hover:bg-hover-bg/80 hover:shadow-md hover:backdrop-blur-sm cursor-pointer ${isSelected && !isState ? 'bg-accent/20 shadow-inner ring-2 ring-accent' : 'border border-transparent'} ${isDimmed ? 'opacity-30' : ''} ${isMatch ? 'bg-accent/20 shadow-inner' : ''} data-[search-active=true]:ring-2 data-[search-active=true]:ring-accent`} style={{ paddingLeft: `calc(${1.5 + depth * 1.5}rem + 0.5rem)` }}>
+      {hasMedia ? (
+        <img src={media![0].url} alt={node.name} loading="lazy" onClick={(e) => { if (isState) e.preventDefault(); e.stopPropagation(); onImageClick(node.id); }} className={`object-cover rounded-lg shadow-sm cursor-pointer shrink-0 transition-transform duration-200 w-10 h-10 ${isState ? 'hover:scale-105' : 'group-hover/item:scale-105'}`} />
+      ) : (
+        <div className={`bg-header-bg/80 rounded-lg shadow-sm shrink-0 flex items-center justify-center text-gray-400 cursor-pointer transition-transform duration-200 w-10 h-10 ${isState ? 'hover:scale-105' : 'group-hover/item:scale-105'}`} onClick={(e) => { if (isState) e.preventDefault(); e.stopPropagation(); onImageClick(node.id); }}>
+          <Icon name={isState ? "CircleCheck" : "Hash"} size={20} className={`shrink-0 ${isSelected && !isState ? 'opacity-100 text-accent' : 'opacity-60'}`} />
+        </div>
+      )}
+      {isState ? (
+        <div className="flex items-center gap-2 flex-1 min-w-0 py-2">
           <input
             type="checkbox"
             checked={isSelected}
             onChange={() => onFeatureChange(node.id, !isSelected, false, parentFeature?.id)}
-            className={`form-checkbox h-4 w-4 ${isSingleSelection ? 'rounded-full' : 'rounded'} text-accent focus:ring-accent`}
+            className={`form-checkbox h-4 w-4 shrink-0 ${isSingleSelection ? 'rounded-full' : 'rounded'} text-accent focus:ring-accent`}
           />
-          <span>{node.name}</span>
-        </label>
+          <span className="truncate flex-1 text-md">{node.name}</span>
+        </div>
       ) : (
-        <>
-          <label className="grow">{node.name}</label>
-          <div className="numeric-input-group flex items-center gap-2 pr-2">
+        <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
+          <label className="truncate flex-1 text-md cursor-pointer">{node.name}</label>
+          <div className="numeric-input-group flex items-center gap-2 pr-2 shrink-0 cursor-default" onClick={(e) => e.stopPropagation()}>
             <input
               type="number"
               value={isSelected ? chosenFeatures.get(node.id)?.value || '' : ''}
               onChange={(e) => onFeatureChange(node.id, e.target.value, true)}
               onKeyDown={(e) => { if (e.key.length === 1 && !/^[0-9.,]$/.test(e.key)) e.preventDefault(); }}
               placeholder={t('value')}
-              className="w-20 p-1 border border-white/20 dark:border-white/10 rounded-lg bg-bg/80 backdrop-blur-sm shadow-inner focus:ring-2 focus:ring-accent/50 focus:outline-none transition-all"
+              className="w-20 p-1 border border-white/20 dark:border-white/10 rounded-lg bg-bg/80 backdrop-blur-sm shadow-inner focus:ring-2 focus:ring-accent/50 focus:outline-none transition-all text-sm"
             />
             <span className="text-sm text-gray-500">{getUnitSymbol(keyData.allFeatures.get(node.id))}</span>
           </div>
-        </>
+        </div>
       )}
-      <button onClick={(e) => { e.stopPropagation(); onImageClick(node.id); }} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 p-1 text-gray-400 hover:text-accent rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-all shrink-0 cursor-pointer" title={t('kbMetadata')}>
-        <Icon name="Info" size={16} />
-      </button>
-    </div>
+    </Wrapper>
   );
 }, (prev, next) => {
   if (prev.node !== next.node) return false;

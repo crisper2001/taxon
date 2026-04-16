@@ -295,10 +295,12 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
   const modalTitle = (
     <div className="flex items-center gap-2 min-w-0">
       {navigationHistory.length > 0 && (
-        <button onClick={handleBack} className="p-1.5 rounded-full hover:bg-hover-bg transition-colors border border-transparent hover:border-border hover:shadow-sm cursor-pointer" title={t('back')}><Icon name="ArrowLeft" size={20} /></button>
+        <button onClick={handleBack} className="p-1.5 rounded-full hover:bg-hover-bg transition-colors border border-transparent hover:border-border hover:shadow-sm cursor-pointer shrink-0" title={t('back')}><Icon name="ArrowLeft" size={20} /></button>
       )}
-      <span>{entity.name}</span>
-      <button onClick={handleCopy} className="text-gray-400 hover:text-accent hover:bg-hover-bg p-1.5 rounded-full transition-colors cursor-pointer" title={t('copy' as any)}><Icon name={isCopied ? 'Check' : 'Copy'} size={18} /></button>    </div>
+      <Icon name="Box" size={24} className="text-gray-400 shrink-0" />
+      <span className="truncate">{entity.name}</span>
+      <button onClick={handleCopy} className="text-gray-400 hover:text-accent hover:bg-hover-bg p-1.5 rounded-full transition-colors cursor-pointer shrink-0" title={t('copy' as any)}><Icon name={isCopied ? 'Check' : 'Copy'} size={18} /></button>
+    </div>
   );
 
   return (
@@ -320,7 +322,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
             >
               <div className="entity-modal-panel is-details max-md:bg-panel-bg/50 flex flex-col" onScroll={handleScroll}>
                 {entityHierarchy.length > 1 && (
-                  <div className="mb-4 shrink-0 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
+                  <div className="mb-4 shrink-0 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
                     <div className="w-full font-bold flex items-center gap-2 mb-3 text-left tracking-tight">
                       <Icon name="Network" size={18} className="text-accent" />
                       <span className="grow text-base text-accent">{t('hierarchy')}</span>
@@ -345,7 +347,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
                   </div>
                 )}
                 {profile?.description && (
-                  <div className="mb-4 flex flex-col grow min-h-0 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
+                  <div className="mb-4 flex flex-col grow min-h-0 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
                     <div className="w-full font-bold flex items-center gap-2 mb-3 text-left tracking-tight shrink-0">
                       <Icon name="FileText" size={18} className="text-accent" />
                       <span className="grow text-base text-accent">{t('kbDescription')}</span>
@@ -356,7 +358,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
               </div>
               <div className="entity-modal-panel is-features max-md:bg-panel-bg/50 flex flex-col" onScroll={handleScroll}>
                 {(profile?.characteristics || []).length > 0 && (
-                  <div className="flex flex-col grow min-h-0 mb-4 bg-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
+                  <div className="flex flex-col grow min-h-0 mb-4 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner">
                     <div className="flex items-center w-full mb-3 shrink-0">
                       <div className="grow font-bold flex items-center gap-2 text-left tracking-tight">
                         <Icon name="List" size={18} className="text-accent" />

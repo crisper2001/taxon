@@ -81,8 +81,8 @@ export const FeaturesPanel: React.FC<FeaturesPanelProps> = React.memo(({ keyData
 
   return (
     <Panel
-      title={t('features')}
-      icon="ListFilter"
+      title={t('kbFeatures')}
+      icon="ListTodo"
       count={keyData.totalFeaturesCount}
       onSearch={setSearchTerm}
       currentMatchIndex={currentMatchIndex}
@@ -90,7 +90,7 @@ export const FeaturesPanel: React.FC<FeaturesPanelProps> = React.memo(({ keyData
       onPrevMatch={() => setCurrentMatchIndex(prev => prev - 1)}
       onNextMatch={() => setCurrentMatchIndex(prev => prev + 1)}
     >
-      <div ref={containerRef} className="p-3 space-y-0.5">
+      <div ref={containerRef} className="p-1 flex flex-col" style={{ willChange: 'auto' }}>
         {keyData.featureTree.map(node => (
           <RenderFeatureNode
             key={node.id}

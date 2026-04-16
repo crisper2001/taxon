@@ -165,14 +165,15 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
                   '--grid-rows': numPanels === 2 ? '100%' : layout.rows,
                   '--grid-cols': numPanels === 2 ? (layout.cols.includes('33.333') ? `50fr ${RESIZER_SIZE}px 50fr` : layout.cols) : layout.cols,
                   '--mobile-tab-offset': `-${mobileTab * 100}%`,
-                  '--swipe-offset': `${swipeOffset}px`
+                  '--swipe-offset': `${swipeOffset}px`,
+                  willChange: 'auto'
                 } as React.CSSProperties}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
                 onTouchCancel={handleTouchCancel}
             >
-                <div style={{ gridArea: '1 / 1 / 2 / 2' }} className="panel-wrapper min-h-0 min-w-0 h-full">{childrenArray[0]}</div>
+                <div style={{ gridArea: '1 / 1 / 2 / 2', willChange: 'auto' }} className="panel-wrapper min-h-0 min-w-0 h-full">{childrenArray[0]}</div>
                 {numPanels >= 2 && (
                   <>
                 <div 
@@ -184,7 +185,7 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
                 >
                     <div className={`w-1 h-full rounded-full transition-all duration-300 ${isResizing && resizingType.current === 'v' ? 'bg-accent shadow-md shadow-accent/50 scale-x-150' : 'bg-transparent group-hover:bg-accent/50 group-hover:scale-x-150'}`}></div>
                 </div>
-                <div style={{ gridArea: '1 / 3 / 2 / 4' }} className="panel-wrapper min-h-0 min-w-0 h-full">{childrenArray[1]}</div>
+                <div style={{ gridArea: '1 / 3 / 2 / 4', willChange: 'auto' }} className="panel-wrapper min-h-0 min-w-0 h-full">{childrenArray[1]}</div>
                   </>
                 )}
                 
@@ -199,8 +200,8 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
                 >
                     <div className={`h-1 w-full rounded-full transition-all duration-300 ${isResizing && resizingType.current === 'h' ? 'bg-accent shadow-md shadow-accent/50 scale-y-150' : 'bg-transparent group-hover:bg-accent/50 group-hover:scale-y-150'}`}></div>
                 </div>
-                <div style={{ gridArea: '3 / 1 / 4 / 2' }} className="panel-wrapper min-h-0 min-w-0 h-full">{childrenArray[2]}</div>
-                <div style={{ gridArea: '3 / 3 / 4 / 4' }} className="panel-wrapper min-h-0 min-w-0 h-full">{childrenArray[3]}</div>
+                <div style={{ gridArea: '3 / 1 / 4 / 2', willChange: 'auto' }} className="panel-wrapper min-h-0 min-w-0 h-full">{childrenArray[2]}</div>
+                <div style={{ gridArea: '3 / 3 / 4 / 4', willChange: 'auto' }} className="panel-wrapper min-h-0 min-w-0 h-full">{childrenArray[3]}</div>
                     </>
                 )}
             </div>

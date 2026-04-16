@@ -15,12 +15,12 @@ export const KeyInfoModal: React.FC<KeyInfoModalProps> = ({ isOpen, onClose, key
   if (!keyData) return <Modal isOpen={isOpen} onClose={onClose} title={t('loading')}><div /></Modal>;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={t('keyInfo')}>
-      <div className="p-7 bg-bg/80 backdrop-blur-sm rounded-b-3xl">
+    <Modal isOpen={isOpen} onClose={onClose} title={<div className="flex items-center gap-2 min-w-0"><Icon name="Info" size={24} className="text-gray-400 shrink-0" /><span className="truncate">{t('keyInfo')}</span></div>}>
+      <div className="p-7 bg-bg/80 backdrop-blur-sm rounded-b-3xl max-h-[70vh] overflow-y-auto">
         <div className="flex flex-wrap items-center gap-3 mb-3">
           <h2 className="text-3xl font-black text-accent tracking-tight">{keyData.keyTitle}</h2>
         </div>
-        {keyData.keyAuthors && <p className="font-semibold text-gray-500 mb-5 flex items-center gap-2 bg-bg/80 backdrop-blur-sm w-fit px-3 py-1.5 rounded-full border border-white/20 dark:border-white/10 shadow-inner"><Icon name="Users" size={16} /> {keyData.keyAuthors}</p>}
+        {keyData.keyAuthors && <p className="font-semibold text-gray-500 mb-5 flex items-center gap-2 bg-panel-bg/50 backdrop-blur-sm w-fit px-3 py-1.5 rounded-full border border-white/20 dark:border-white/10 shadow-inner"><Icon name="Users" size={16} /> {keyData.keyAuthors}</p>}
         <Markdown content={keyData.keyDescription || ''} className="text-lg opacity-90" />
       </div>
     </Modal>

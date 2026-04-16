@@ -37,7 +37,7 @@ const MemoizedEntityItem = React.memo(({
       isDragOverCenter={isDragOverCenter} isDragOverTop={isDragOverTop} isDragOverBottom={isDragOverBottom}
       isDragged={isDragged} anyDragged={anyDragged}
       isSearchDimmed={isSearchDimmed} isSearchMatch={isSearchMatch}
-      iconName="Leaf" imageUrl={e.media?.[0]?.url} className="entity-item"
+      iconName="Box" imageUrl={e.media?.[0]?.url} className="entity-item"
       onClick={() => setSelectedEntityId(e.id)}
       onToggleCollapse={(ev) => { ev.stopPropagation(); toggleEntityCollapse(e.id); }}
       actions={
@@ -177,9 +177,24 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
   const collapsedEntitiesRef = useRef(collapsedEntities);
   collapsedEntitiesRef.current = collapsedEntities;
 
+  const [isFooterVisible, setIsFooterVisible] = useState(false);
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showFooter = useCallback(() => {
+    if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+    setIsFooterVisible(true);
+  }, []);
+
+  const hideFooter = useCallback(() => {
+    hideTimeoutRef.current = setTimeout(() => {
+      setIsFooterVisible(false);
+    }, 300);
+  }, []);
+
   useEffect(() => {
     return () => {
       if (touchTimeout.current) clearTimeout(touchTimeout.current);
+      if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
     };
   }, []);
 
@@ -414,18 +429,19 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
   };
 
   return (
-    <div className="flex flex-col w-full h-full animate-fade-in">
+    <div className="flex flex-col w-full h-full animate-fade-in min-w-0 relative" style={{ willChange: 'auto' }}>
       <BuilderListHeader
         title={t('kbEntities')}
-        icon="List"
+        icon="Boxes"
         count1={draftKey.entities.length}
         searchTerm={searchTerm} setSearchTerm={setSearchTerm} searchInputRef={searchInputRef}
         matchCount={matchCount} currentMatchIndex={currentMatchIndex} setCurrentMatchIndex={setCurrentMatchIndex}
-        onAdd={addEntity} addTitle={t('kbAddEntity')} addLabel={t('kbAdd' as any)} t={t as any}
+        t={t as any}
       />
       <div
         ref={containerRef}
-        className="panel-content grow p-3 space-y-1 overflow-y-auto transition-colors"
+        className="panel-content grow p-3 flex flex-col overflow-y-auto transition-colors"
+        onMouseEnter={showFooter} onMouseLeave={hideFooter}
       >
         {renderEntityList()}
       </div>
@@ -459,12 +475,12 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
             left: draggedItem ? treeDnd.lastTouchPos.current.x : lastTouchPos.current.x,
             top: draggedItem ? treeDnd.lastTouchPos.current.y : lastTouchPos.current.y,
             transform: 'translate(-50%, -120%)',
-            willChange: 'left, top'
+            willChange: 'auto'
           }}
         >
           {draggedItem ? (
             <div className="bg-panel-bg/95 backdrop-blur-xl border border-accent/50 shadow-2xl rounded-xl px-4 py-2 flex items-center gap-2 font-bold text-accent text-sm">
-              <Icon name="Leaf" size={16} />
+              <Icon name="Box" size={16} />
               <span className="truncate max-w-[150px]">
                 {draftKey.entities.find(e => e.id === draggedItem.id)?.name || t('kbUnnamedEntity' as any)}
               </span>
@@ -480,6 +496,19 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
           ) : null}
         </div>
       )}
+
+      {/* Floating Add Button */}
+      <div
+        className={`absolute bottom-6 right-6 md:bottom-4 md:right-4 z-50 transition-opacity duration-300 ${isFooterVisible ? 'opacity-100 pointer-events-auto' : 'max-md:opacity-100 max-md:pointer-events-auto opacity-0 pointer-events-none'}`}
+      >
+        <button
+          onClick={addEntity}
+          className="size-14 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-xl shadow-lg flex items-center justify-center hover:bg-accent-hover active:scale-95 transition-all cursor-pointer"
+          title={t('kbAddEntity')}
+        >
+          <Icon name="Plus" className="size-6" />
+        </button>
+      </div>
     </div>
   );
 });

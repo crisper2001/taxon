@@ -43,6 +43,24 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
   const lastEditingNumeric = useRef<{ entityId: string, featureId: string, min: string, max: string } | null>(null);
   if (editingNumeric) lastEditingNumeric.current = editingNumeric;
   const currentEditingNumeric = editingNumeric || lastEditingNumeric.current;
+  const [isFooterVisible, setIsFooterVisible] = useState(false);
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showFooter = useCallback(() => {
+    if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+    setIsFooterVisible(true);
+  }, []);
+
+  const hideFooter = useCallback(() => {
+    hideTimeoutRef.current = setTimeout(() => {
+      setIsFooterVisible(false);
+    }, 300);
+  }, []);
+
+  useEffect(() => {
+    return () => { if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current); };
+  }, []);
+
   const tableRef = useRef<HTMLTableElement>(null);
   const lastHighlighted = useRef<HTMLElement[]>([]);
   const [contextMenu, setContextMenu] = useState<{ entityId: string, stateId: string, x: number, y: number, scoreVal: string, vals: any[] } | null>(null);
@@ -266,13 +284,15 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
   }
 
   return (
-    <div className="flex flex-col w-full h-full animate-fade-in min-w-0 min-h-0">
-      <div className="p-4 border-b border-white/10 dark:border-white/5 flex flex-wrap items-center justify-between bg-header-bg/85 backdrop-blur-md shadow-sm shrink-0 md:rounded-tl-3xl z-50 gap-4">
-        <div className="flex items-center gap-3 shrink-0">
-          <Icon name="Target" size={20} className="text-accent" />
-          <h3 className="text-xl font-bold text-accent tracking-tight">{t('kbScoring')}</h3>
+    <div className="flex flex-col w-full h-full animate-fade-in min-w-0 min-h-0 relative">
+      <div className="p-4 border-b border-white/10 dark:border-white/5 flex items-center justify-between bg-header-bg/85 backdrop-blur-md shadow-sm shrink-0 md:rounded-tl-3xl z-50 gap-4">
+        <div className="panel-title font-bold flex-1 min-w-0 flex items-center gap-2 whitespace-nowrap tracking-tight pr-2">
+          <Icon name="Target" size={24} className="shrink-0 text-accent" />
+          <span className="truncate min-w-0 text-accent bg-transparent" title={t('kbScoring')}>
+            {t('kbScoring')}
+          </span>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <div
             className={`search-container group flex items-center gap-1 py-1.5 px-3 rounded-full relative transition-all duration-300 focus-within:bg-bg/80 focus-within:shadow-inner focus-within:backdrop-blur-md border border-transparent focus-within:border-white/10 cursor-text shrink-0 ${matches.length > 0 || searchTerm ? 'bg-bg/80 shadow-inner backdrop-blur-md border-white/10' : 'hover:bg-bg/50 cursor-pointer'}`}
             onClick={() => searchInputRef.current?.focus()}
@@ -284,7 +304,7 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={t('search')}
-              className={`transition-all duration-300 ease-in-out border-none bg-transparent outline-none text-sm p-0 ${matches.length > 0 || searchTerm ? 'w-24 sm:w-32 opacity-100' : 'w-0 opacity-0 group-hover:w-32 group-hover:opacity-100 focus:w-32 focus:opacity-100'}`}
+              className={`transition-all duration-300 ease-in-out border-none bg-transparent outline-none text-sm p-0 ${matches.length > 0 || searchTerm ? 'w-24 opacity-100' : 'w-0 opacity-0 group-hover:w-32 group-hover:opacity-100 focus:w-32 focus:opacity-100'}`}
             />
             {searchTerm && (
               <button type="button" onClick={(e) => { e.stopPropagation(); setSearchTerm(''); searchInputRef.current?.focus(); }} className="p-0.5 hover:bg-accent/20 rounded cursor-pointer flex items-center justify-center text-gray-500 hover:text-accent transition-colors shrink-0" title={t('clearSearch')}>
@@ -299,12 +319,9 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
               </div>
             )}
           </div>
-          <button onClick={() => setIsClearMatrixModalOpen(true)} className="px-3 py-1.5 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-lg text-sm font-bold transition-colors shadow-sm flex items-center gap-1 cursor-pointer">
-            <Icon name="Eraser" size={14} /> <span className="hidden sm:inline">{t('kbClearMatrix' as any) || 'Clear Matrix'}</span>
-          </button>
         </div>
       </div>
-      <div className="flex-1 overflow-auto bg-bg/30 relative custom-scrollbar min-w-0 min-h-0" onScroll={handleScroll}>
+      <div className="flex-1 overflow-auto bg-bg/30 relative custom-scrollbar min-w-0 min-h-0" onScroll={handleScroll} onMouseEnter={showFooter} onMouseLeave={hideFooter}>
         <table
           id="scoring-matrix-table"
           ref={tableRef}
@@ -425,6 +442,19 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Floating Clear Button */}
+      <div
+        className={`absolute bottom-6 right-6 md:bottom-4 md:right-4 z-50 transition-opacity duration-300 ${isFooterVisible ? 'opacity-100 pointer-events-auto' : 'max-md:opacity-100 max-md:pointer-events-auto opacity-0 pointer-events-none'}`}
+      >
+        <button
+          onClick={() => setIsClearMatrixModalOpen(true)}
+          className="size-14 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-xl shadow-lg flex items-center justify-center hover:bg-red-600 active:scale-95 transition-all cursor-pointer"
+          title={t('kbClearMatrix' as any) || 'Clear Matrix'}
+        >
+          <Icon name="Eraser" className="size-6" />
+        </button>
       </div>
 
       <Modal isOpen={!!editingNumeric} onClose={() => setEditingNumeric(null)} title={t('kbScoring')}>

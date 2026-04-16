@@ -14,9 +14,9 @@ export interface BuilderListHeaderProps {
   matchCount: number;
   currentMatchIndex: number;
   setCurrentMatchIndex: React.Dispatch<React.SetStateAction<number>>;
-  onAdd: () => void;
-  addTitle: string;
-  addLabel: string;
+  onAdd?: () => void;
+  addTitle?: string;
+  addLabel?: string;
   t: (key: string) => string;
 }
 
@@ -26,16 +26,16 @@ export const BuilderListHeader: React.FC<BuilderListHeaderProps> = ({
   currentMatchIndex, setCurrentMatchIndex, onAdd, addTitle, addLabel, t
 }) => {
   return (
-    <div className="p-3.5 border-b border-black/5 dark:border-white/5 flex flex-wrap justify-between items-center bg-header-bg/85 backdrop-blur-md shadow-sm shrink-0 z-10 gap-2">
-      <div className="panel-title font-bold flex items-center gap-2 text-lg tracking-tight min-w-0 pr-2">
-        <Icon name={icon} size={20} className="shrink-0 text-accent" />
-        <span className="truncate text-accent">{title}</span>
+    <div className="flex items-center justify-between p-3.5 border-b border-black/5 dark:border-white/5 bg-header-bg/85 backdrop-blur-md shadow-sm shrink-0 z-10 gap-2">
+      <div className="panel-title font-bold flex-1 min-w-0 flex items-center gap-2 whitespace-nowrap tracking-tight pr-2">
+        <Icon name={icon} size={24} className="shrink-0 text-accent" />
+        <span className="truncate min-w-0 text-accent bg-transparent" title={title}>{title}</span>
         <div className="flex items-center gap-1 shrink-0">
           <span className="bg-accent text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-sm" title={count1Title}>{count1}</span>
           {count2 !== undefined && <span className="bg-accent/20 text-accent text-xs font-bold px-2 py-0.5 rounded-full shadow-sm" title={count2Title}>{count2}</span>}
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0">
         <div
           className={`search-container group flex items-center gap-1 py-1.5 px-3 rounded-full relative transition-all duration-300 focus-within:bg-bg/80 focus-within:shadow-inner focus-within:backdrop-blur-md border border-transparent focus-within:border-white/10 cursor-text shrink-0 ${matchCount > 0 || searchTerm ? 'bg-bg/80 shadow-inner backdrop-blur-md border-white/10' : 'hover:bg-bg/50 cursor-pointer'}`}
           onClick={() => searchInputRef.current?.focus()}
@@ -47,7 +47,7 @@ export const BuilderListHeader: React.FC<BuilderListHeaderProps> = ({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder={t('search')}
-            className={`[&::-webkit-search-cancel-button]:hidden transition-all duration-300 ease-in-out border-none bg-transparent outline-none text-sm p-0 ${matchCount > 0 || searchTerm ? 'w-24 sm:w-32 opacity-100' : 'w-0 opacity-0 group-hover:w-32 group-hover:opacity-100 focus:w-32 focus:opacity-100'}`}
+            className={`[&::-webkit-search-cancel-button]:hidden transition-all duration-300 ease-in-out border-none bg-transparent outline-none text-sm p-0 ${matchCount > 0 || searchTerm ? 'w-24 opacity-100' : 'w-0 opacity-0 group-hover:w-32 group-hover:opacity-100 focus:w-32 focus:opacity-100'}`}
           />
           {searchTerm && <button type="button" onClick={(e) => { e.stopPropagation(); setSearchTerm(''); searchInputRef.current?.focus(); }} className="p-0.5 hover:bg-accent/20 rounded cursor-pointer flex items-center justify-center text-gray-500 hover:text-accent transition-colors shrink-0" title={t('clearSearch')}><Icon name="X" size={14} /></button>}
           {matchCount > 0 && (
@@ -58,7 +58,11 @@ export const BuilderListHeader: React.FC<BuilderListHeaderProps> = ({
             </div>
           )}
         </div>
-        <button onClick={onAdd} className="shrink-0 px-3 py-1.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-lg hover:bg-accent-hover transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg flex items-center gap-1 cursor-pointer" title={addTitle}><Icon name="Plus" size={14} /> <span className="hidden sm:inline">{addLabel}</span></button>
+        {onAdd && addLabel && (
+          <button onClick={onAdd} className="shrink-0 px-3 py-1.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white rounded-lg hover:bg-accent-hover transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg hidden md:flex items-center gap-1 cursor-pointer" title={addTitle}>
+            <Icon name="Plus" size={14} /> <span>{addLabel}</span>
+          </button>
+        )}
       </div>
     </div>
   );
