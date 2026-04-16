@@ -2,6 +2,38 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../common/Icon';
 
+// --- Modal Manager for Escape key ---
+const modalStack: { id: string; onClose: () => void }[] = [];
+
+const handleGlobalKeyDown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape' && modalStack.length > 0) {
+    e.preventDefault();
+    e.stopPropagation();
+    modalStack[modalStack.length - 1].onClose();
+  }
+};
+
+export const registerModalToStack = (id: string, onClose: () => void) => {
+  if (modalStack.length === 0) {
+    window.addEventListener('keydown', handleGlobalKeyDown, true);
+  }
+  const existingIndex = modalStack.findIndex(m => m.id === id);
+  if (existingIndex > -1) {
+    modalStack.splice(existingIndex, 1);
+  }
+  modalStack.push({ id, onClose });
+};
+
+export const unregisterModalFromStack = (id: string) => {
+  const index = modalStack.findIndex(m => m.id === id);
+  if (index > -1) {
+    modalStack.splice(index, 1);
+  }
+  if (modalStack.length === 0) {
+    window.removeEventListener('keydown', handleGlobalKeyDown, true);
+  }
+};
+
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -13,6 +45,7 @@ interface ModalProps {
 export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'md' }) => {
   const [isRendered, setIsRendered] = useState(isOpen);
   const [isVisible, setIsVisible] = useState(false);
+  const [modalId] = useState(() => `modal-${Math.random().toString(36).substr(2, 9)}`);
 
   useEffect(() => {
     if (isOpen) {
@@ -41,18 +74,16 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
     };
   }, [isRendered, isOpen]);
 
-  // Handle Escape key press
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (isOpen && e.key === 'Escape') {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
+    if (isOpen) {
+      registerModalToStack(modalId, onClose);
+    } else {
+      unregisterModalFromStack(modalId);
+    }
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      unregisterModalFromStack(modalId);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, modalId]);
 
   if (!isRendered) {
     return null;

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Icon } from '../common/Icon';
 import type { Media } from '../../types';
 import { useAppContext } from '../../context/AppContext';
+import { registerModalToStack, unregisterModalFromStack } from './Modal';
 
 // --- ImageLightboxModal ---
 interface ImageLightboxModalProps {
@@ -47,6 +48,8 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
   const pinchRef = useRef({ distance: 0, originScale: 1 });
   const panRef = useRef({ active: false, moved: false, start: { x: 0, y: 0 }, originPos: { x: 0, y: 0 } });
   const touchStart = useRef<{ x: number, y: number } | null>(null);
+
+  const [modalId] = useState(() => `lightbox-${Math.random().toString(36).substr(2, 9)}`);
 
   useEffect(() => {
     if (isOpen) {
@@ -99,16 +102,24 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
 
   // Keyboard navigation
   useEffect(() => {
+    if (isOpen) {
+      registerModalToStack(modalId, onClose);
+    }
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isOpen) {
         if (e.key === 'ArrowRight') handleNext();
         if (e.key === 'ArrowLeft') handlePrev();
-        if (e.key === 'Escape') onClose();
+        // Escape is now handled by the global modal stack
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, handleNext, handlePrev, onClose]);
+
+    return () => {
+      unregisterModalFromStack(modalId);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, handleNext, handlePrev, onClose, modalId]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {

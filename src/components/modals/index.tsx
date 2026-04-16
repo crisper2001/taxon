@@ -9,3 +9,4 @@ export * from './ImageLightboxModal';
 export * from './KeyInfoModal';
 export * from './Modal';
 export * from './PreferencesModal';
+export * from './BuilderMediaEditModal'

@@ -29,7 +29,7 @@ export const BuilderListHeader: React.FC<BuilderListHeaderProps> = ({
     <div className="flex items-center justify-between p-3.5 border-b border-black/5 dark:border-white/5 bg-header-bg/85 backdrop-blur-md shadow-sm shrink-0 z-10 gap-2">
       <div className="panel-title font-bold flex-1 min-w-0 flex items-center gap-2 whitespace-nowrap tracking-tight pr-2">
         <Icon name={icon} size={24} className="shrink-0 text-accent" />
-        <span className="truncate min-w-0 text-accent bg-transparent" title={title}>{title}</span>
+        <span className="truncate min-w-0 text-lg text-accent bg-transparent" title={title}>{title}</span>
         <div className="flex items-center gap-1 shrink-0">
           <span className="bg-accent text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-sm" title={count1Title}>{count1}</span>
           {count2 !== undefined && <span className="bg-accent/20 text-accent text-xs font-bold px-2 py-0.5 rounded-full shadow-sm" title={count2Title}>{count2}</span>}

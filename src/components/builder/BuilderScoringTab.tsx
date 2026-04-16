@@ -288,7 +288,7 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
       <div className="p-4 border-b border-white/10 dark:border-white/5 flex items-center justify-between bg-header-bg/85 backdrop-blur-md shadow-sm shrink-0 md:rounded-tl-3xl z-50 gap-4">
         <div className="panel-title font-bold flex-1 min-w-0 flex items-center gap-2 whitespace-nowrap tracking-tight pr-2">
           <Icon name="Target" size={24} className="shrink-0 text-accent" />
-          <span className="truncate min-w-0 text-accent bg-transparent" title={t('kbScoring')}>
+          <span className="truncate min-w-0 text-lg text-accent bg-transparent" title={t('kbScoring')}>
             {t('kbScoring')}
           </span>
         </div>

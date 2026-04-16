@@ -31,7 +31,7 @@ export const Panel: React.FC<PanelProps> = ({ title, icon, count, onSearch, chil
       <div className="panel-header flex items-center justify-between p-3.5 border-b border-white/10 dark:border-white/5 bg-header-bg/85 backdrop-blur-md shadow-sm shrink-0 z-10">
         <div className="panel-title font-bold flex-1 min-w-0 flex items-center gap-2 whitespace-nowrap tracking-tight pr-2">
           {icon && <Icon name={icon} className="text-accent opacity-90 shrink-0" />}
-          <span className="truncate min-w-0 text-accent bg-transparent" title={title}>{title}</span>
+          <span className="truncate min-w-0 text-accent text-lg bg-transparent" title={title}>{title}</span>
           <span className="panel-count bg-accent text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-sm shrink-0">{count}</span>
         </div>
         <div className="flex items-center gap-2 shrink-0">

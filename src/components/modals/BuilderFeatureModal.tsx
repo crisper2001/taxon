@@ -69,20 +69,21 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
   }, [isOpen, touchTimeout]);
 
   useEffect(() => {
-    if (selectedFeature) setCachedFeature(selectedFeature);
-    if (selectedState) setCachedState(selectedState);
-    if (selectedStateParent) setCachedStateParent(selectedStateParent);
-
-    if (selectedState) {
-      setCachedMode('state');
-    } else if (selectedFeature) {
-      setCachedMode('feature');
+    if (isOpen) {
+      setCachedFeature(selectedFeature);
+      setCachedState(selectedState);
+      setCachedStateParent(selectedStateParent);
+      if (selectedState) {
+        setCachedMode('state');
+      } else if (selectedFeature) {
+        setCachedMode('feature');
+      }
     }
-  }, [selectedFeature, selectedState, selectedStateParent]);
+  }, [isOpen, selectedFeature, selectedState, selectedStateParent]);
 
-  const featureToRender = selectedFeature || cachedFeature;
-  const stateToRender = selectedState || cachedState;
-  const stateParentToRender = selectedStateParent || cachedStateParent;
+  const featureToRender = cachedFeature;
+  const stateToRender = cachedState;
+  const stateParentToRender = cachedStateParent;
 
   const modalTitle = cachedMode === 'state' && stateToRender && stateParentToRender ? (
     <div className="flex items-center gap-3 min-w-0">
@@ -103,7 +104,7 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
     <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} size="lg">
       <div className="p-5 md:p-8 overflow-y-auto relative max-h-[85vh] bg-bg/80 backdrop-blur-sm rounded-b-3xl">
         {cachedMode === 'feature' && featureToRender ? (
-          <div className="flex flex-col gap-6 animate-fade-in-up" style={{ willChange: 'auto' }}>
+          <div className="flex flex-col gap-6" style={{ willChange: 'auto' }}>
 
             <div className="flex flex-col gap-4 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0 relative z-10">
               <div className="w-full font-bold text-accent flex items-center gap-2 mb-1 text-left tracking-tight shrink-0">
@@ -355,7 +356,7 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
 
           </div>
         ) : cachedMode === 'state' && stateToRender && stateParentToRender ? (
-          <div className="flex flex-col gap-6 animate-fade-in-up" style={{ willChange: 'auto' }}>
+          <div className="flex flex-col gap-6" style={{ willChange: 'auto' }}>
 
             <div className="flex flex-col gap-4 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
               <div className="w-full font-bold text-accent flex items-center gap-2 mb-1 text-left tracking-tight shrink-0">

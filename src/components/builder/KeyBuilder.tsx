@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { Icon } from '../common/Icon';
-import { ConfirmModal, Modal, BuilderMetadataModal } from '../modals';
+import { ConfirmModal, Modal, BuilderMetadataModal, BuilderMediaEditModal } from '../modals';
 import type { DraftKeyData, Media } from '../../types';
 import { BuilderFeaturesTab } from './BuilderFeaturesTab';
 import { BuilderEntitiesTab } from './BuilderEntitiesTab';
@@ -637,6 +637,17 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
         draftKey.features.find(f => f.id === editingMedia.itemId)?.states.find(s => s.id === editingMedia.stateId)?.media?.[editingMedia.mediaIndex]
   ) : null;
 
+  const handleUpdateMedia = (updates: Partial<Media>) => {
+    if (!editingMedia) return;
+    if (editingMedia.type === 'feature') {
+      updateFeatureMedia(editingMedia.itemId, editingMedia.mediaIndex, updates);
+    } else if (editingMedia.type === 'entity') {
+      updateEntityMedia(editingMedia.itemId, editingMedia.mediaIndex, updates);
+    } else if (editingMedia.type === 'state' && editingMedia.stateId) {
+      updateStateMedia(editingMedia.itemId, editingMedia.stateId, editingMedia.mediaIndex, updates);
+    }
+  };
+
   const handleRequestNewKey = () => {
     if (isUnsaved) {
       setKeyPromptMode('new');
@@ -834,44 +845,13 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
         </button>
       </div>
 
-      {/* Media Edit Modal */}
-      {editingMedia && activeEditingMedia && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-60 flex items-center justify-center p-4">
-          <div className="bg-panel-bg/95 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-[0_16px_40px_rgba(0,0,0,0.2)] w-full max-w-4xl flex flex-col md:flex-row overflow-hidden max-h-[90vh] animate-fade-in-up">
-            <div className="w-full md:w-1/2 bg-black/5 dark:bg-white/5 flex items-center justify-center p-6 relative">
-              <img src={activeEditingMedia.url} alt={t('preview')} className="max-w-full max-h-full object-contain drop-shadow-md rounded-lg" />
-            </div>
-            <div className="w-full md:w-1/2 p-8 flex flex-col gap-6 overflow-y-auto bg-panel-bg/50">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="text-2xl font-bold text-accent">{t('kbEditMedia')}</h3>
-                <button onClick={() => setEditingMedia(null)} className="p-2 -mr-2 rounded-full hover:bg-hover-bg text-gray-500 hover:text-red-500 transition-colors cursor-pointer"><Icon name="X" size={24} /></button>
-              </div>
-
-              <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-semibold opacity-80">{t('kbCaption')}</span>
-                <textarea rows={4} value={activeEditingMedia.caption || ''} className="input-base text-sm resize-none" onChange={e => {
-                  if (editingMedia.type === 'feature') updateFeatureMedia(editingMedia.itemId, editingMedia.mediaIndex, { caption: e.target.value });
-                  else if (editingMedia.type === 'entity') updateEntityMedia(editingMedia.itemId, editingMedia.mediaIndex, { caption: e.target.value });
-                  else if (editingMedia.type === 'state') updateStateMedia(editingMedia.itemId, editingMedia.stateId!, editingMedia.mediaIndex, { caption: e.target.value });
-                }} />
-              </label>
-
-              <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-semibold opacity-80">{t('kbCopyright')}</span>
-                <input type="text" value={activeEditingMedia.copyright || ''} className="input-base text-sm" onChange={e => {
-                  if (editingMedia.type === 'feature') updateFeatureMedia(editingMedia.itemId, editingMedia.mediaIndex, { copyright: e.target.value });
-                  else if (editingMedia.type === 'entity') updateEntityMedia(editingMedia.itemId, editingMedia.mediaIndex, { copyright: e.target.value });
-                  else if (editingMedia.type === 'state') updateStateMedia(editingMedia.itemId, editingMedia.stateId!, editingMedia.mediaIndex, { copyright: e.target.value });
-                }} />
-              </label>
-
-              <div className="mt-auto flex flex-col md:flex-row justify-end gap-3 pt-6">
-                <button onClick={() => setEditingMedia(null)} className="w-full md:w-auto px-6 py-2.5 bg-accent/95 backdrop-blur-md border border-white/20 text-white font-bold rounded-xl hover:bg-accent-hover transition-all duration-300 shadow-md hover:shadow-lg cursor-pointer">{t('save')}</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <BuilderMediaEditModal
+        isOpen={editingMedia !== null}
+        onClose={() => setEditingMedia(null)}
+        media={activeEditingMedia}
+        t={t as any}
+        onUpdate={handleUpdateMedia}
+      />
 
       <ConfirmModal
         isOpen={deleteTarget !== null}
