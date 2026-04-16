@@ -51,6 +51,13 @@ export const ChatInputForm = React.memo<ChatInputFormProps>(({
     }
   }, [mentionSelectedIndex, mentionState.active]);
 
+  useEffect(() => {
+  if (textareaRef.current) {
+    textareaRef.current.style.height = 'auto';
+    textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+  }
+}, [userInput, selectedImage]); // Recalculate whenever text or image changes
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -252,11 +259,6 @@ export const ChatInputForm = React.memo<ChatInputFormProps>(({
               onKeyDown={handleTextareaKeyDown}
               onScroll={(e) => { if (backdropRef.current) backdropRef.current.scrollTop = e.currentTarget.scrollTop; }}
               onPaste={handlePaste}
-              onInput={(e) => {
-                const target = e.target as HTMLTextAreaElement;
-                target.style.height = 'auto';
-                target.style.height = `${target.scrollHeight}px`;
-              }}
               placeholder={placeholder}
               disabled={!isEnabled || isThinking || !geminiApiKey}
               className="w-full pt-3 pb-2 px-3 text-[15px] bg-transparent resize-none overflow-y-auto focus:outline-none z-10 font-sans placeholder-transparent leading-relaxed"
