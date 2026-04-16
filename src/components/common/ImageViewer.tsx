@@ -17,11 +17,30 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ media, altText, noImag
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
   const touchStart = useRef<{ x: number, y: number } | null>(null);
+  const thumbnailsContainerRef = useRef<HTMLDivElement>(null);
 
-  // Reset index when media array changes
   useEffect(() => {
     setCurrentImageIndex(0);
   }, [media]);
+
+  useEffect(() => {
+    if (thumbnailsContainerRef.current) {
+      const container = thumbnailsContainerRef.current;
+      const thumbnail = container.children[currentImageIndex] as HTMLElement;
+
+      if (thumbnail) {
+        const containerWidth = container.offsetWidth;
+        const thumbOffset = thumbnail.offsetLeft;
+        const thumbWidth = thumbnail.offsetWidth;
+        const scrollTarget = thumbOffset - (containerWidth / 2) + (thumbWidth / 2);
+
+        container.scrollTo({
+          left: scrollTarget,
+          behavior: 'smooth'
+        });
+      }
+    }
+  }, [currentImageIndex]);
 
   if (!media || media.length === 0) {
     return (
@@ -119,7 +138,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ media, altText, noImag
                 src={m.url}
                 alt={m.caption || altText}
                 onClick={() => onImageClick(media, idx)}
-                className={`max-w-full max-h-full object-contain rounded-2xl shadow-lg cursor-pointer hover:scale-[1.02] transition-all duration-300 ${idx === currentImageIndex ? 'opacity-100' : 'opacity-40 scale-95'}`}
+                className={`max-w-full max-h-full object-contain rounded-2xl shadow-lg cursor-pointer hover:scale-[1.02] transition-all duration-300 ${idx === currentImageIndex ? 'opacity-100' : 'opacity-40'}`}
               />
               {(m.caption || m.copyright) && (
                 <div className={`mt-4 text-center px-4 w-full transition-opacity duration-300 ${idx === currentImageIndex ? 'opacity-100' : 'opacity-0'}`}>
@@ -139,9 +158,21 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ media, altText, noImag
         )}
       </div>
       {media.length > 1 && (
-        <div className="w-full overflow-x-auto mt-auto pb-2 shrink-0">
-          <div className="flex gap-2 justify-center w-max mx-auto">
-            {media.map((m, i) => <img key={i} src={m.url} alt={`${t('thumbnail' as any)} ${i + 1}`} onClick={() => setCurrentImageIndex(i)} className={`w-12 h-12 object-cover rounded-xl cursor-pointer border-2 transition-all duration-300 shrink-0 ${i === currentImageIndex ? 'border-accent scale-105 shadow-md' : 'border-transparent opacity-60 hover:opacity-100 hover:border-white/50'}`} />)}
+        <div className="w-full mt-auto pb-2 shrink-0 px-2">
+          <div 
+            ref={thumbnailsContainerRef}
+            className="flex gap-2 mx-auto w-fit max-w-full overflow-x-auto pb-1 snap-x scroll-smooth"
+            style={{ scrollbarWidth: 'thin' }}
+          >
+            {media.map((m, i) => (
+              <img 
+                key={i} 
+                src={m.url} 
+                alt={`${t('thumbnail' as any)} ${i + 1}`} 
+                onClick={() => setCurrentImageIndex(i)} 
+                className={`w-12 h-12 object-cover rounded-xl cursor-pointer border-2 transition-all duration-300 shrink-0 snap-center ${i === currentImageIndex ? 'border-accent scale-105 shadow-md' : 'border-transparent opacity-60 hover:opacity-100 hover:border-white/50'}`} 
+              />
+            ))}
           </div>
         </div>
       )}

@@ -4,7 +4,6 @@ import type { Media } from '../../types';
 import { useAppContext } from '../../context/AppContext';
 import { registerModalToStack, unregisterModalFromStack } from './Modal';
 
-// --- ImageLightboxModal ---
 interface ImageLightboxModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -12,7 +11,6 @@ interface ImageLightboxModalProps {
   startIndex: number;
 }
 
-// Helper to prevent panning outside the viewable area
 const calculateBounds = (newX: number, newY: number, currentScale: number, wrapperEl: Element) => {
   const img = wrapperEl.querySelector('img');
   const slide = wrapperEl.closest('.slide-container');
@@ -24,7 +22,6 @@ const calculateBounds = (newX: number, newY: number, currentScale: number, wrapp
   const containerWidth = slide.clientWidth;
   const containerHeight = slide.clientHeight;
 
-  // Max pan distance is half the difference between scaled image and container
   const maxX = Math.max(0, (imgWidth - containerWidth) / 2);
   const maxY = Math.max(0, (imgHeight - containerHeight) / 2);
 
@@ -45,9 +42,11 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
   const [isNavHovered, setIsNavHovered] = useState(false);
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
+  
   const pinchRef = useRef({ distance: 0, originScale: 1 });
   const panRef = useRef({ active: false, moved: false, start: { x: 0, y: 0 }, originPos: { x: 0, y: 0 } });
   const touchStart = useRef<{ x: number, y: number } | null>(null);
+  const thumbnailsContainerRef = useRef<HTMLDivElement>(null);
 
   const [modalId] = useState(() => `lightbox-${Math.random().toString(36).substr(2, 9)}`);
 
@@ -62,7 +61,6 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
       setIsVisible(false);
       const timer = setTimeout(() => {
         setIsRendered(false);
-        // Clear media after animation to prevent flash of old content on next open
         setActiveMedia(null);
       }, 300);
       return () => clearTimeout(timer);
@@ -86,6 +84,23 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
   useEffect(() => {
     setScale(1);
     setPosition({ x: 0, y: 0 });
+    
+    if (thumbnailsContainerRef.current) {
+      const container = thumbnailsContainerRef.current;
+      const thumbnail = container.children[currentIndex] as HTMLElement;
+      
+      if (thumbnail) {
+        const containerWidth = container.offsetWidth;
+        const thumbOffset = thumbnail.offsetLeft;
+        const thumbWidth = thumbnail.offsetWidth;
+        const scrollTarget = thumbOffset - (containerWidth / 2) + (thumbWidth / 2);
+        
+        container.scrollTo({
+          left: scrollTarget,
+          behavior: 'smooth'
+        });
+      }
+    }
   }, [currentIndex]);
 
   const handleNext = useCallback(() => {
@@ -100,7 +115,6 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
     }
   }, [activeMedia]);
 
-  // Keyboard navigation
   useEffect(() => {
     if (isOpen) {
       registerModalToStack(modalId, onClose);
@@ -110,7 +124,6 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
       if (isOpen) {
         if (e.key === 'ArrowRight') handleNext();
         if (e.key === 'ArrowLeft') handlePrev();
-        // Escape is now handled by the global modal stack
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -190,8 +203,8 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
 
         if (isSwiping) {
           let effectiveDelta = deltaX;
-          if (currentIndex === 0 && deltaX > 0) effectiveDelta *= 0.3; // over-swipe resistance at start
-          if (currentIndex === activeMedia.length - 1 && deltaX < 0) effectiveDelta *= 0.3; // over-swipe resistance at end
+          if (currentIndex === 0 && deltaX > 0) effectiveDelta *= 0.3;
+          if (currentIndex === activeMedia.length - 1 && deltaX < 0) effectiveDelta *= 0.3;
           setSwipeOffset(effectiveDelta);
         }
       }
@@ -314,7 +327,7 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
                     transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
                     transition: panRef.current.active ? 'none' : 'transform 0.3s cubic-bezier(0.33, 1, 0.68, 1)',
                     cursor: scale > 1 ? (panRef.current.active ? 'grabbing' : 'grab') : 'zoom-in'
-                  } : { transform: 'scale(0.95)' }}
+                  } : { transform: 'scale(1)' }}
                   onWheel={currentIndex === index ? handleWheel : undefined}
                   onMouseDown={currentIndex === index ? handleMouseDown : undefined}
                   onMouseMove={currentIndex === index ? handleMouseMove : undefined}
@@ -353,23 +366,26 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
 
       {activeMedia.length > 1 && (
         <div 
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[60vw] pt-6 pb-12 flex justify-center z-40"
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-fit max-w-[95vw] md:max-w-[80vw] pt-6 pb-12 flex justify-center z-40"
           onMouseEnter={() => setIsNavHovered(true)}
           onMouseLeave={() => setIsNavHovered(false)}
         >
           <div 
             onClick={(e) => e.stopPropagation()} 
-            className={`transition-all duration-300 ease-in-out ${
+            className={`transition-all duration-300 ease-in-out w-fit max-w-full ${
               scale > 1 && !isNavHovered ? 'opacity-0 -translate-y-8 pointer-events-none' : 'opacity-100 translate-y-0 pointer-events-auto'
             }`}
           >
-            <div className="flex gap-3 justify-center p-3 bg-black/40 backdrop-blur-xl rounded-2xl flex-wrap overflow-y-auto max-h-[15vh] border border-white/20 shadow-2xl">
+            <div 
+              ref={thumbnailsContainerRef}
+              className="flex gap-3 p-3 bg-black/40 backdrop-blur-xl rounded-2xl overflow-x-auto w-fit max-w-full border border-white/20 shadow-2xl relative"
+            >
               {activeMedia.map((m, i) =>
                 <img
                   key={i}
                   src={m.url}
                   onClick={() => setCurrentIndex(i)}
-                  className={`w-16 h-16 object-cover rounded-xl cursor-pointer border-2 transition-all ${i === currentIndex ? 'border-accent scale-105 shadow-md' : 'border-transparent hover:border-white/50 opacity-60 hover:opacity-100'}`}
+                  className={`shrink-0 w-16 h-16 object-cover rounded-xl cursor-pointer border-2 transition-all ${i === currentIndex ? 'border-accent scale-105 shadow-md' : 'border-transparent hover:border-white/50 opacity-60 hover:opacity-100'}`}
                   alt={`${t('thumbnail' as any)} ${i + 1}`}
                 />
               )}

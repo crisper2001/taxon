@@ -835,12 +835,12 @@ const App: React.FC = () => {
           isDestructive={true}
         />
 
-        <ChangelogModal
+        {/* <ChangelogModal
           isOpen={(modalState.type as any) === 'changelog' || (underlyingModalState?.type as any) === 'changelog'}
           onClose={handleModalClose}
           version={packageJson.version}
           t={t as any}
-        />
+        /> */}
 
         <input
           type="file"
@@ -1026,13 +1026,13 @@ const App: React.FC = () => {
                     <Icon name="Settings2" size={24} />
                   </button>
                 </div>
-                <button
+                {/* <button
                   onClick={() => setModalState({ type: 'changelog' as any })}
                   className="absolute bottom-6 right-6 md:bottom-10 md:right-10 flex items-center gap-2 px-4 py-2.5 bg-panel-bg/90 backdrop-blur-md border border-black/5 dark:border-white/10 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer text-accent font-bold text-sm"
                 >
                   <Icon name="Sparkles" size={18} />
                   <span>{t('whatsNew' as any) ? t('whatsNew' as any).replace('{version}', packageJson.version) : `What's New in v${packageJson.version}`}</span>
-                </button>
+                </button> */}
               </div>
             )}
           </div>

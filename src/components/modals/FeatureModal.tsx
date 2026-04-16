@@ -6,7 +6,6 @@ import { Icon } from '../common/Icon';
 import { Markdown } from '../common';
 import { useSwipe } from '../../hooks';
 
-// --- FeatureModal ---
 interface FeatureModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -15,6 +14,7 @@ interface FeatureModalProps {
     t: (key: string) => string;
     onImageClick: (media: Media[], startIndex: number) => void;
 }
+
 export const FeatureModal: React.FC<FeatureModalProps> = ({ isOpen, onClose, featureId, keyData, t, onImageClick }) => {
     const [activeFeatureId, setActiveFeatureId] = useState(featureId);
     const [mobileTab, setMobileTab] = useState<'image' | 'details'>('image');
@@ -138,7 +138,6 @@ export const FeatureModal: React.FC<FeatureModalProps> = ({ isOpen, onClose, fea
                         </div>
                     </div>
                 </div>
-                {/* Mobile Bottom Bar */}
                 <div className="flex md:hidden items-center justify-around bg-panel-bg/85 backdrop-blur-xl border border-white/20 dark:border-white/10 p-2 shrink-0 z-20 shadow-lg rounded-3xl m-2 mb-3">
                     <button onClick={() => setMobileTab('image')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 ${mobileTab === 'image' ? 'text-accent bg-accent/10 shadow-inner scale-105' : 'text-gray-500 hover:text-accent hover:bg-hover-bg/50'}`}>
                         <Icon name="Image" size={22} />

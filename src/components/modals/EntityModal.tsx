@@ -66,7 +66,6 @@ const RenderFeatureGroup: React.FC<{
   );
 };
 
-// --- EntityModal ---
 interface EntityModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -98,18 +97,16 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
     mobileTab === 'features'
   );
 
-  // Cache the entityId when the modal opens to prevent content disappearing during close animation
   useEffect(() => {
     if (isOpen) {
       setActiveEntityId(entityId);
-      setNavigationHistory([]); // Reset history when modal is opened from outside
+      setNavigationHistory([]);
       setCollapsedGroups(new Set());
-      setMobileTab('image'); // Reset tab on open
+      setMobileTab('image');
     }
-    setIsCopied(false); // Reset copied state when modal opens/closes
+    setIsCopied(false);
   }, [isOpen, entityId]);
 
-  // Reset scroll position when navigating between different entities within the hierarchy
   useEffect(() => {
     if (isOpen) {
       setShowBackToTop(false);
@@ -327,19 +324,19 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
                       <Icon name="Network" size={18} className="text-accent" />
                       <span className="grow text-base text-accent">{t('hierarchy')}</span>
                     </div>
-                    <div className="flex flex-wrap items-center text-sm text-text opacity-90">
+                    <div className="flex items-center text-sm text-text opacity-90 overflow-x-auto max-w-full pb-1">
                       {entityHierarchy.map((node, index) => {
                         const isLast = index === entityHierarchy.length - 1;
                         return (
                           <React.Fragment key={node.id}>
                             {isLast ? (
-                              <span className="font-bold text-text">{node.name}</span>
+                              <span className="font-bold text-text shrink-0">{node.name}</span>
                             ) : (
-                              <button onClick={() => handleNavigate(node.id)} className="hover:underline hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent/50 rounded-sm cursor-pointer">
+                              <button onClick={() => handleNavigate(node.id)} className="hover:underline hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent/50 rounded-sm cursor-pointer shrink-0">
                                 {node.name}
                               </button>
                             )}
-                            {!isLast && <Icon name="ChevronRight" size={16} className="mx-1 opacity-50" />}
+                            {!isLast && <Icon name="ChevronRight" size={16} className="mx-1 opacity-50 shrink-0" />}
                           </React.Fragment>
                         );
                       })}
@@ -391,7 +388,6 @@ export const EntityModal: React.FC<EntityModalProps> = ({ isOpen, onClose, entit
           </div>
         </div>
 
-        {/* Mobile Bottom Bar for EntityModal */}
         <div className="flex md:hidden items-center justify-around bg-panel-bg/85 backdrop-blur-xl border border-white/20 dark:border-white/10 p-2 shrink-0 z-20 shadow-lg rounded-3xl m-2 mb-3">
           <button onClick={() => setMobileTab('image')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 ${mobileTab === 'image' ? 'text-accent bg-accent/10 shadow-inner scale-105' : 'text-gray-500 hover:text-accent hover:bg-hover-bg/50'}`}>
             <Icon name="Image" size={22} />
