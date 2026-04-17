@@ -37,7 +37,7 @@ export const MarkdownInput: React.FC<MarkdownInputProps> = ({ label, value, onCh
       </div>
       {isPreview ? (
         <div className="input-base overflow-y-auto bg-panel-bg/50" style={{ minHeight: `calc(${rows} * 1.25rem + 1.5rem + 2px)` }}>
-          {value ? <Markdown content={value} className="text-sm" /> : <span className="opacity-50 italic text-sm">{t('kbEmpty' as any)}</span>}
+          <Markdown content={value} className="text-sm" />
         </div>
       ) : (
         <textarea

@@ -222,7 +222,7 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({ children, bott
             {/* Mobile Bottom Bar */}
             {bottomBarItems && (
                 <div 
-                    className="flex md:hidden items-center justify-around bg-panel-bg/85 backdrop-blur-xl border border-white/20 dark:border-white/10 p-2 shrink-0 z-20 shadow-lg rounded-3xl m-2"
+                    className="flex md:hidden items-center justify-around bg-panel-bg/85 backdrop-blur-xl border border-white/20 dark:border-white/10 p-2 shrink-0 z-20 shadow-sm rounded-3xl m-2"
                     style={{ marginBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}
                 >
                     {bottomBarItems.map((item, index) => (

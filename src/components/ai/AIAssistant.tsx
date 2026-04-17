@@ -561,7 +561,7 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
 
   return (
     <div
-      className={`panel flex flex-col h-full w-full bg-panel-bg/90 border border-white/20 dark:border-white/10 rounded-2xl md:rounded-3xl transition-all duration-300 overflow-hidden relative ${isVisible ? 'shadow-lg opacity-100 backdrop-blur-xl' : 'shadow-none opacity-0 pointer-events-none'}`}
+      className={`panel flex flex-col h-full w-full bg-panel-bg/90 border border-white/20 dark:border-white/10 rounded-2xl md:rounded-3xl transition-all duration-300 overflow-hidden relative ${isVisible ? 'shadow-sm md:shadow-lg opacity-100 backdrop-blur-xl' : 'shadow-none opacity-0 pointer-events-none'}`}
       onDragOver={handleDragOver}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}

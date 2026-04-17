@@ -104,9 +104,16 @@ const MemoizedFeatureItem = React.memo(({
           if (e.cancelable) e.preventDefault();
         }
         const touch = e.touches[0];
+        if (!anyDragged) {
+          const dx = touch.clientX - featureTreeDnd.initialTouchPos.current.x;
+          const dy = touch.clientY - featureTreeDnd.initialTouchPos.current.y;
+          if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+            featureTreeDnd.cancelTouchTimeout();
+          }
+          return;
+        }
         featureTreeDnd.lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
         if (ghostRef.current) { ghostRef.current.style.left = `${touch.clientX}px`; ghostRef.current.style.top = `${touch.clientY}px`; }
-        if (!anyDragged) return;
         const el = document.elementFromPoint(touch.clientX, touch.clientY);
         const targetFeature = el?.closest('[data-feature-id]');
         const targetState = el?.closest('[data-state-id]');
@@ -345,12 +352,13 @@ interface BuilderFeaturesTabProps {
   setDraggedMedia: (media: { type: 'feature' | 'entity' | 'state', itemId: string, stateId?: string, index: number } | null) => void;
   setEditingMedia: (media: { type: 'feature' | 'entity' | 'state', itemId: string, stateId?: string, mediaIndex: number } | null) => void;
   setDeleteTarget: (target: { type: 'feature' | 'state' | 'entity' | 'featureMedia' | 'stateMedia' | 'entityMedia', id: string, parentId?: string, mediaIndex?: number } | null) => void;
+  isSwiping?: boolean;
 }
 
 export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(({
   draftKey, updateDraftKey, t, selectedFeatureId, setSelectedFeatureId, collapsedFeatures, toggleFeatureCollapse,
   setCollapsedFeatures,
-  draggedItem, setDraggedItem, dragOverId, setDragOverId, draggedMedia, setDraggedMedia, setEditingMedia, setDeleteTarget
+  draggedItem, setDraggedItem, dragOverId, setDragOverId, draggedMedia, setDraggedMedia, setEditingMedia, setDeleteTarget, isSwiping
 }) => {
   const touchTimeout = useRef<NodeJS.Timeout | null>(null);
   const ghostRef = useRef<HTMLDivElement>(null);
@@ -474,6 +482,38 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
     onMoveItem: (id, parentId) => updateFeature(id, { parentId }),
     ghostRef
   });
+
+  const scrollAnimRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!draggedItem && !draggedMedia && !draggedValue) {
+      if (scrollAnimRef.current) cancelAnimationFrame(scrollAnimRef.current);
+      return;
+    }
+
+    const scrollContainer = containerRef.current;
+    if (!scrollContainer) return;
+
+    const scrollStep = () => {
+      const y = draggedItem?.type === 'feature' ? featureTreeDnd.lastTouchPos.current.y : lastTouchPos.current.y;
+      const rect = scrollContainer.getBoundingClientRect();
+      const threshold = 60;
+      const maxSpeed = 15;
+
+      if (y > 0) {
+        if (y < rect.top + threshold) {
+          const speed = maxSpeed * (1 - Math.max(0, y - rect.top) / threshold);
+          scrollContainer.scrollTop -= speed;
+        } else if (y > rect.bottom - threshold) {
+          const speed = maxSpeed * (1 - Math.max(0, rect.bottom - y) / threshold);
+          scrollContainer.scrollTop += speed;
+        }
+      }
+      scrollAnimRef.current = requestAnimationFrame(scrollStep);
+    };
+    scrollAnimRef.current = requestAnimationFrame(scrollStep);
+    return () => { if (scrollAnimRef.current) cancelAnimationFrame(scrollAnimRef.current); };
+  }, [draggedItem, draggedMedia, draggedValue]);
 
   const getDefaultStateValues = (t: any) => [
     { id: '1', name: t('kbScoreCommon') || 'Common' },
@@ -956,7 +996,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
   };
 
   return (
-    <div className="flex flex-col w-full h-full animate-fade-in min-w-0 relative" style={{ willChange: 'auto' }}>
+    <div className="flex flex-col w-full h-full animate-fade-in min-w-0 min-h-0 relative" style={{ willChange: 'auto' }}>
       <BuilderListHeader
         title={t('kbFeatures')}
         icon="Tags"
@@ -970,7 +1010,7 @@ export const BuilderFeaturesTab: React.FC<BuilderFeaturesTabProps> = React.memo(
       />
       <div
         ref={containerRef}
-        className="panel-content grow p-3 flex flex-col overflow-y-auto transition-colors"
+        className={`panel-content grow p-3 flex flex-col transition-colors ${draggedItem || draggedMedia || draggedValue || isSwiping ? 'overflow-hidden touch-none' : 'overflow-y-auto'}`}
         onMouseEnter={showFooter} onMouseLeave={hideFooter}
       >
         {renderFeatureList()}

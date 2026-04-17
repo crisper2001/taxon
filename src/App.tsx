@@ -867,7 +867,7 @@ const App: React.FC = () => {
 
         {/* --- Sidebar --- */}
         {appMode !== 'build' && (
-          <div className={`transition-all duration-300 ${isSidebarOpen ? 'visible' : 'invisible'}`}>
+          <div className={`transition-all duration-300 ${isSidebarOpen ? 'visible' : 'invisible'} relative z-50`}>
             <Sidebar
               isOpen={isSidebarOpen}
               onClose={() => setSidebarOpen(false)}

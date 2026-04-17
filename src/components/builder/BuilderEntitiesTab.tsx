@@ -86,12 +86,19 @@ const MemoizedEntityItem = React.memo(({
           if (ev.cancelable) ev.preventDefault();
         }
         const touch = ev.touches[0];
+        if (!anyDragged) {
+          const dx = touch.clientX - treeDnd.initialTouchPos.current.x;
+          const dy = touch.clientY - treeDnd.initialTouchPos.current.y;
+          if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+            treeDnd.cancelTouchTimeout();
+          }
+          return;
+        }
         treeDnd.lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
         if (ghostRef.current) {
           ghostRef.current.style.left = `${touch.clientX}px`;
           ghostRef.current.style.top = `${touch.clientY}px`;
         }
-        if (!anyDragged) return;
         const el = document.elementFromPoint(touch.clientX, touch.clientY);
         const targetEntity = el?.closest('[data-entity-id]');
         if (draggedItem?.type === 'entity') {
@@ -156,12 +163,13 @@ interface BuilderEntitiesTabProps {
   setDraggedMedia: (media: { type: 'feature' | 'entity' | 'state', itemId: string, stateId?: string, index: number } | null) => void;
   setEditingMedia: (media: { type: 'feature' | 'entity' | 'state', itemId: string, stateId?: string, mediaIndex: number } | null) => void;
   setDeleteTarget: (target: { type: 'feature' | 'state' | 'entity' | 'featureMedia' | 'stateMedia' | 'entityMedia', id: string, parentId?: string, mediaIndex?: number } | null) => void;
+  isSwiping?: boolean;
 }
 
 export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(({
   draftKey, updateDraftKey, t, selectedEntityId, setSelectedEntityId, collapsedEntities, toggleEntityCollapse,
   setCollapsedEntities,
-  draggedItem, setDraggedItem, dragOverId, setDragOverId, draggedMedia, setDraggedMedia, setEditingMedia, setDeleteTarget
+  draggedItem, setDraggedItem, dragOverId, setDragOverId, draggedMedia, setDraggedMedia, setEditingMedia, setDeleteTarget, isSwiping
 }) => {
   const touchTimeout = useRef<NodeJS.Timeout | null>(null);
   const ghostRef = useRef<HTMLDivElement>(null);
@@ -269,6 +277,38 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
     onMoveItem: (id, parentId) => updateEntity(id, { parentId }),
     ghostRef
   });
+
+  const scrollAnimRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!draggedItem && !draggedMedia) {
+      if (scrollAnimRef.current) cancelAnimationFrame(scrollAnimRef.current);
+      return;
+    }
+
+    const scrollContainer = containerRef.current;
+    if (!scrollContainer) return;
+
+    const scrollStep = () => {
+      const y = draggedItem ? treeDnd.lastTouchPos.current.y : lastTouchPos.current.y;
+      const rect = scrollContainer.getBoundingClientRect();
+      const threshold = 60;
+      const maxSpeed = 15;
+
+      if (y > 0) {
+        if (y < rect.top + threshold) {
+          const speed = maxSpeed * (1 - Math.max(0, y - rect.top) / threshold);
+          scrollContainer.scrollTop -= speed;
+        } else if (y > rect.bottom - threshold) {
+          const speed = maxSpeed * (1 - Math.max(0, rect.bottom - y) / threshold);
+          scrollContainer.scrollTop += speed;
+        }
+      }
+      scrollAnimRef.current = requestAnimationFrame(scrollStep);
+    };
+    scrollAnimRef.current = requestAnimationFrame(scrollStep);
+    return () => { if (scrollAnimRef.current) cancelAnimationFrame(scrollAnimRef.current); };
+  }, [draggedItem, draggedMedia]);
 
   const addEntity = () => {
     const id = generateId();
@@ -429,7 +469,7 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
   };
 
   return (
-    <div className="flex flex-col w-full h-full animate-fade-in min-w-0 relative" style={{ willChange: 'auto' }}>
+    <div className="flex flex-col w-full h-full animate-fade-in min-w-0 min-h-0 relative" style={{ willChange: 'auto' }}>
       <BuilderListHeader
         title={t('kbEntities')}
         icon="Boxes"
@@ -440,7 +480,7 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
       />
       <div
         ref={containerRef}
-        className="panel-content grow p-3 flex flex-col overflow-y-auto transition-colors"
+        className={`panel-content grow p-3 flex flex-col transition-colors ${draggedItem || draggedMedia || isSwiping ? 'overflow-hidden touch-none' : 'overflow-y-auto'}`}
         onMouseEnter={showFooter} onMouseLeave={hideFooter}
       >
         {renderEntityList()}

@@ -327,6 +327,21 @@ body {
     transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
+  .panels-grid-layout.is-swiping .panel-content,
+  .panels-grid-layout.is-swiping .custom-scrollbar,
+  .panels-grid-layout.is-swiping [class*="overflow-y-auto"],
+  .panels-grid-layout.is-swiping [class*="overflow-auto"],
+  .builder-mobile-view.is-swiping .panel-content,
+  .builder-mobile-view.is-swiping .custom-scrollbar,
+  .builder-mobile-view.is-swiping [class*="overflow-y-auto"],
+  .builder-mobile-view.is-swiping [class*="overflow-auto"],
+  .entity-modal-mobile-view.is-swiping .entity-modal-panel,
+  .entity-modal-mobile-view.is-swiping [class*="overflow-y-auto"],
+  .entity-modal-mobile-view.is-swiping [class*="overflow-auto"] {
+    overflow: hidden !important;
+    touch-action: none !important;
+  }
+
   .panels-grid-layout {
     contain: none !important;
   }
@@ -338,6 +353,7 @@ body {
     height: 100%;
     min-width: 0;
     padding: 0.5rem;
+    padding-bottom: 0rem;
   }
 
   .entity-modal-desktop-right-pane {

@@ -723,10 +723,13 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
     { icon: 'Play', label: t('kbTestKey' as any), onClick: () => onTestKey?.(draftKey), iconClass: 'text-accent' }
   ];
 
+  const isModalOpen = !!selectedFeatureId || !!selectedEntityId || showMetadataModal || !!deleteTarget || !!editingMedia || !!keyPromptMode;
+  const disableSwipe = !!draggedItem || !!draggedMedia || isModalOpen;
+
   return (
     <div className="flex flex-col h-full w-full bg-bg">
       {/* Mobile Sidebar - wrapped to control visibility and prevent shadow bleed */}
-      <div className={`transition-all duration-300 ${isSidebarOpen ? 'visible' : 'invisible'}`}>
+      <div className={`transition-all duration-300 ${isSidebarOpen ? 'visible' : 'invisible'} relative z-50`}>
         <Sidebar isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} onExit={onExit} actions={sidebarActions} />
       </div>
 
@@ -738,24 +741,24 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
         onLogoClick={onExit}
       />
 
-      <div className="flex flex-col grow md:overflow-hidden">
-        <div className="flex flex-row grow md:overflow-hidden p-0 md:p-4 gap-0 md:gap-4">
+      <div className="flex flex-col grow min-h-0 md:overflow-hidden">
+        <div className="flex flex-row grow min-h-0 md:overflow-hidden p-0 md:p-4 gap-0 md:gap-4">
 
           {/* Builder Main Content */}
           <div
             className="flex grow flex-col relative min-w-0 min-h-0"
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onTouchCancel={handleTouchCancel}
+            onTouchStart={disableSwipe ? undefined : handleTouchStart}
+            onTouchMove={disableSwipe ? undefined : handleTouchMove}
+            onTouchEnd={disableSwipe ? undefined : handleTouchEnd}
+            onTouchCancel={disableSwipe ? undefined : handleTouchCancel}
           >
-            <div className={`builder-mobile-view ${isSwiping ? 'is-swiping' : ''}`} style={{ '--mobile-tab-offset': `-${offsetIndex * 100}%`, '--swipe-offset': `${swipeOffset}px`, willChange: 'auto' } as React.CSSProperties}>
+            <div className={`builder-mobile-view ${isSwiping ? 'is-swiping' : ''}`} style={{ '--mobile-tab-offset': `-${offsetIndex * 100}%`, '--swipe-offset': `${swipeOffset}px`, touchAction: activeTab === 'scoring' ? 'auto' : undefined, willChange: 'auto' } as React.CSSProperties}>
 
               {!isMobile ? (
                 <div className={`builder-panel ${['features', 'entities'].includes(activeTab) ? 'active' : ''}`} style={{ willChange: 'auto' }}>
                   {/* Desktop Combined Features & Entities */}
-                  <div className="w-full h-full flex flex-row gap-4 min-w-0">
-                    <div className="w-1/2 h-full flex flex-col bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg overflow-hidden min-w-0">
+                  <div className="w-full h-full flex flex-row gap-4 min-w-0 min-h-0">
+                    <div className="w-1/2 h-full flex flex-col bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-sm md:shadow-lg overflow-hidden min-w-0 min-h-0">
                       <BuilderFeaturesTab
                         draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
                         selectedFeatureId={selectedFeatureId} setSelectedFeatureId={setSelectedFeatureId}
@@ -765,9 +768,10 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
                         dragOverId={dragOverId} setDragOverId={setDragOverId}
                         draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
                         setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
+                        isSwiping={isSwiping}
                       />
                     </div>
-                    <div className="w-1/2 h-full flex flex-col bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg overflow-hidden min-w-0">
+                    <div className="w-1/2 h-full flex flex-col bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-sm md:shadow-lg overflow-hidden min-w-0 min-h-0">
                       <BuilderEntitiesTab
                         draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
                         selectedEntityId={selectedEntityId} setSelectedEntityId={setSelectedEntityId}
@@ -777,6 +781,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
                         dragOverId={dragOverId} setDragOverId={setDragOverId}
                         draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
                         setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
+                        isSwiping={isSwiping}
                       />
                     </div>
                   </div>
@@ -785,7 +790,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
                 <>
                   {/* Mobile Separated Features */}
                   <div className={`builder-panel ${activeTab === 'features' ? 'active' : ''}`} style={{ willChange: 'auto' }}>
-                    <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg min-w-0">
+                    <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-sm md:shadow-lg min-w-0 min-h-0">
                       <BuilderFeaturesTab
                         draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
                         selectedFeatureId={selectedFeatureId} setSelectedFeatureId={setSelectedFeatureId}
@@ -795,13 +800,14 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
                         dragOverId={dragOverId} setDragOverId={setDragOverId}
                         draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
                         setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
+                        isSwiping={isSwiping}
                       />
                     </div>
                   </div>
 
                   {/* Mobile Separated Entities */}
                   <div className={`builder-panel ${activeTab === 'entities' ? 'active' : ''}`} style={{ willChange: 'auto' }}>
-                    <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg min-w-0">
+                    <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-sm md:shadow-lg min-w-0 min-h-0">
                       <BuilderEntitiesTab
                         draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any}
                         selectedEntityId={selectedEntityId} setSelectedEntityId={setSelectedEntityId}
@@ -811,15 +817,16 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
                         dragOverId={dragOverId} setDragOverId={setDragOverId}
                         draggedMedia={draggedMedia} setDraggedMedia={setDraggedMedia}
                         setEditingMedia={setEditingMedia} setDeleteTarget={setDeleteTarget}
+                        isSwiping={isSwiping}
                       />
                     </div>
                   </div>
                 </>
               )}
 
-              <div className={`builder-panel ${activeTab === 'scoring' ? 'active' : ''} min-w-0`} style={{ willChange: 'auto' }}>
-                <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-lg min-w-0">
-                  <BuilderScoringTab draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any} isActive={activeTab === 'scoring'} />
+              <div className={`builder-panel ${activeTab === 'scoring' ? 'active' : ''} min-w-0 min-h-0`} style={{ willChange: 'auto' }}>
+                <div className="w-full h-full flex flex-col overflow-hidden bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-sm md:shadow-lg min-w-0 min-h-0">
+                  <BuilderScoringTab draftKey={draftKey} updateDraftKey={updateDraftKey} t={t as any} isActive={activeTab === 'scoring'} isSwiping={isSwiping} />
                 </div>
               </div>
             </div>
@@ -828,7 +835,7 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
       </div>
 
       {/* Mobile Bottom Bar */}
-      <div className="flex md:hidden items-center justify-around bg-panel-bg/85 backdrop-blur-xl border border-white/20 dark:border-white/10 p-2 shrink-0 z-20 shadow-lg rounded-3xl m-2" style={{ marginBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}>
+      <div className="flex md:hidden items-center justify-around bg-panel-bg/85 backdrop-blur-xl border border-white/20 dark:border-white/10 p-2 shrink-0 z-20 shadow-sm rounded-3xl m-2" style={{ marginBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}>
         <button onClick={() => setActiveTab('features')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] rounded-2xl transition-all duration-300 relative ${activeTab === 'features' ? 'text-accent bg-accent/10 shadow-inner scale-105' : 'text-gray-500 hover:text-accent hover:bg-hover-bg/50'}`}>
           <Icon name="Tags" size={22} className={activeTab === 'features' ? 'drop-shadow-sm' : ''} />
           <span className="text-[10px] font-bold text-center leading-none tracking-tight">{t('kbFeatures')}</span>
