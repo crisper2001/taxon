@@ -66,14 +66,14 @@ export const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({ textareaRef, o
   }, [insertFormatting]);
 
   return (
-    <div className="flex items-center gap-0.5 p-1 bg-panel-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-lg w-fit shadow-sm" onMouseDown={(e) => e.preventDefault()}>
-      <button type="button" onClick={() => insertFormatting('**', '**')} className="p-1 hover:bg-hover-bg rounded text-gray-500 hover:text-accent transition-colors cursor-pointer" title="Bold (Ctrl/Cmd+B)"><Icon name="Bold" size={14} /></button>
-      <button type="button" onClick={() => insertFormatting('*', '*')} className="p-1 hover:bg-hover-bg rounded text-gray-500 hover:text-accent transition-colors cursor-pointer" title="Italic (Ctrl/Cmd+I)"><Icon name="Italic" size={14} /></button>
-      <div className="w-px h-3 bg-border mx-1" />
-      <button type="button" onClick={() => insertBlockFormatting('- ')} className="p-1 hover:bg-hover-bg rounded text-gray-500 hover:text-accent transition-colors cursor-pointer" title="Bulleted List"><Icon name="List" size={14} /></button>
-      <button type="button" onClick={() => insertBlockFormatting('1. ')} className="p-1 hover:bg-hover-bg rounded text-gray-500 hover:text-accent transition-colors cursor-pointer" title="Numbered List"><Icon name="ListOrdered" size={14} /></button>
-      <div className="w-px h-3 bg-border mx-1" />
-      <button type="button" onClick={() => insertFormatting('[', '](url)')} className="p-1 hover:bg-hover-bg rounded text-gray-500 hover:text-accent transition-colors cursor-pointer" title="Link (Ctrl/Cmd+K)"><Icon name="Link" size={14} /></button>
+    <div className="flex items-center gap-0.5 p-1 bg-panel-bg/80 backdrop-blur-sm border border-white/20 dark:border-white/10 rounded-lg w-max max-w-full overflow-x-auto custom-scrollbar shadow-sm" onMouseDown={(e) => e.preventDefault()}>
+      <button type="button" onClick={() => insertFormatting('**', '**')} className="p-1 hover:bg-hover-bg rounded text-gray-500 hover:text-accent transition-colors cursor-pointer shrink-0" title="Bold (Ctrl/Cmd+B)"><Icon name="Bold" size={14} /></button>
+      <button type="button" onClick={() => insertFormatting('*', '*')} className="p-1 hover:bg-hover-bg rounded text-gray-500 hover:text-accent transition-colors cursor-pointer shrink-0" title="Italic (Ctrl/Cmd+I)"><Icon name="Italic" size={14} /></button>
+      <div className="w-px h-3 bg-border mx-1 shrink-0" />
+      <button type="button" onClick={() => insertBlockFormatting('- ')} className="p-1 hover:bg-hover-bg rounded text-gray-500 hover:text-accent transition-colors cursor-pointer shrink-0" title="Bulleted List"><Icon name="List" size={14} /></button>
+      <button type="button" onClick={() => insertBlockFormatting('1. ')} className="p-1 hover:bg-hover-bg rounded text-gray-500 hover:text-accent transition-colors cursor-pointer shrink-0" title="Numbered List"><Icon name="ListOrdered" size={14} /></button>
+      <div className="w-px h-3 bg-border mx-1 shrink-0" />
+      <button type="button" onClick={() => insertFormatting('', '')} className="p-1 hover:bg-hover-bg rounded text-gray-500 hover:text-accent transition-colors cursor-pointer shrink-0" title="Link (Ctrl/Cmd+K)"><Icon name="Link" size={14} /></button>
     </div>
   );
 };

@@ -18,6 +18,7 @@ export const useTreeDragAndDrop = <T extends { id: string; parentId?: string }>(
 }: UseTreeDragAndDropProps<T>) => {
     const touchTimeout = useRef<NodeJS.Timeout | null>(null);
     const lastTouchPos = useRef({ x: 0, y: 0 });
+    const initialTouchPos = useRef({ x: 0, y: 0 });
 
     const isCycle = (draggedId: string, targetId: string) => {
         let current: string | undefined = targetId;
@@ -68,7 +69,7 @@ export const useTreeDragAndDrop = <T extends { id: string; parentId?: string }>(
     };
 
     const onTouchStart = (e: React.TouchEvent, id: string) => {
-        e.stopPropagation();
+        initialTouchPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         lastTouchPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         touchTimeout.current = setTimeout(() => {
             setDraggedItem({ type: itemType, id });
@@ -78,14 +79,18 @@ export const useTreeDragAndDrop = <T extends { id: string; parentId?: string }>(
 
     const onTouchMove = (e: React.TouchEvent, id: string) => {
         const touch = e.touches[0];
+        if (!draggedItem) {
+            const dx = touch.clientX - initialTouchPos.current.x;
+            const dy = touch.clientY - initialTouchPos.current.y;
+            if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+                if (touchTimeout.current) clearTimeout(touchTimeout.current);
+            }
+            return;
+        }
         lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
         if (ghostRef.current) {
             ghostRef.current.style.left = `${touch.clientX}px`;
             ghostRef.current.style.top = `${touch.clientY}px`;
-        }
-        if (!draggedItem) {
-            if (touchTimeout.current) clearTimeout(touchTimeout.current);
-            return;
         }
         const el = document.elementFromPoint(touch.clientX, touch.clientY);
         const targetNode = el?.closest(`[${dataAttribute}]`);
@@ -112,5 +117,7 @@ export const useTreeDragAndDrop = <T extends { id: string; parentId?: string }>(
 
     const onTouchCancel = () => { if (touchTimeout.current) clearTimeout(touchTimeout.current); setDraggedItem(null); setDragOverId(null); };
 
-    return { onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop, onRootDrop, onTouchStart, onTouchMove, onTouchEnd, onTouchCancel, lastTouchPos };
+    const cancelTouchTimeout = () => { if (touchTimeout.current) clearTimeout(touchTimeout.current); };
+
+    return { onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop, onRootDrop, onTouchStart, onTouchMove, onTouchEnd, onTouchCancel, lastTouchPos, initialTouchPos, cancelTouchTimeout };
 };

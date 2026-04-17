@@ -104,22 +104,24 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
     <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} size="lg">
       <div className="p-5 md:p-8 overflow-y-auto relative max-h-[85vh] bg-bg/80 backdrop-blur-sm rounded-b-3xl">
         {cachedMode === 'feature' && featureToRender ? (
-          <div className="flex flex-col gap-6" style={{ willChange: 'auto' }}>
+          <div className="flex flex-col gap-6 min-w-0" style={{ willChange: 'auto' }}>
 
-            <div className="flex flex-col gap-4 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0 relative z-10">
+            <div className="flex flex-col gap-4 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0 relative z-10 min-w-0">
               <div className="w-full font-bold text-accent flex items-center gap-2 mb-1 text-left tracking-tight shrink-0">
                 <Icon name="Info" size={18} />
                 <span className="grow text-base">{t('info')}</span>
               </div>
-              <label className="flex flex-col gap-1.5">
+              <label className="flex flex-col gap-1.5 min-w-0">
                 <span className="text-sm font-semibold opacity-80">{t('kbName')}</span>
                 <input type="text" value={featureToRender.name} onChange={e => updateFeature(featureToRender.id, { name: e.target.value })} className="input-base text-lg font-medium" />
               </label>
 
-              <MarkdownInput label={t('kbDescription')} value={featureToRender.description || ''} onChange={val => updateFeature(featureToRender.id, { description: val })} rows={3} />
+              <div className="relative flex flex-col min-w-0 w-full">
+                <MarkdownInput label={t('kbDescription')} value={featureToRender.description || ''} onChange={val => updateFeature(featureToRender.id, { description: val })} rows={3} />
+              </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <label className="flex flex-col gap-1.5 flex-1">
+                <label className="flex flex-col gap-1.5 flex-1 min-w-0">
                   <span className="text-sm font-semibold opacity-80">{t('kbType')}</span>
                   <CustomSelect
                     value={featureToRender.type}
@@ -130,7 +132,7 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
                 </label>
 
                 {featureToRender.type === 'state' && (
-                  <label className="flex flex-col gap-1.5 flex-1">
+                  <label className="flex flex-col gap-1.5 flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm font-semibold opacity-80">{t('kbMatchType' as any) || 'Matching Type'}</span>
                       <div title={t('kbMatchTypeHelp' as any) || "OR: Matches any selected state.\nAND: Matches all selected states.\nSINGLE: Restricts to a single selection."} className="text-gray-400 hover:text-accent transition-colors cursor-help mt-0.5">
@@ -153,7 +155,7 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
 
               {featureToRender.type === 'numeric' && (
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <label className="flex flex-col gap-1.5 flex-1">
+                    <label className="flex flex-col gap-1.5 flex-1 min-w-0">
                     <span className="text-sm font-semibold opacity-80">{t('kbUnitPrefix' as any) || 'Unit Prefix'}</span>
                     <CustomSelect
                       value={featureToRender.unit_prefix || 'none'}
@@ -171,7 +173,7 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
                       className="input-base cursor-pointer w-full"
                     />
                   </label>
-                  <label className="flex flex-col gap-1.5 flex-1">
+                    <label className="flex flex-col gap-1.5 flex-1 min-w-0">
                     <span className="text-sm font-semibold opacity-80">{t('kbBaseUnit' as any) || 'Base Unit'}</span>
                     <CustomSelect
                       value={featureToRender.base_unit || 'none'}
@@ -192,7 +194,7 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
               )}
             </div>
 
-            <div className="flex flex-col gap-3 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
+            <div className="flex flex-col gap-3 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0 min-w-0">
               <div className="w-full font-bold text-accent flex items-center gap-2 mb-1 text-left tracking-tight shrink-0">
                 <Icon name="Image" size={18} />
                 <span className="grow text-base">{t('kbImages' as any) || 'Images'}</span>
@@ -320,7 +322,7 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
             </div>
 
             {featureToRender.type === 'state' && (
-              <div className="flex flex-col gap-3 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
+              <div className="flex flex-col gap-3 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0 min-w-0">
                 <div className="flex items-center w-full mb-1 shrink-0">
                   <div className="grow font-bold text-accent flex items-center gap-2 text-left tracking-tight">
                     <Icon name="CircleCheck" size={18} />
@@ -356,22 +358,24 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
 
           </div>
         ) : cachedMode === 'state' && stateToRender && stateParentToRender ? (
-          <div className="flex flex-col gap-6" style={{ willChange: 'auto' }}>
+          <div className="flex flex-col gap-6 min-w-0" style={{ willChange: 'auto' }}>
 
-            <div className="flex flex-col gap-4 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
+            <div className="flex flex-col gap-4 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0 min-w-0">
               <div className="w-full font-bold text-accent flex items-center gap-2 mb-1 text-left tracking-tight shrink-0">
                 <Icon name="Info" size={18} />
                 <span className="grow text-base">{t('info')}</span>
               </div>
-              <label className="flex flex-col gap-1.5">
+              <label className="flex flex-col gap-1.5 min-w-0">
                 <span className="text-sm font-semibold opacity-80">{t('kbName')}</span>
                 <input type="text" value={stateToRender.name} onChange={e => updateState(stateParentToRender.id, stateToRender.id, { name: e.target.value })} className="input-base text-lg font-medium" />
               </label>
-              <MarkdownInput label={t('kbDescription')} value={(stateToRender as any).description || ''} onChange={val => updateState(stateParentToRender.id, stateToRender.id, { description: val })} rows={3} />
+              <div className="relative flex flex-col min-w-0 w-full">
+                <MarkdownInput label={t('kbDescription')} value={(stateToRender as any).description || ''} onChange={val => updateState(stateParentToRender.id, stateToRender.id, { description: val })} rows={3} />
+              </div>
             </div>
 
             {/* State Media Section */}
-            <div className="flex flex-col gap-3 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
+            <div className="flex flex-col gap-3 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0 min-w-0">
               <div className="w-full font-bold text-accent flex items-center gap-2 mb-1 text-left tracking-tight shrink-0">
                 <Icon name="Image" size={18} />
                 <span className="grow text-base">{t('kbImages' as any) || 'Images'}</span>
@@ -498,7 +502,7 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
             </div>
 
             {/* State Values Section */}
-            <div className="flex flex-col gap-3 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
+            <div className="flex flex-col gap-3 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0 min-w-0">
               <div className="flex items-center w-full mb-1 shrink-0">
                 <div className="grow font-bold text-accent flex items-center gap-2 text-left tracking-tight">
                   <Icon name="Target" size={18} />

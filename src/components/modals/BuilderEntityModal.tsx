@@ -56,21 +56,23 @@ export const BuilderEntityModal: React.FC<BuilderEntityModalProps> = ({
     <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} size="lg">
       <div className="p-5 md:p-8 overflow-y-auto relative max-h-[85vh] bg-bg/80 backdrop-blur-sm rounded-b-3xl">
         {entityToRender ? (
-          <div className="flex flex-col gap-6" style={{ willChange: 'auto' }}>
+          <div className="flex flex-col gap-6 min-w-0" style={{ willChange: 'auto' }}>
 
-            <div className="flex flex-col gap-4 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
+            <div className="flex flex-col gap-4 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0 min-w-0">
               <div className="w-full font-bold text-accent flex items-center gap-2 mb-1 text-left tracking-tight shrink-0">
                 <Icon name="Info" size={18} />
                 <span className="grow text-base">{t('info')}</span>
               </div>
-              <label className="flex flex-col gap-1.5">
+              <label className="flex flex-col gap-1.5 min-w-0">
                 <span className="text-sm font-semibold opacity-80">{t('kbName')}</span>
                 <input type="text" value={entityToRender.name} onChange={e => updateEntity(entityToRender.id, { name: e.target.value })} className="input-base text-lg font-medium" />
               </label>
-              <MarkdownInput label={t('kbDescription')} value={entityToRender.description || ''} onChange={val => updateEntity(entityToRender.id, { description: val })} rows={3} />
+              <div className="relative flex flex-col min-w-0 w-full">
+                <MarkdownInput label={t('kbDescription')} value={entityToRender.description || ''} onChange={val => updateEntity(entityToRender.id, { description: val })} rows={3} />
+              </div>
             </div>
 
-            <div className="flex flex-col gap-3 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0">
+            <div className="flex flex-col gap-3 bg-panel-bg/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 dark:border-white/10 shadow-inner shrink-0 min-w-0">
               <div className="w-full font-bold text-accent flex items-center gap-2 mb-1 text-left tracking-tight shrink-0">
                 <Icon name="Image" size={18} />
                 <span className="grow text-base">{t('kbImages' as any) || 'Images'}</span>

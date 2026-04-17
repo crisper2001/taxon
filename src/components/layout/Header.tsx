@@ -18,7 +18,7 @@ export const Header: React.FC<HeaderProps> = ({ isSidebarOpen, setSidebarOpen, l
   const handleLogoClick = onLogoClick || closeKey;
 
   return (
-    <div className="header-controls animate-header-in relative flex items-center p-2 md:p-2.5 bg-panel-bg/85 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl md:rounded-3xl m-2 mb-0 md:m-4 md:mb-0 gap-4 shrink-0 justify-between z-20 shadow-lg">
+    <div className="header-controls animate-header-in relative flex items-center p-2 md:p-2.5 bg-panel-bg/85 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl md:rounded-3xl m-2 mb-0 md:m-4 md:mb-0 gap-4 shrink-0 justify-between z-20 shadow-sm md:shadow-lg">
       {/* Left section: Mobile hamburger + Desktop Menu */}
       <div className="flex items-center gap-2 relative w-10 md:w-auto transition-all z-30">
         <button onClick={() => setSidebarOpen(!isSidebarOpen)} title={t('toggleMenu')} className="md:hidden p-2 rounded-full transition-all duration-300 opacity-90 hover:opacity-100 hover:bg-hover-bg/80 cursor-pointer shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md flex items-center justify-center text-accent">

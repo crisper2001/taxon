@@ -29,9 +29,10 @@ interface BuilderScoringTabProps {
   updateDraftKey: (updater: (prev: DraftKeyData) => DraftKeyData) => void;
   t: (key: string) => string;
   isActive?: boolean;
+  isSwiping?: boolean;
 }
 
-export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({ draftKey, updateDraftKey, t, isActive = true }) => {
+export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({ draftKey, updateDraftKey, t, isActive = true, isSwiping }) => {
   const lastActiveDraft = useRef(draftKey);
   if (isActive) {
     lastActiveDraft.current = draftKey;
@@ -321,17 +322,21 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
           </div>
         </div>
       </div>
-      <div className="flex-1 overflow-auto bg-bg/30 relative custom-scrollbar min-w-0 min-h-0" onScroll={handleScroll} onMouseEnter={showFooter} onMouseLeave={hideFooter}>
+      <div className={`flex-1 bg-bg/30 relative custom-scrollbar min-w-0 min-h-0 ${isSwiping ? 'overflow-hidden touch-none' : 'overflow-auto'}`} onScroll={handleScroll} onMouseEnter={showFooter} onMouseLeave={hideFooter}>
         <table
           id="scoring-matrix-table"
           ref={tableRef}
           onMouseOver={handleMouseOver}
           onMouseLeave={clearHighlight}
+          onTouchStart={(e) => { if (!(e.target as HTMLElement).closest('.empty-top-left-cell') && !(e.target as HTMLElement).closest('.feature-header-cell')) e.stopPropagation(); }}
+          onTouchMove={(e) => { if (!(e.target as HTMLElement).closest('.empty-top-left-cell') && !(e.target as HTMLElement).closest('.feature-header-cell')) e.stopPropagation(); }}
+          onTouchEnd={(e) => { if (!(e.target as HTMLElement).closest('.empty-top-left-cell') && !(e.target as HTMLElement).closest('.feature-header-cell')) e.stopPropagation(); }}
+          onTouchCancel={(e) => { if (!(e.target as HTMLElement).closest('.empty-top-left-cell') && !(e.target as HTMLElement).closest('.feature-header-cell')) e.stopPropagation(); }}
           className="text-left border-separate border-spacing-0 w-max min-w-max"
         >
           <thead>
             <tr>
-              <th className="sticky top-0 left-0 z-40 bg-header-bg p-4 border-b border-border border-r-2 border-r-border w-[140px] min-w-[140px] max-w-[140px] md:w-[250px] md:min-w-[250px] md:max-w-[250px] align-bottom">
+              <th className="empty-top-left-cell sticky top-0 left-0 z-40 bg-header-bg p-4 border-b border-border border-r-2 border-r-border w-[140px] min-w-[140px] max-w-[140px] md:w-[250px] md:min-w-[250px] md:max-w-[250px] align-bottom touch-none">
               </th>
               {leftSpacerWidth > 0 && <th style={{ minWidth: leftSpacerWidth, padding: 0, border: 0 }} data-spacer="true"></th>}
               {visibleEntities.map(({ item: e, depth }) => {
@@ -339,12 +344,13 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
                 const isActiveMatch = activeMatchId === e.id;
                 const isSearchDimmed = !!searchTerm && !isMatch;
                 return (
-                <th key={e.id} data-search-match={isMatch ? "true" : undefined} data-search-active={isActiveMatch ? "true" : undefined} className={`sticky top-0 z-20 bg-header-bg py-2 px-3 border-b border-r border-border w-[1%] whitespace-nowrap align-bottom text-center transition-all duration-300 ${isMatch ? 'after:absolute after:inset-0 after:bg-accent/20 after:pointer-events-none' : ''} ${isActiveMatch ? 'after:absolute after:inset-0 after:ring-2 after:ring-accent after:ring-inset after:pointer-events-none' : ''}`}>
-                  <div className={`inline-flex items-center justify-start font-bold h-40 relative z-10 pt-[calc(var(--depth)*0.75rem)] md:pt-[calc(var(--depth)*1.5rem)] transition-opacity duration-300 ${isSearchDimmed ? 'opacity-30' : ''}`} style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', '--depth': depth } as React.CSSProperties}>
-                    <span className="truncate max-h-[140px] whitespace-nowrap text-accent" title={e.name}>{e.name || t('kbUnnamedEntity')}</span>
-                  </div>
-                </th>
-              )})}
+                  <th key={e.id} data-search-match={isMatch ? "true" : undefined} data-search-active={isActiveMatch ? "true" : undefined} className={`sticky top-0 z-20 bg-header-bg py-2 px-3 border-b border-r border-border w-[1%] whitespace-nowrap align-bottom text-center transition-all duration-300 touch-pan-x ${isMatch ? 'after:absolute after:inset-0 after:bg-accent/20 after:pointer-events-none' : ''} ${isActiveMatch ? 'after:absolute after:inset-0 after:ring-2 after:ring-accent after:ring-inset after:pointer-events-none' : ''}`}>
+                    <div className={`inline-flex items-center justify-start font-bold h-40 relative z-10 pt-[calc(var(--depth)*0.75rem)] md:pt-[calc(var(--depth)*1.5rem)] transition-opacity duration-300 ${isSearchDimmed ? 'opacity-30' : ''}`} style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', '--depth': depth } as React.CSSProperties}>
+                      <span className="truncate max-h-[140px] whitespace-nowrap text-accent" title={e.name}>{e.name || t('kbUnnamedEntity')}</span>
+                    </div>
+                  </th>
+                )
+              })}
               {rightSpacerWidth > 0 && <th style={{ minWidth: rightSpacerWidth, padding: 0, border: 0 }} data-spacer="true"></th>}
             </tr>
           </thead>
@@ -362,7 +368,7 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
                 const isSearchDimmed = !!searchTerm && !isMatch;
                 return (
                   <tr key={`f-${f.id}`} className="transition-colors group/row bg-panel-bg" data-no-highlight={f.type === 'state'}>
-                    <td data-search-match={isMatch ? "true" : undefined} data-search-active={isActiveMatch ? "true" : undefined} className={`sticky left-0 z-30 p-2 md:p-4 border-b border-border border-r-2 border-r-border transition-all duration-300 align-middle w-[140px] min-w-[140px] max-w-[140px] md:w-[250px] md:min-w-[250px] md:max-w-[250px] bg-header-bg ${isMatch ? 'after:absolute after:inset-0 after:bg-accent/20 after:pointer-events-none' : ''} ${isActiveMatch ? 'after:absolute after:inset-0 after:ring-2 after:ring-accent after:ring-inset after:pointer-events-none' : ''}`}>
+                    <td data-search-match={isMatch ? "true" : undefined} data-search-active={isActiveMatch ? "true" : undefined} className={`feature-header-cell sticky left-0 z-30 p-2 md:p-4 border-b border-border border-r-2 border-r-border transition-all duration-300 align-middle w-[140px] min-w-[140px] max-w-[140px] md:w-[250px] md:min-w-[250px] md:max-w-[250px] bg-header-bg touch-pan-y ${isMatch ? 'after:absolute after:inset-0 after:bg-accent/20 after:pointer-events-none' : ''} ${isActiveMatch ? 'after:absolute after:inset-0 after:ring-2 after:ring-accent after:ring-inset after:pointer-events-none' : ''}`}>
                       <div className={`flex items-center gap-2 font-bold relative z-10 w-full text-sm md:text-base pl-[calc(var(--depth)*0.75rem)] md:pl-[calc(var(--depth)*1.5rem)] transition-opacity duration-300 ${isSearchDimmed ? 'opacity-30' : ''}`} style={{ '--depth': depth } as React.CSSProperties}>
                         <span className="truncate text-accent" title={f.name}>{f.name || t('kbUnnamedFeature')}</span>
                       </div>
@@ -401,9 +407,9 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
                 const isSearchDimmed = !!searchTerm && !isMatch;
                 return (
                   <tr key={`s-${s.id}`} className="transition-colors group/row bg-panel-bg">
-                    <td data-search-match={isMatch ? "true" : undefined} data-search-active={isActiveMatch ? "true" : undefined} className={`sticky left-0 z-30 py-2 md:py-3 px-2 md:px-4 border-b border-border border-r-2 border-r-border transition-all duration-300 align-middle w-[140px] min-w-[140px] max-w-[140px] md:w-[250px] md:min-w-[250px] md:max-w-[250px] bg-header-bg text-text font-medium ${isMatch ? 'after:absolute after:inset-0 after:bg-accent/20 after:pointer-events-none' : ''} ${isActiveMatch ? 'after:absolute after:inset-0 after:ring-2 after:ring-accent after:ring-inset after:pointer-events-none' : ''}`}>
+                    <td data-search-match={isMatch ? "true" : undefined} data-search-active={isActiveMatch ? "true" : undefined} className={`feature-header-cell sticky left-0 z-30 py-2 md:py-3 px-2 md:px-4 border-b border-border border-r-2 border-r-border transition-all duration-300 align-middle w-[140px] min-w-[140px] max-w-[140px] md:w-[250px] md:min-w-[250px] md:max-w-[250px] bg-header-bg text-text touch-pan-y ${isMatch ? 'after:absolute after:inset-0 after:bg-accent/20 after:pointer-events-none' : ''} ${isActiveMatch ? 'after:absolute after:inset-0 after:ring-2 after:ring-accent after:ring-inset after:pointer-events-none' : ''}`}>
                       <div className={`flex items-center gap-2 relative z-10 w-full text-xs md:text-sm pl-[calc(var(--depth)*0.75rem)] md:pl-[calc(var(--depth)*1.5rem)] transition-opacity duration-300 ${isSearchDimmed ? 'opacity-30' : ''}`} style={{ '--depth': depth } as React.CSSProperties}>
-                        <span className="truncate opacity-90" title={s.name}>{s.name}</span>
+                        <span className="truncate opacity-90 text-sm" title={s.name}>{s.name}</span>
                       </div>
                     </td>
                     {leftSpacerWidth > 0 && <td style={{ minWidth: leftSpacerWidth, padding: 0, border: 0 }} data-spacer="true"></td>}

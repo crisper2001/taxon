@@ -6,6 +6,7 @@ import { Spot } from '../common/Spot';
 import { CustomSelect } from '../common';
 import type { Language, Theme } from '../../types';
 import packageJson from '../../../package.json';
+import { useSwipe } from '../../hooks';
 
 // A map to display native language names
 const languageNames: Record<Language, string> = {
@@ -40,6 +41,26 @@ interface PreferencesModalProps {
 export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onClose, currentPrefs, onPreferenceChange, t, availableLanguages, onClearData }) => {
     const [activeTab, setActiveTab] = useState<'general' | 'interface' | 'ai' | 'about'>('general');
 
+    const tabs: Array<'general' | 'interface' | 'ai' | 'about'> = ['general', 'interface', 'ai', 'about'];
+    const activeTabIndex = tabs.indexOf(activeTab);
+
+    const handleSwipeLeft = () => {
+        if (activeTabIndex < tabs.length - 1) {
+            setActiveTab(tabs[activeTabIndex + 1]);
+        }
+    };
+
+    const handleSwipeRight = () => {
+        if (activeTabIndex > 0) {
+            setActiveTab(tabs[activeTabIndex - 1]);
+        }
+    };
+
+    const { swipeOffset, isSwiping, handleTouchStart, handleTouchMove, handleTouchEnd, handleTouchCancel } = useSwipe(
+        handleSwipeLeft, handleSwipeRight,
+        activeTabIndex === 0, activeTabIndex === tabs.length - 1
+    );
+
     useEffect(() => {
         if (isOpen) {
             setActiveTab('general');
@@ -54,155 +75,173 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
         }`;
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={<div className="flex items-center gap-2 min-w-0"><Icon name="Settings2" size={24} className="text-gray-400 shrink-0" /><span className="truncate">{t('preferences')}</span></div>}>
-            <div className="flex flex-col bg-bg/80 backdrop-blur-sm rounded-b-3xl">
-                <div className="p-7 h-[500px] overflow-y-auto overflow-x-hidden relative">
-                  <div key={activeTab} className="animate-fade-in-up h-full">
-                {activeTab === 'general' && (
-                    <div className="space-y-8">
-                        <div>
-                            <div className="font-bold mb-2 text-base block tracking-tight text-text/90">{t('language')}</div>
-                            <CustomSelect
-                                value={currentPrefs.lang}
-                                onChange={(val) => onPreferenceChange('lang', val as Language)}
-                                options={availableLanguages.map(langCode => ({ value: langCode, label: languageNames[langCode] || langCode }))}
-                                className="input-base w-full font-semibold cursor-pointer"
-                                dropdownClassName="max-h-48 overflow-y-auto"
-                            />
-                        </div>
-
-                        <div className="pt-6 border-t border-black/10 dark:border-white/10">
-                            <div className="font-bold mb-3 text-base block tracking-tight text-text/90">{t('identification' as any)}</div>
-                            <div className="space-y-4">
-                                <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-hover-bg/50">
-                                    <span className="font-bold text-base tracking-tight text-text/90">{t('uiAllowMisinterpretations' as any) || 'Allow Misinterpretations'}</span>
-                                    <input
-                                        type="checkbox"
-                                        checked={currentPrefs.allowMisinterpretations}
-                                        onChange={(e) => onPreferenceChange('allowMisinterpretations', e.target.checked)}
-                                        className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-panel-bg bg-panel-bg cursor-pointer shadow-inner"
+            <div 
+                className="flex flex-col bg-bg/80 backdrop-blur-sm rounded-b-3xl"
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                onTouchCancel={handleTouchCancel}
+            >
+                <div className="h-[500px] max-h-[60dvh] overflow-hidden">
+                    <div 
+                        className={`flex h-full ${isSwiping ? '' : 'transition-transform duration-300 ease-out'}`}
+                        style={{
+                            width: `${tabs.length * 100}%`,
+                            transform: `translateX(calc(-${activeTabIndex * (100 / tabs.length)}% + ${swipeOffset}px))`,
+                            willChange: 'transform',
+                            touchAction: 'pan-y'
+                        }}
+                    >
+                        {/* General Tab */}
+                        <div className={`w-full h-full p-7 custom-scrollbar ${isSwiping ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+                            <div className="space-y-8">
+                                <div>
+                                    <div className="font-bold mb-2 text-base block tracking-tight text-text/90">{t('language')}</div>
+                                    <CustomSelect
+                                        value={currentPrefs.lang}
+                                        onChange={(val) => onPreferenceChange('lang', val as Language)}
+                                        options={availableLanguages.map(langCode => ({ value: langCode, label: languageNames[langCode] || langCode }))}
+                                        className="input-base w-full font-semibold cursor-pointer"
+                                        dropdownClassName="max-h-48 overflow-y-auto"
                                     />
-                                </label>
-                                <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-hover-bg/50">
-                                    <span className="font-bold text-base tracking-tight text-text/90">{t('uiAllowUncertainties' as any) || 'Allow Uncertainties'}</span>
+                                </div>
+        
+                                <div className="pt-6 border-t border-black/10 dark:border-white/10">
+                                    <div className="font-bold mb-3 text-base block tracking-tight text-text/90">{t('identification' as any)}</div>
+                                    <div className="space-y-4">
+                                        <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-hover-bg/50">
+                                            <span className="font-bold text-base tracking-tight text-text/90">{t('uiAllowMisinterpretations' as any) || 'Allow Misinterpretations'}</span>
+                                            <input
+                                                type="checkbox"
+                                                checked={currentPrefs.allowMisinterpretations}
+                                                onChange={(e) => onPreferenceChange('allowMisinterpretations', e.target.checked)}
+                                                className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-panel-bg bg-panel-bg cursor-pointer shadow-inner"
+                                            />
+                                        </label>
+                                        <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-hover-bg/50">
+                                            <span className="font-bold text-base tracking-tight text-text/90">{t('uiAllowUncertainties' as any) || 'Allow Uncertainties'}</span>
+                                            <input
+                                                type="checkbox"
+                                                checked={currentPrefs.allowUncertainties}
+                                                onChange={(e) => onPreferenceChange('allowUncertainties', e.target.checked)}
+                                                className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-panel-bg bg-panel-bg cursor-pointer shadow-inner"
+                                            />
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                {onClearData && (
+                                    <div className="pt-6 border-t border-black/10 dark:border-white/10">
+                                        <div className="font-bold mb-3 text-base block tracking-tight text-text/90">{t('data' as any) || 'Data Management'}</div>
+                                        <button 
+                                            onClick={onClearData} 
+                                        className="w-full flex justify-center items-center gap-2 px-4 py-3 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-xl hover:bg-red-600 transition-all duration-300 shadow-md hover:shadow-lg font-bold cursor-pointer"
+                                        >
+                                            <Icon name="Trash2" size={18} /> {t('clearLocalData' as any)}
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Interface Tab */}
+                        <div className={`w-full h-full p-7 custom-scrollbar ${isSwiping ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+                            <div className="space-y-6">
+                                <div>
+                                    <h4 className="font-bold mb-2 text-base block tracking-tight text-text/90">{t('uiTheme')}</h4>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <button className={`${prefButtonClasses(currentPrefs.theme === 'light')} cursor-pointer`} onClick={() => onPreferenceChange('theme', 'light')}>
+                                            <Icon name="Sun" /> {t('themeLight')}
+                                        </button>
+                                        <button className={`${prefButtonClasses(currentPrefs.theme === 'dark')} cursor-pointer`} onClick={() => onPreferenceChange('theme', 'dark')}>
+                                            <Icon name="Moon" /> {t('themeDark')}
+                                        </button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-hover-bg/50">
+                                        <span className="font-bold text-base tracking-tight text-text/90">{t('uiShowToasts' as any) || 'Enable Notifications'}</span>
+                                        <input
+                                            type="checkbox"
+                                            checked={currentPrefs.showToasts}
+                                            onChange={(e) => onPreferenceChange('showToasts', e.target.checked)}
+                                            className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-panel-bg bg-panel-bg cursor-pointer shadow-inner"
+                                        />
+                                    </label>
+                                </div>
+                                <div>
+                                    <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-hover-bg/50">
+                                        <span className="font-bold text-base tracking-tight text-text/90">{t('uiEnableAnimations' as any) || 'Enable Animations'}</span>
+                                        <input
+                                            type="checkbox"
+                                            checked={currentPrefs.enableAnimations}
+                                            onChange={(e) => onPreferenceChange('enableAnimations', e.target.checked)}
+                                            className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-panel-bg bg-panel-bg cursor-pointer shadow-inner"
+                                        />
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* AI Tab */}
+                        <div className={`w-full h-full p-7 custom-scrollbar ${isSwiping ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-hover-bg/50">
+                                        <span className="font-bold text-base tracking-tight text-text/90">{t('uiEnableAi' as any) || 'Enable AI Assistant'}</span>
+                                        <input
+                                            type="checkbox"
+                                            checked={currentPrefs.enableAi}
+                                            onChange={(e) => onPreferenceChange('enableAi', e.target.checked)}
+                                            className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-panel-bg bg-panel-bg cursor-pointer shadow-inner"
+                                        />
+                                    </label>
+                                </div>
+                                <div>
+                                    <label htmlFor="gemini-api-key" className="font-bold mb-2 text-base block tracking-tight text-text/90">
+                                        Gemini API Key
+                                    </label>
                                     <input
-                                        type="checkbox"
-                                        checked={currentPrefs.allowUncertainties}
-                                        onChange={(e) => onPreferenceChange('allowUncertainties', e.target.checked)}
-                                        className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-panel-bg bg-panel-bg cursor-pointer shadow-inner"
+                                        id="gemini-api-key"
+                                        type="password"
+                                        value={currentPrefs.geminiApiKey}
+                                        onChange={(e) => onPreferenceChange('geminiApiKey', e.target.value)}
+                                        className="input-base w-full font-medium"
+                                        placeholder={t('enterApiKey')}
                                     />
-                                </label>
+                                    <p className="text-xs text-gray-500 mt-2">{t('apiKeyNote')}</p>
+                                </div>
                             </div>
                         </div>
-                        
-                        {onClearData && (
-                            <div className="pt-6 border-t border-black/10 dark:border-white/10">
-                                <div className="font-bold mb-3 text-base block tracking-tight text-text/90">{t('data' as any) || 'Data Management'}</div>
-                                <button 
-                                    onClick={onClearData} 
-                                className="w-full flex justify-center items-center gap-2 px-4 py-3 bg-red-500/95 backdrop-blur-md border border-white/20 text-white rounded-xl hover:bg-red-600 transition-all duration-300 shadow-md hover:shadow-lg font-bold cursor-pointer"
-                                >
-                                    <Icon name="Trash2" size={18} /> {t('clearLocalData' as any)}
-                                </button>
+
+                        {/* About Tab */}
+                        <div className={`w-full h-full p-7 custom-scrollbar ${isSwiping ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+                            <div className="space-y-6 text-center flex flex-col items-center justify-center h-full pt-4">
+                                <div className="flex items-start justify-center gap-2 mb-2">
+                                    <img src="logo.svg" alt="Taxon Logo" className="h-12 dark:hidden" />
+                                    <img src="logo-dark.svg" alt="Taxon Logo" className="h-12 hidden dark:block" />
+                                    <span className="text-[10px] font-bold bg-accent/10 text-accent px-1.5 py-0.5 rounded-md border border-accent/20 uppercase tracking-widest mt-1.5">Beta</span>
+                                </div>
+                                <div className="text-xs text-text/60 font-semibold bg-panel-bg/60 backdrop-blur-sm px-3 py-1 rounded-full border border-black/10 dark:border-white/10 shadow-sm">
+                                    {t('version' as any) || 'Version'} {packageJson.version}
+                                </div>
+                                <div className="text-sm font-bold text-text/70 -mt-2">
+                                    {t('createdBy' as any) || 'Created by'} {packageJson.author}
+                                </div>
+                                <div className="text-xs font-bold text-text/50 -mt-1">
+                                    {t('licensedUnder' as any) || 'Licensed under'} <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">AGPL-3.0</a>
+                                </div>
+                                <p className="text-sm text-text/80 leading-relaxed">
+                                    {t('aboutDescription' as any) || 'A web application to create, edit, and use identification keys.'}
+                                </p>
+                                <div className="pt-4 flex justify-center w-full">
+                                    <a href="https://github.com/crisper2001/taxon" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-5 py-3 bg-panel-bg/80 hover:bg-hover-bg rounded-2xl transition-all duration-300 font-bold text-sm text-text/80 shadow-sm border border-black/5 dark:border-white/5">
+                                        <Icon name="Github" size={18} /> GitHub
+                                    </a>
+                                </div>
                             </div>
-                        )}
-                    </div>
-                )}
-
-                {activeTab === 'interface' && (
-                    <div className="space-y-6">
-                        <div>
-                            <h4 className="font-bold mb-2 text-base block tracking-tight text-text/90">{t('uiTheme')}</h4>
-                            <div className="grid grid-cols-2 gap-4">
-                                <button className={`${prefButtonClasses(currentPrefs.theme === 'light')} cursor-pointer`} onClick={() => onPreferenceChange('theme', 'light')}>
-                                    <Icon name="Sun" /> {t('themeLight')}
-                                </button>
-                                <button className={`${prefButtonClasses(currentPrefs.theme === 'dark')} cursor-pointer`} onClick={() => onPreferenceChange('theme', 'dark')}>
-                                    <Icon name="Moon" /> {t('themeDark')}
-                                </button>
-                            </div>
-                        </div>
-                        <div>
-                            <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-hover-bg/50">
-                                <span className="font-bold text-base tracking-tight text-text/90">{t('uiShowToasts' as any) || 'Enable Notifications'}</span>
-                                <input
-                                    type="checkbox"
-                                    checked={currentPrefs.showToasts}
-                                    onChange={(e) => onPreferenceChange('showToasts', e.target.checked)}
-                                    className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-panel-bg bg-panel-bg cursor-pointer shadow-inner"
-                                />
-                            </label>
-                        </div>
-                    <div>
-                        <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-hover-bg/50">
-                            <span className="font-bold text-base tracking-tight text-text/90">{t('uiEnableAnimations' as any) || 'Enable Animations'}</span>
-                            <input
-                                type="checkbox"
-                                checked={currentPrefs.enableAnimations}
-                                onChange={(e) => onPreferenceChange('enableAnimations', e.target.checked)}
-                                className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-panel-bg bg-panel-bg cursor-pointer shadow-inner"
-                            />
-                        </label>
-                    </div>
-                    </div>
-                )}
-
-                {activeTab === 'ai' && (
-                    <div className="space-y-6">
-                        <div>
-                            <label className="flex items-center justify-between cursor-pointer p-4 border border-white/20 dark:border-white/10 rounded-2xl transition-all bg-panel-bg/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-hover-bg/50">
-                                <span className="font-bold text-base tracking-tight text-text/90">{t('uiEnableAi' as any) || 'Enable AI Assistant'}</span>
-                                <input
-                                    type="checkbox"
-                                    checked={currentPrefs.enableAi}
-                                    onChange={(e) => onPreferenceChange('enableAi', e.target.checked)}
-                                    className="w-5 h-5 rounded border border-white/20 dark:border-white/10 text-accent focus:ring-accent focus:ring-offset-panel-bg bg-panel-bg cursor-pointer shadow-inner"
-                                />
-                            </label>
-                        </div>
-                        <div>
-                            <label htmlFor="gemini-api-key" className="font-bold mb-2 text-base block tracking-tight text-text/90">
-                                Gemini API Key
-                            </label>
-                            <input
-                                id="gemini-api-key"
-                                type="password"
-                                value={currentPrefs.geminiApiKey}
-                                onChange={(e) => onPreferenceChange('geminiApiKey', e.target.value)}
-                                className="input-base w-full font-medium"
-                                placeholder={t('enterApiKey')}
-                            />
-                            <p className="text-xs text-gray-500 mt-2">{t('apiKeyNote')}</p>
                         </div>
                     </div>
-                )}
-
-                {activeTab === 'about' && (
-                    <div className="space-y-6 text-center flex flex-col items-center justify-center h-full pt-4">
-                        <div className="flex items-start justify-center gap-2 mb-2">
-                            <img src="logo.svg" alt="Taxon Logo" className="h-12 dark:hidden" />
-                            <img src="logo-dark.svg" alt="Taxon Logo" className="h-12 hidden dark:block" />
-                            <span className="text-[10px] font-bold bg-accent/10 text-accent px-1.5 py-0.5 rounded-md border border-accent/20 uppercase tracking-widest mt-1.5">Beta</span>
-                        </div>
-                        <div className="text-xs text-text/60 font-semibold bg-panel-bg/60 backdrop-blur-sm px-3 py-1 rounded-full border border-black/10 dark:border-white/10 shadow-sm">
-                            {t('version' as any) || 'Version'} {packageJson.version}
-                        </div>
-                        <div className="text-sm font-bold text-text/70 -mt-2">
-                            {t('createdBy' as any) || 'Created by'} {packageJson.author}
-                        </div>
-                        <div className="text-xs font-bold text-text/50 -mt-1">
-                            {t('licensedUnder' as any) || 'Licensed under'} <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">AGPL-3.0</a>
-                        </div>
-                        <p className="text-sm text-text/80 leading-relaxed">
-                            {t('aboutDescription' as any) || 'A web application to create, edit, and use identification keys.'}
-                        </p>
-                        <div className="pt-4 flex justify-center w-full">
-                            <a href="https://github.com/crisper2001/taxon" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-5 py-3 bg-panel-bg/80 hover:bg-hover-bg rounded-2xl transition-all duration-300 font-bold text-sm text-text/80 shadow-sm border border-black/5 dark:border-white/5">
-                                <Icon name="Github" size={18} /> GitHub
-                            </a>
-                        </div>
-                    </div>
-                )}
-                  </div>
                 </div>
 
                 <div className="flex items-center justify-around bg-panel-bg/85 backdrop-blur-xl border border-white/20 dark:border-white/10 p-2 shrink-0 z-20 shadow-lg rounded-3xl m-4 mt-0">
