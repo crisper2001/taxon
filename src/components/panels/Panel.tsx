@@ -27,6 +27,8 @@ export const Panel: React.FC<PanelProps> = ({ title, icon, count, onSearch, chil
     <div
       className="panel flex flex-col h-full w-full bg-panel-bg/90 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl shadow-sm md:shadow-lg overflow-hidden relative"
       style={{ willChange: 'auto' }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       <div className="panel-header flex items-center justify-between p-3.5 border-b border-white/10 dark:border-white/5 bg-header-bg/85 backdrop-blur-md shadow-sm shrink-0 z-10">
         <div className="panel-title font-bold flex-1 min-w-0 flex items-center gap-2 whitespace-nowrap tracking-tight pr-2">
@@ -75,13 +77,11 @@ export const Panel: React.FC<PanelProps> = ({ title, icon, count, onSearch, chil
       <div
         className="panel-content overflow-y-auto grow p-2"
         style={{ contain: 'content', willChange: 'auto' }}
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
       >
         {children}
       </div>
       {footer && (
-        <div className="panel-footer absolute bottom-2 right-2 z-10" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+        <div className="panel-footer absolute bottom-2 right-2 z-10">
           {footer}
         </div>
       )}

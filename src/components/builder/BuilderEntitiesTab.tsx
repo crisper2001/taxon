@@ -469,7 +469,12 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
   };
 
   return (
-    <div className="flex flex-col w-full h-full animate-fade-in min-w-0 min-h-0 relative" style={{ willChange: 'auto' }}>
+    <div
+      className="flex flex-col w-full h-full animate-fade-in min-w-0 min-h-0 relative"
+      style={{ willChange: 'auto' }}
+      onMouseEnter={showFooter}
+      onMouseLeave={hideFooter}
+    >
       <BuilderListHeader
         title={t('kbEntities')}
         icon="Boxes"
@@ -481,7 +486,6 @@ export const BuilderEntitiesTab: React.FC<BuilderEntitiesTabProps> = React.memo(
       <div
         ref={containerRef}
         className={`panel-content grow p-3 flex flex-col transition-colors ${draggedItem || draggedMedia || isSwiping ? 'overflow-hidden touch-none' : 'overflow-y-auto'}`}
-        onMouseEnter={showFooter} onMouseLeave={hideFooter}
       >
         {renderEntityList()}
       </div>
