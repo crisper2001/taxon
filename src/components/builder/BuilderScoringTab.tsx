@@ -285,7 +285,11 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
   }
 
   return (
-    <div className="flex flex-col w-full h-full animate-fade-in min-w-0 min-h-0 relative">
+    <div
+      className="flex flex-col w-full h-full animate-fade-in min-w-0 min-h-0 relative"
+      onMouseEnter={showFooter}
+      onMouseLeave={hideFooter}
+    >
       <div className="p-4 border-b border-white/10 dark:border-white/5 flex items-center justify-between bg-header-bg/85 backdrop-blur-md shadow-sm shrink-0 md:rounded-tl-3xl z-50 gap-4">
         <div className="panel-title font-bold flex-1 min-w-0 flex items-center gap-2 whitespace-nowrap tracking-tight pr-2">
           <Icon name="Target" size={24} className="shrink-0 text-accent" />
@@ -322,7 +326,7 @@ export const BuilderScoringTab: React.FC<BuilderScoringTabProps> = React.memo(({
           </div>
         </div>
       </div>
-      <div className={`flex-1 bg-bg/30 relative custom-scrollbar min-w-0 min-h-0 ${isSwiping ? 'overflow-hidden touch-none' : 'overflow-auto'}`} onScroll={handleScroll} onMouseEnter={showFooter} onMouseLeave={hideFooter}>
+      <div className={`flex-1 bg-bg/30 relative custom-scrollbar min-w-0 min-h-0 ${isSwiping ? 'overflow-hidden touch-none' : 'overflow-auto'}`} onScroll={handleScroll}>
         <table
           id="scoring-matrix-table"
           ref={tableRef}

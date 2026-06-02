@@ -1,16 +1,72 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 2 94 24" fill="none">
-  <defs>
-    <linearGradient id="logo-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#5895f7" />
-      <stop offset="100%" stop-color="#3575dd" />
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 98 26"
+   fill="none"
+   version="1.1"
+   id="svg3"
+   sodipodi:docname="logo-dark.svg"
+   inkscape:version="1.4.3 (0d15f75042, 2025-12-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview3"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="13.795918"
+     inkscape:cx="49"
+     inkscape:cy="12.974852"
+     inkscape:window-width="1920"
+     inkscape:window-height="946"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg3" />
+  <defs
+     id="defs2">
+    <linearGradient
+       id="logo-gradient"
+       x1="0%"
+       y1="0%"
+       x2="100%"
+       y2="100%">
+      <stop
+         offset="0%"
+         stop-color="#5895f7"
+         id="stop1" />
+      <stop
+         offset="100%"
+         stop-color="#3575dd"
+         id="stop2" />
     </linearGradient>
   </defs>
-  <style>
+  <style
+     id="style2">
     @import url('https://fonts.googleapis.com/css2?family=Ubuntu+Sans:wght@800&amp;display=swap');
   </style>
-  <g stroke="url(#logo-gradient)" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" transform="translate(0, 2)">
-    <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
-    <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
+  <g
+     stroke="url(#logo-gradient)"
+     stroke-width="2.25"
+     stroke-linecap="round"
+     stroke-linejoin="round"
+     transform="translate(0, 1.5)"
+     id="g3">
+    <path
+       d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"
+       id="path2" />
+    <path
+       d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"
+       id="path3" />
   </g>
-  <text x="28" y="23" font-family="'Ubuntu Sans', system-ui, sans-serif" font-weight="800" font-size="24" fill="url(#logo-gradient)" letter-spacing="-0.5">Taxon</text>
+  <path
+     d="M 33.496,22.5 V 9.06 H 28.48 V 5.868 H 42.256 V 9.06 H 37.24 V 22.5 Z m 13.204035,0.264 q -1.632,0 -2.856,-0.384 -1.224,-0.408 -1.896,-1.32 -0.672,-0.912 -0.672,-2.448 0,-1.488 0.744,-2.352 0.768,-0.864 1.992,-1.224 1.224,-0.384 2.592,-0.384 0.696,0 1.224,0.072 0.552,0.048 0.888,0.144 v -0.336 q 0,-0.624 -0.24,-1.056 -0.24,-0.456 -0.792,-0.696 -0.528,-0.264 -1.44,-0.264 -0.912,0 -1.8,0.144 -0.888,0.12 -1.536,0.36 l -0.456,-2.88 q 0.624,-0.192 1.776,-0.384 1.176,-0.216 2.424,-0.216 2.112,0 3.312,0.624 1.2,0.624 1.68,1.8 0.504,1.152 0.504,2.736 v 7.44 q -0.768,0.168 -2.136,0.384 -1.368,0.24 -3.312,0.24 z m 0.24,-2.76 q 0.528,0 1.008,-0.024 0.48,-0.024 0.768,-0.072 v -2.712 q -0.216,-0.048 -0.648,-0.096 -0.432,-0.048 -0.792,-0.048 -0.672,0 -1.224,0.12 -0.552,0.12 -0.888,0.432 -0.336,0.312 -0.336,0.912 0,0.84 0.552,1.176 0.576,0.312 1.56,0.312 z m 6.507988,2.496 q 0.408,-0.816 1.128,-1.944 0.72,-1.152 1.584,-2.352 0.864,-1.2 1.68,-2.208 l -4.296,-6.12 h 3.864 l 2.496,3.84 2.496,-3.84 h 3.696 l -4.32,6.072 q 0.96,1.2 1.8,2.376 0.864,1.152 1.536,2.208 0.696,1.056 1.152,1.968 h -3.84 q -0.264,-0.504 -0.696,-1.248 -0.432,-0.768 -0.936,-1.56 -0.504,-0.816 -1.032,-1.464 -0.48,0.6 -0.984,1.368 -0.48,0.744 -0.912,1.512 -0.432,0.744 -0.768,1.392 z m 19.276062,0.336 q -1.848,0 -3.264,-0.84 -1.392,-0.84 -2.184,-2.328 -0.768,-1.512 -0.768,-3.504 0,-1.992 0.792,-3.48 0.816,-1.488 2.232,-2.304 1.416,-0.84 3.192,-0.84 1.824,0 3.216,0.84 1.392,0.816 2.184,2.304 0.792,1.488 0.792,3.48 0,1.992 -0.768,3.504 -0.768,1.488 -2.16,2.328 -1.368,0.84 -3.264,0.84 z m 0,-3.072 q 0.816,0 1.368,-0.432 0.576,-0.456 0.864,-1.248 0.312,-0.816 0.312,-1.92 0,-1.104 -0.312,-1.896 -0.288,-0.792 -0.864,-1.224 -0.552,-0.432 -1.368,-0.432 -0.816,0 -1.392,0.432 -0.576,0.432 -0.888,1.224 -0.288,0.792 -0.288,1.896 0,1.104 0.288,1.92 0.312,0.792 0.888,1.248 0.576,0.432 1.392,0.432 z M 81.176094,22.5 V 10.308 q 0.912,-0.264 2.352,-0.48 1.44,-0.24 3.024,-0.24 2.16,0 3.36,0.744 1.2,0.72 1.68,2.016 0.48,1.296 0.48,3.024 V 22.5 h -3.576 v -6.696 q 0,-1.152 -0.192,-1.848 -0.192,-0.696 -0.672,-1.008 -0.456,-0.312 -1.296,-0.312 -0.384,0 -0.816,0.048 -0.432,0.024 -0.768,0.072 V 22.5 Z"
+     id="text3"
+     style="font-weight:800;font-size:24px;font-family:'Ubuntu Sans', system-ui, sans-serif;letter-spacing:-0.5;fill:url(#logo-gradient)"
+     aria-label="Taxon" />
 </svg>

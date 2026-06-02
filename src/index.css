@@ -1,4 +1,64 @@
-@import url('https://fonts.googleapis.com/css2?family=Ubuntu+Sans:ital,wght@0,100..800;1,100..800&display=swap');
+/* Self-hosted Ubuntu Sans Font Families */
+/* ubuntu-sans-regular */
+@font-face {
+  font-family: 'Ubuntu Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ubuntu-sans-v4-latin-regular.woff2') format('woff2'),
+       url('/fonts/ubuntu-sans-v4-latin-regular.woff') format('woff');
+}
+
+/* ubuntu-sans-italic */
+@font-face {
+  font-family: 'Ubuntu Sans';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ubuntu-sans-v4-latin-italic.woff2') format('woff2'),
+       url('/fonts/ubuntu-sans-v4-latin-italic.woff') format('woff');
+}
+
+/* ubuntu-sans-500 */
+@font-face {
+  font-family: 'Ubuntu Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/ubuntu-sans-v4-latin-500.woff2') format('woff2'),
+       url('/fonts/ubuntu-sans-v4-latin-500.woff') format('woff');
+}
+
+/* ubuntu-sans-600 */
+@font-face {
+  font-family: 'Ubuntu Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/ubuntu-sans-v4-latin-600.woff2') format('woff2'),
+       url('/fonts/ubuntu-sans-v4-latin-600.woff') format('woff');
+}
+
+/* ubuntu-sans-700 */
+@font-face {
+  font-family: 'Ubuntu Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/ubuntu-sans-v4-latin-700.woff2') format('woff2'),
+       url('/fonts/ubuntu-sans-v4-latin-700.woff') format('woff');
+}
+
+/* ubuntu-sans-800 */
+@font-face {
+  font-family: 'Ubuntu Sans';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('/fonts/ubuntu-sans-v4-latin-800.woff2') format('woff2'),
+       url('/fonts/ubuntu-sans-v4-latin-800.woff') format('woff');
+}
+
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -13,6 +73,9 @@
   --color-hover-bg: #f1f3f5;
   --color-accent: var(--accent-color);
   --color-accent-hover: var(--accent-hover-color);
+
+  /* Override the default sans-serif font stack with Ubuntu Sans */
+  --font-sans: 'Ubuntu Sans', system-ui, -apple-system, sans-serif;
 }
 
 /* Dark Mode Overrides for Semantic Colors */
