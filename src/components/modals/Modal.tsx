@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../common/Icon';
 
@@ -48,6 +48,9 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
   const [isVisible, setIsVisible] = useState(false);
   const [modalId] = useState(() => `modal-${Math.random().toString(36).substr(2, 9)}`);
 
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     if (isOpen) {
       setIsRendered(true);
@@ -77,14 +80,14 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
 
   useEffect(() => {
     if (isRendered) {
-      registerModalToStack(modalId, onClose);
+      registerModalToStack(modalId, () => onCloseRef.current());
     } else {
       unregisterModalFromStack(modalId);
     }
     return () => {
       unregisterModalFromStack(modalId);
     };
-  }, [isRendered, onClose, modalId]);
+  }, [isRendered, modalId]);
 
   if (!isRendered) {
     return null;
