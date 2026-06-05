@@ -9,21 +9,32 @@ interface MarkdownInputProps {
   value: string;
   onChange: (value: string) => void;
   rows?: number;
+  maxLength?: number;
 }
 
-export const MarkdownInput: React.FC<MarkdownInputProps> = ({ label, value, onChange, rows = 3 }) => {
+export const MarkdownInput: React.FC<MarkdownInputProps> = ({ label, value, onChange, rows = 3, maxLength }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isPreview, setIsPreview] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const { t } = useAppContext();
 
+  const handleValueChange = (val: string) => {
+    if (maxLength !== undefined && val.length > maxLength) {
+      onChange(val.slice(0, maxLength));
+    } else {
+      onChange(val);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-1.5 min-w-0">
       <div className="flex items-end justify-between min-h-[32px] gap-2 min-w-0">
-        <span onClick={() => !isPreview && textareaRef.current?.focus()} className={`text-sm font-semibold opacity-80 shrink-0 ${!isPreview ? 'cursor-pointer' : ''}`}>{label}</span>
+        <span onClick={() => !isPreview && textareaRef.current?.focus()} className={`text-sm font-semibold opacity-80 shrink-0 ${!isPreview ? 'cursor-pointer' : ''}`}>
+          {label}
+        </span>
         <div className="flex items-center gap-2 min-w-0 justify-end">
           {!isPreview && (
-            <div className={`transition-opacity duration-200 min-w-0 ${isFocused ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}><MarkdownToolbar textareaRef={textareaRef} value={value} onChange={onChange} /></div>
+            <div className={`transition-opacity duration-200 min-w-0 ${isFocused ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}><MarkdownToolbar textareaRef={textareaRef} value={value} onChange={handleValueChange} /></div>
           )}
           <button
             type="button"
@@ -36,20 +47,29 @@ export const MarkdownInput: React.FC<MarkdownInputProps> = ({ label, value, onCh
         </div>
       </div>
       {isPreview ? (
-        <div className="input-base overflow-y-auto bg-panel-bg/50" style={{ minHeight: `calc(${rows} * 1.25rem + 1.5rem + 2px)` }}>
+        <div className="input-base overflow-y-auto bg-panel-bg/50 text-sm" style={{ height: `calc(${rows} * 1.25rem + 1.5rem + 2px)`, maxHeight: `calc(${rows} * 1.25rem + 1.5rem + 2px)` }}>
           <Markdown content={value} className="text-sm" />
         </div>
       ) : (
         <textarea
           ref={textareaRef}
           value={value}
-          onChange={e => onChange(e.target.value)}
+          onChange={e => handleValueChange(e.target.value)}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           className="input-base text-sm resize-none"
           rows={rows}
+          maxLength={maxLength}
         />
+      )}
+      {maxLength !== undefined && (
+        <div className="flex justify-end mt-1">
+          <span className="text-xs font-normal opacity-60">
+            {value.length} / {maxLength}
+          </span>
+        </div>
       )}
     </div>
   );
 };
+
