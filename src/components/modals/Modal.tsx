@@ -19,9 +19,10 @@ export const registerModalToStack = (id: string, onClose: () => void) => {
   }
   const existingIndex = modalStack.findIndex(m => m.id === id);
   if (existingIndex > -1) {
-    modalStack.splice(existingIndex, 1);
+    modalStack[existingIndex].onClose = onClose;
+  } else {
+    modalStack.push({ id, onClose });
   }
-  modalStack.push({ id, onClose });
 };
 
 export const unregisterModalFromStack = (id: string) => {
@@ -75,7 +76,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
   }, [isRendered, isOpen]);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isRendered) {
       registerModalToStack(modalId, onClose);
     } else {
       unregisterModalFromStack(modalId);
@@ -83,7 +84,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
     return () => {
       unregisterModalFromStack(modalId);
     };
-  }, [isOpen, onClose, modalId]);
+  }, [isRendered, onClose, modalId]);
 
   if (!isRendered) {
     return null;
