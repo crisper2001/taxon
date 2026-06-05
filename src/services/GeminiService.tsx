@@ -13,7 +13,7 @@ export async function callGeminiAPI(
 ): Promise<GeminiResponse> {
 
   if (!apiKey) {
-    throw new Error("API key is not configured. Please add it in the preferences menu.");
+    throw new Error("errApiKeyNotConfigured");
   }
   const ai = new GoogleGenAI({ apiKey });
 
@@ -168,9 +168,9 @@ export async function callGeminiAPI(
     let message = error.response?.data?.error?.message || error.message || "An unknown error occurred.";
 
     if (error.status === 403 || message.toLowerCase().includes('api key not valid') || message.toLowerCase().includes('forbidden')) {
-      message = "Invalid API key. Please check your API key in the preferences.";
+      throw new Error("errInvalidApiKey");
     } else if (error.status === 429 || message.toLowerCase().includes('quota') || message.toLowerCase().includes('too many requests') || message.toLowerCase().includes('exhausted')) {
-      message = "API quota exceeded. Please try again later or check your billing account.";
+      throw new Error("errApiQuotaExceeded");
     }
 
     throw new Error(`Gemini API Error: ${message}`);
