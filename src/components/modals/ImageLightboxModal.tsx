@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Icon } from '../common/Icon';
 import type { Media } from '../../types';
 import { useAppContext } from '../../context/AppContext';
@@ -285,7 +286,7 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
 
   if (!isRendered || !activeMedia || activeMedia.length === 0) return null;
 
-  return (
+  return createPortal(
     <div onClick={onClose} className={`fixed inset-0 bg-black/80 backdrop-blur-2xl z-70 flex flex-col items-center transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
 
       <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="absolute top-6 right-6 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full p-2.5 transition-all duration-300 z-50 backdrop-blur-md cursor-pointer border border-white/10 shadow-lg hover:shadow-xl">
@@ -393,6 +394,7 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ isOpen, 
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 };
