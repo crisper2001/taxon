@@ -401,7 +401,14 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
   const [selectedFeatureId, setSelectedFeatureId] = useState<string | null>(null);
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [draggedMedia, setDraggedMedia] = useState<{ type: 'feature' | 'entity' | 'state', itemId: string, stateId?: string, index: number } | null>(null);
-  const [editingMedia, setEditingMedia] = useState<{ type: 'feature' | 'entity' | 'state', itemId: string, stateId?: string, mediaIndex: number } | null>(null);
+  const [editingMedia, setEditingMedia] = useState<{
+    type: 'feature' | 'entity' | 'state',
+    itemId: string,
+    stateId?: string,
+    mediaIndex: number,
+    mediaObj?: Media,
+    onUpdate?: (updates: Partial<Media>) => void
+  } | null>(null);
   const [draggedItem, setDraggedItem] = useState<{ type: 'feature' | 'entity' | 'state', id: string, parentId?: string } | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'feature' | 'state' | 'entity' | 'featureMedia' | 'stateMedia' | 'entityMedia', id: string, parentId?: string, mediaIndex?: number } | null>(null);
@@ -423,7 +430,35 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
     activeTab === 'scoring'
   );
 
+  const validateDraftKey = (draft: DraftKeyData): boolean => {
+    if (!draft.title || draft.title.trim() === '') {
+      return false;
+    }
+    for (const f of draft.features) {
+      if (!f.name || f.name.trim() === '') {
+        return false;
+      }
+      if (f.states) {
+        for (const s of f.states) {
+          if (!s.name || s.name.trim() === '') {
+            return false;
+          }
+        }
+      }
+    }
+    for (const e of draft.entities) {
+      if (!e.name || e.name.trim() === '') {
+        return false;
+      }
+    }
+    return true;
+  };
+
   const exportJson = async () => {
+    if (!validateDraftKey(draftKey)) {
+      appContext.addToast(appContext.t('errValidationFailed'));
+      return;
+    }
     const fileName = `${draftKey.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'draft_key'}.json`;
     const jsonString = JSON.stringify(draftKey, null, 2);
 
@@ -632,19 +667,25 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
   };
 
   const activeEditingMedia = editingMedia ? (
-    editingMedia.type === 'feature' ? draftKey.features.find(f => f.id === editingMedia.itemId)?.media?.[editingMedia.mediaIndex] :
-      editingMedia.type === 'entity' ? draftKey.entities.find(e => e.id === editingMedia.itemId)?.media?.[editingMedia.mediaIndex] :
-        draftKey.features.find(f => f.id === editingMedia.itemId)?.states.find(s => s.id === editingMedia.stateId)?.media?.[editingMedia.mediaIndex]
+    editingMedia.mediaObj || (
+      editingMedia.type === 'feature' ? draftKey.features.find(f => f.id === editingMedia.itemId)?.media?.[editingMedia.mediaIndex] :
+        editingMedia.type === 'entity' ? draftKey.entities.find(e => e.id === editingMedia.itemId)?.media?.[editingMedia.mediaIndex] :
+          draftKey.features.find(f => f.id === editingMedia.itemId)?.states.find(s => s.id === editingMedia.stateId)?.media?.[editingMedia.mediaIndex]
+    )
   ) : null;
 
   const handleUpdateMedia = (updates: Partial<Media>) => {
     if (!editingMedia) return;
-    if (editingMedia.type === 'feature') {
-      updateFeatureMedia(editingMedia.itemId, editingMedia.mediaIndex, updates);
-    } else if (editingMedia.type === 'entity') {
-      updateEntityMedia(editingMedia.itemId, editingMedia.mediaIndex, updates);
-    } else if (editingMedia.type === 'state' && editingMedia.stateId) {
-      updateStateMedia(editingMedia.itemId, editingMedia.stateId, editingMedia.mediaIndex, updates);
+    if (editingMedia.onUpdate) {
+      editingMedia.onUpdate(updates);
+    } else {
+      if (editingMedia.type === 'feature') {
+        updateFeatureMedia(editingMedia.itemId, editingMedia.mediaIndex, updates);
+      } else if (editingMedia.type === 'entity') {
+        updateEntityMedia(editingMedia.itemId, editingMedia.mediaIndex, updates);
+      } else if (editingMedia.type === 'state' && editingMedia.stateId) {
+        updateStateMedia(editingMedia.itemId, editingMedia.stateId, editingMedia.mediaIndex, updates);
+      }
     }
   };
 
@@ -676,7 +717,13 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
       <ActionButton onClick={handleRequestOpenKey} title={t('openNativeKey')} icon="FolderOpen" />
       <ActionButton onClick={exportJson} title={t('exportJson')} icon="Save" />
       <ActionButton onClick={() => setShowMetadataModal(true)} title={t('keyInfo')} icon="Info" />
-      <ActionButton onClick={() => onTestKey?.(draftKey)} title={t('kbTestKey' as any)} icon="Play" iconClass="text-accent" />
+      <ActionButton onClick={() => {
+        if (!validateDraftKey(draftKey)) {
+          appContext.addToast(appContext.t('errValidationFailed'));
+          return;
+        }
+        onTestKey?.(draftKey);
+      }} title={t('kbTestKey' as any)} icon="Play" iconClass="text-accent" />
       <ActionButton onClick={openPreferences} title={t('preferences')} icon="Settings2" />
       <div className="w-px h-6 bg-border mx-1 opacity-50" />
       <ActionButton onClick={undo} disabled={historyIndex <= 0} title={t('kbUndo')} icon="Undo" />
@@ -720,7 +767,13 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
     { icon: 'FolderOpen', label: t('openNativeKey'), onClick: handleRequestOpenKey },
     { icon: 'Save', label: t('exportJson'), onClick: exportJson },
     { icon: 'Info', label: t('keyInfo'), onClick: () => setShowMetadataModal(true) },
-    { icon: 'Play', label: t('kbTestKey' as any), onClick: () => onTestKey?.(draftKey), iconClass: 'text-accent' }
+    { icon: 'Play', label: t('kbTestKey' as any), onClick: () => {
+      if (!validateDraftKey(draftKey)) {
+        appContext.addToast(appContext.t('errValidationFailed'));
+        return;
+      }
+      onTestKey?.(draftKey);
+    }, iconClass: 'text-accent' }
   ];
 
   const isModalOpen = !!selectedFeatureId || !!selectedEntityId || showMetadataModal || !!deleteTarget || !!editingMedia || !!keyPromptMode;
