@@ -122,12 +122,33 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
         setLocalFeatureBaseUnit(selectedFeature.base_unit || 'none');
         setLocalFeatureMedia(selectedFeature.media ? [...selectedFeature.media] : []);
       }
+    } else if (isOpen) {
+      // If the modal is already open and we haven't switched to a different entity,
+      // update cached state objects if parent props have been updated (e.g. type change or adding a state).
+      if (selectedFeature && localFeature && selectedFeature.id === localFeature.id) {
+        if (selectedFeature !== localFeature) {
+          setLocalFeature(selectedFeature);
+        }
+        if (selectedFeature.type !== localFeature.type) {
+          setLocalFeatureMatchType(selectedFeature.matchType || 'OR');
+          setLocalFeatureUnitPrefix(selectedFeature.unit_prefix || 'none');
+          setLocalFeatureBaseUnit(selectedFeature.base_unit || 'none');
+        }
+      }
+      if (selectedState && localState && selectedState.id === localState.id) {
+        if (selectedState !== localState) {
+          setLocalState(selectedState);
+        }
+        if (selectedStateParent !== localStateParent) {
+          setLocalStateParent(selectedStateParent);
+        }
+      }
     }
     prevIsOpenRef.current = isOpen;
     if (!isOpen) {
       prevIdRef.current = null;
     }
-  }, [isOpen, selectedFeature, selectedState, selectedStateParent]);
+  }, [isOpen, selectedFeature, selectedState, selectedStateParent, localFeature, localState, localStateParent]);
 
   const isFeatureNameEmpty = localFeatureName.trim() === '';
   const isStateNameEmpty = localStateName.trim() === '';
