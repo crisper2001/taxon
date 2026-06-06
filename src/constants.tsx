@@ -150,25 +150,6 @@ export const translations = {
         kbSingleSelection: 'Single Selection',
         kbMatchTypeHelp: 'OR: Matches any selected state.\nAND: Matches all selected states.\nSINGLE: Restricts to a single selection.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Imported from Lucid Key format', formatNativeDesc: 'Native Taxon Key format',
-        whatsNew: "What's New in v{version}",
-        newFeatures: 'New Features',
-        improvements: 'Improvements',
-        bugFixes: 'Bug Fixes',
-        changelogFeat1: 'Support for reordering features, states, and entities',
-        changelogFeat2: 'Search boxes in create mode',
-        changelogFeat3: 'Match types for features',
-        changelogFeat4: 'Options to consider uncertain and misinterpreted features',
-        changelogFeat5: 'Option to toggle animations',
-        changelogMod1: '"New Key" and "Save Key" icons changed',
-        changelogMod2: 'Auto-convert Lucid keys to native format',
-        changelogMod3: 'Better support for Lucid keys',
-        changelogMod4: 'Ubuntu Sans is now the default font',
-        changelogMod5: 'Display logic of the save key modal before creating or opening a new key',
-        changelogMod6: 'General refactoring',
-        changelogFix1: '"New Key" modal no longer turns into the "Open Key" modal when closed',
-        changelogFix2: 'Feature editing modal title no longer displays the name of the last opened state',
-        changelogFix3: 'Mobile sidebar background no longer disappears before the buttons',
-        changelogFix4: 'Modal opening animations are no longer skipped',
     },
     'pt-br': {
         openNativeKey: 'Abrir Chave', clearFeatures: 'Limpar Características', preferences: 'Preferências', assistant: 'Spot',
@@ -303,22 +284,6 @@ export const translations = {
         kbSingleSelection: 'Seleção Única',
         kbMatchTypeHelp: 'OU: Corresponde a qualquer estado selecionado.\nE: Corresponde a todos os estados selecionados.\nÚNICA: Restringe a uma única seleção.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Importado do formato Lucid Key', formatNativeDesc: 'Formato nativo Taxon Key',
-        whatsNew: 'O que há de novo na v{version}', newFeatures: 'Novos Recursos', improvements: 'Melhorias', bugFixes: 'Correções de Bugs',
-        changelogFeat1: 'Suporte para reordenar características, estados e entidades',
-        changelogFeat2: 'Caixas de pesquisa no modo de criação',
-        changelogFeat3: 'Tipos de correspondência para características',
-        changelogFeat4: 'Opções para considerar características incertas e mal interpretadas',
-        changelogFeat5: 'Opção para alternar animações',
-        changelogMod1: 'Ícones de "Nova Chave" e "Salvar Chave" alterados',
-        changelogMod2: 'Conversão automática de chaves Lucid para formato nativo',
-        changelogMod3: 'Melhor suporte para chaves Lucid',
-        changelogMod4: 'Ubuntu Sans agora é a fonte padrão',
-        changelogMod5: 'Lógica de exibição do modal para salvar chave antes de criar ou abir uma nova chave',
-        changelogMod6: 'Refatoração geral',
-        changelogFix1: 'Modal "Nova Chave" não se transforma mais no modal "Abrir Chave" ao ser fechado',
-        changelogFix2: 'Título do modal de edição de características não exibe mais o nome do último estado aberto',
-        changelogFix3: 'Fundo da barra lateral mobile não desaparece mais antes dos botões',
-        changelogFix4: 'Animações de abertura dos modais não são mais puladas',
     },
     'pt-pt': {
         openNativeKey: 'Abrir Chave', clearFeatures: 'Limpar Características', preferences: 'Preferências', assistant: 'Spot',
@@ -453,7 +418,6 @@ export const translations = {
         kbSingleSelection: 'Seleção Única',
         kbMatchTypeHelp: 'OU: Corresponde a qualquer estado selecionado.\nE: Corresponde a todos os estados selecionados.\nÚNICA: Restringe a uma única seleção.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Importado do formato Lucid Key', formatNativeDesc: 'Formato nativo Taxon Key',
-        whatsNew: 'O que há de novo na v{version}', newFeatures: 'Novas Funcionalidades', improvements: 'Melhorias', bugFixes: 'Correções de Erros',
     },
     'es': {
         openNativeKey: 'Abrir Clave', clearFeatures: 'Borrar Características', preferences: 'Preferencias', assistant: 'Spot',
@@ -588,7 +552,6 @@ export const translations = {
         kbSingleSelection: 'Selección Única',
         kbMatchTypeHelp: 'O: Coincide con cualquier estado seleccionado.\nY: Coincide con todos los estados seleccionados.\nÚNICA: Restringe a una sola selección.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Importado del formato Lucid Key', formatNativeDesc: 'Formato nativo Taxon Key',
-        whatsNew: 'Novedades de la v{version}', newFeatures: 'Nuevas Características', improvements: 'Mejoras', bugFixes: 'Corrección de Errores',
     },
     'ru': {
         openNativeKey: 'Открыть ключ', clearFeatures: 'Очистить признаки', preferences: 'Настройки', assistant: 'Барбос',
@@ -714,7 +677,6 @@ export const translations = {
         kbSingleSelection: 'Одиночный выбор',
         kbMatchTypeHelp: 'ИЛИ: Соответствует любому выбранному состоянию.\nИ: Соответствует всем выбранным состояниям.\nОДИНОЧНЫЙ: Ограничивает выбор до одного.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Импортировано из формата Lucid Key', formatNativeDesc: 'Собственный формат Taxon Key',
-        whatsNew: 'Что нового в v{version}', newFeatures: 'Новые функции', improvements: 'Улучшения', bugFixes: 'Исправления ошибок',
     },
     'zh': {
         openNativeKey: '打开密钥', clearFeatures: '清除特征', preferences: '偏好设置', assistant: 'Spot',
@@ -840,7 +802,6 @@ export const translations = {
         kbSingleSelection: '单选',
         kbMatchTypeHelp: 'OR：匹配任何选定状态。\nAND：匹配所有选定状态。\nSINGLE：仅允许单选。',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: '从 Lucid Key 格式导入', formatNativeDesc: '原生 Taxon Key 格式',
-        whatsNew: 'v{version} 的新功能', newFeatures: '新功能', improvements: '改进', bugFixes: '错误修复',
     },
     'ja': {
         openNativeKey: 'キーを開く', clearFeatures: '特徴をクリア', preferences: '設定', assistant: 'スポット',
@@ -966,7 +927,6 @@ export const translations = {
         kbSingleSelection: '単一選択',
         kbMatchTypeHelp: 'OR：選択した状態のいずれかに一致。\nAND：選択したすべての状態に一致。\nSINGLE：単一の選択に制限します。',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Lucid Key 形式からインポート', formatNativeDesc: 'ネイティブ Taxon Key 形式',
-        whatsNew: 'v{version} の新機能', newFeatures: '新機能', improvements: '改善点', bugFixes: 'バグ修正',
     },
     'ko': {
         openNativeKey: '키 열기', clearFeatures: '특징 지우기', preferences: '환경설정', assistant: '스팟',
@@ -1092,7 +1052,6 @@ export const translations = {
         kbSingleSelection: '단일 선택',
         kbMatchTypeHelp: 'OR: 선택한 상태 중 하나라도 일치.\nAND: 선택한 모든 상태와 일치.\nSINGLE: 단일 선택으로 제한합니다.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Lucid Key 형식에서 가져옴', formatNativeDesc: '기본 Taxon Key 형식',
-        whatsNew: 'v{version}의 새로운 기능', newFeatures: '새로운 기능', improvements: '개선 사항', bugFixes: '버그 수정',
     },
     'fr': {
         openNativeKey: 'Ouvrir la Clé', clearFeatures: 'Effacer les caractéristiques', preferences: 'Préférences', assistant: 'Spot',
@@ -1218,7 +1177,6 @@ export const translations = {
         kbSingleSelection: 'Sélection Unique',
         kbMatchTypeHelp: 'OU : Correspond à n\'importe quel état sélectionné.\nET : Correspond à tous les états sélectionnés.\nUNIQUE : Limite à une seule sélection.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Importé du format Lucid Key', formatNativeDesc: 'Format natif Taxon Key',
-        whatsNew: 'Quoi de neuf dans la v{version}', newFeatures: 'Nouvelles Fonctionnalités', improvements: 'Améliorations', bugFixes: 'Corrections de Bugs',
     },
     'de': {
         openNativeKey: 'Schlüssel öffnen', clearFeatures: 'Merkmale löschen', preferences: 'Einstellungen', assistant: 'Spot',
@@ -1344,7 +1302,6 @@ export const translations = {
         kbSingleSelection: 'Einfachauswahl',
         kbMatchTypeHelp: 'ODER: Stimmt mit einem ausgewählten Zustand überein.\nUND: Stimmt mit allen ausgewählten Zuständen überein.\nEINZEL: Beschränkt auf eine einzige Auswahl.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Aus Lucid Key Format importiert', formatNativeDesc: 'Natives Taxon Key Format',
-        whatsNew: 'Was ist neu in v{version}', newFeatures: 'Neue Funktionen', improvements: 'Verbesserungen', bugFixes: 'Fehlerbehebungen',
     },
     'la': {
         openNativeKey: 'Aperi Clavem Nativam', clearFeatures: 'Proprietates Purgare', preferences: 'Praeferentiae', assistant: 'Spotus',
@@ -1470,7 +1427,6 @@ export const translations = {
         kbSingleSelection: 'Electio Singula',
         kbMatchTypeHelp: 'VEL: Congruit ulli statui electo.\nET: Congruit omnibus statibus electis.\nSINGULA: Restringit ad unam electionem.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Ex forma Lucid Key importatum', formatNativeDesc: 'Forma nativa Taxon Key',
-        whatsNew: 'Quid novi in v{version}', newFeatures: 'Novae Proprietates', improvements: 'Emendationes', bugFixes: 'Correctiones Errorum',
     },
     'it': {
         openNativeKey: 'Apri Chiave', clearFeatures: 'Cancella Caratteristiche', preferences: 'Preferenze', assistant: 'Spot',
@@ -1596,7 +1552,6 @@ export const translations = {
         kbSingleSelection: 'Selezione Singola',
         kbMatchTypeHelp: 'O: Corrisponde a qualsiasi stato selezionato.\nE: Corrisponde a tutti gli stati selezionati.\nSINGOLA: Limita a una singola selezione.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Importato dal formato Lucid Key', formatNativeDesc: 'Formato nativo Taxon Key',
-        whatsNew: 'Novità nella v{version}', newFeatures: 'Nuove Funzionalità', improvements: 'Miglioramenti', bugFixes: 'Correzioni di Bug',
     },
     'el': {
         openNativeKey: 'Άνοιγμα Κλειδιού', clearFeatures: 'Καθαρισμός Χαρακτηριστικών', preferences: 'Προτιμήσεις', assistant: 'Spot',
@@ -1722,7 +1677,6 @@ export const translations = {
         kbSingleSelection: 'Απλή Επιλογή',
         kbMatchTypeHelp: 'Ή: Ταιριάζει με οποιαδήποτε επιλεγμένη κατάσταση.\nΚΑΙ: Ταιριάζει με όλες τις επιλεγμένες καταστάσεις.\nΑΠΛΗ: Περιορίζει σε μία μόνο επιλογή.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Εισήχθη από μορφή Lucid Key', formatNativeDesc: 'Εγγενής μορφή Taxon Key',
-        whatsNew: 'Τι νέο υπάρχει στην v{version}', newFeatures: 'Νέα Χαρακτηριστικά', improvements: 'Βελτιώσεις', bugFixes: 'Διορθώσεις Σφαλμάτων',
     },
     'hi': {
         openNativeKey: 'कुंजी खोलें', clearFeatures: 'विशेषताएं साफ़ करें', preferences: 'प्राथमिकताएं', assistant: 'स्पॉट',
@@ -1848,7 +1802,6 @@ export const translations = {
         kbSingleSelection: 'एकल चयन',
         kbMatchTypeHelp: 'या: किसी भी चयनित स्थिति से मेल खाता है।\nऔर: सभी चयनित स्थितियों से मेल खाता है।\nएकल: एकल चयन तक सीमित करता है।',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Lucid Key प्रारूप से आयातित', formatNativeDesc: 'मूल Taxon Key प्रारूप',
-        whatsNew: 'v{version} में नया क्या है', newFeatures: 'नई विशेषताएं', improvements: 'सुधार', bugFixes: 'बग फिक्स',
     },
     'ar': {
         openNativeKey: 'فتح المفتاح', clearFeatures: 'مسح الميزات', preferences: 'التفضيلات', assistant: 'سبوت',
@@ -1974,7 +1927,6 @@ export const translations = {
         kbSingleSelection: 'اختيار فردي',
         kbMatchTypeHelp: 'أو: يطابق أي حالة محددة.\nو: يطابق جميع الحالات المحددة.\nفردي: يقصر على اختيار واحد فقط.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'مستورد من تنسيق مفتاح Lucid', formatNativeDesc: 'تنسيق مفتاح Taxon الأصلي',
-        whatsNew: 'ما الجديد في v{version}', newFeatures: 'الميزات الجديدة', improvements: 'التحسينات', bugFixes: 'إصلاحات الأخطاء',
     },
     'he': {
         openNativeKey: 'פתח מפתח', clearFeatures: 'נקה תכונות', preferences: 'העדפות', assistant: 'ספוט',
@@ -2100,6 +2052,5 @@ export const translations = {
         kbSingleSelection: 'בחירה יחידה',
         kbMatchTypeHelp: 'או: מתאים לכל מצב שנבחר.\nוגם: מתאים לכל המצבים שנבחרו.\nיחיד: מגביל לבחירה אחת בלבד.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'יובא מפורמט Lucid Key', formatNativeDesc: 'פורמט מפתח Taxon מקורי',
-        whatsNew: 'מה חדש ב-v{version}', newFeatures: 'תכונות חדשות', improvements: 'שיפורים', bugFixes: 'תיקוני באגים',
     }
 };
