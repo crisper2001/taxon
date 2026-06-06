@@ -150,6 +150,7 @@ export const translations = {
         kbSingleSelection: 'Single Selection',
         kbMatchTypeHelp: 'OR: Matches any selected state.\nAND: Matches all selected states.\nSINGLE: Restricts to a single selection.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Imported from Lucid Key format', formatNativeDesc: 'Native Taxon Key format',
+        selectImportModePrompt: 'How would you like to open this key?',
     },
     'pt-br': {
         openNativeKey: 'Abrir Chave', clearFeatures: 'Limpar Características', preferences: 'Preferências', assistant: 'Spot',
@@ -284,6 +285,7 @@ export const translations = {
         kbSingleSelection: 'Seleção Única',
         kbMatchTypeHelp: 'OU: Corresponde a qualquer estado selecionado.\nE: Corresponde a todos os estados selecionados.\nÚNICA: Restringe a uma única seleção.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Importado do formato Lucid Key', formatNativeDesc: 'Formato nativo Taxon Key',
+        selectImportModePrompt: 'Como você deseja abrir esta chave?',
     },
     'pt-pt': {
         openNativeKey: 'Abrir Chave', clearFeatures: 'Limpar Características', preferences: 'Preferências', assistant: 'Spot',
@@ -418,6 +420,7 @@ export const translations = {
         kbSingleSelection: 'Seleção Única',
         kbMatchTypeHelp: 'OU: Corresponde a qualquer estado selecionado.\nE: Corresponde a todos os estados selecionados.\nÚNICA: Restringe a uma única seleção.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Importado do formato Lucid Key', formatNativeDesc: 'Formato nativo Taxon Key',
+        selectImportModePrompt: 'Como deseja abrir esta chave?',
     },
     'es': {
         openNativeKey: 'Abrir Clave', clearFeatures: 'Borrar Características', preferences: 'Preferencias', assistant: 'Spot',
@@ -552,6 +555,7 @@ export const translations = {
         kbSingleSelection: 'Selección Única',
         kbMatchTypeHelp: 'O: Coincide con cualquier estado seleccionado.\nY: Coincide con todos los estados seleccionados.\nÚNICA: Restringe a una sola selección.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Importado del formato Lucid Key', formatNativeDesc: 'Formato nativo Taxon Key',
+        selectImportModePrompt: '¿Cómo desea abrir esta clave?',
     },
     'ru': {
         openNativeKey: 'Открыть ключ', clearFeatures: 'Очистить признаки', preferences: 'Настройки', assistant: 'Барбос',
@@ -677,6 +681,7 @@ export const translations = {
         kbSingleSelection: 'Одиночный выбор',
         kbMatchTypeHelp: 'ИЛИ: Соответствует любому выбранному состоянию.\nИ: Соответствует всем выбранным состояниям.\nОДИНОЧНЫЙ: Ограничивает выбор до одного.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Импортировано из формата Lucid Key', formatNativeDesc: 'Собственный формат Taxon Key',
+        selectImportModePrompt: 'Как вы хотите открыть этот ключ?',
     },
     'zh': {
         openNativeKey: '打开密钥', clearFeatures: '清除特征', preferences: '偏好设置', assistant: 'Spot',
@@ -802,6 +807,7 @@ export const translations = {
         kbSingleSelection: '单选',
         kbMatchTypeHelp: 'OR：匹配任何选定状态。\nAND：匹配所有选定状态。\nSINGLE：仅允许单选。',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: '从 Lucid Key 格式导入', formatNativeDesc: '原生 Taxon Key 格式',
+        selectImportModePrompt: '您想如何打开此密钥？',
     },
     'ja': {
         openNativeKey: 'キーを開く', clearFeatures: '特徴をクリア', preferences: '設定', assistant: 'スポット',
@@ -927,6 +933,7 @@ export const translations = {
         kbSingleSelection: '単一選択',
         kbMatchTypeHelp: 'OR：選択した状態のいずれかに一致。\nAND：選択したすべての状態に一致。\nSINGLE：単一の選択に制限します。',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Lucid Key 形式からインポート', formatNativeDesc: 'ネイティブ Taxon Key 形式',
+        selectImportModePrompt: 'このキーをどのように開きますか？',
     },
     'ko': {
         openNativeKey: '키 열기', clearFeatures: '특징 지우기', preferences: '환경설정', assistant: '스팟',
@@ -1052,6 +1059,7 @@ export const translations = {
         kbSingleSelection: '단일 선택',
         kbMatchTypeHelp: 'OR: 선택한 상태 중 하나라도 일치.\nAND: 선택한 모든 상태와 일치.\nSINGLE: 단일 선택으로 제한합니다.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Lucid Key 형식에서 가져옴', formatNativeDesc: '기본 Taxon Key 형식',
+        selectImportModePrompt: '이 키를 어떻게 여시겠습니까?',
     },
     'fr': {
         openNativeKey: 'Ouvrir la Clé', clearFeatures: 'Effacer les caractéristiques', preferences: 'Préférences', assistant: 'Spot',
@@ -1177,6 +1185,7 @@ export const translations = {
         kbSingleSelection: 'Sélection Unique',
         kbMatchTypeHelp: 'OU : Correspond à n\'importe quel état sélectionné.\nET : Correspond à tous les états sélectionnés.\nUNIQUE : Limite à une seule sélection.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Importé du format Lucid Key', formatNativeDesc: 'Format natif Taxon Key',
+        selectImportModePrompt: 'Comment souhaitez-vous ouvrir cette clé ?',
     },
     'de': {
         openNativeKey: 'Schlüssel öffnen', clearFeatures: 'Merkmale löschen', preferences: 'Einstellungen', assistant: 'Spot',
@@ -1302,6 +1311,7 @@ export const translations = {
         kbSingleSelection: 'Einfachauswahl',
         kbMatchTypeHelp: 'ODER: Stimmt mit einem ausgewählten Zustand überein.\nUND: Stimmt mit allen ausgewählten Zuständen überein.\nEINZEL: Beschränkt auf eine einzige Auswahl.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Aus Lucid Key Format importiert', formatNativeDesc: 'Natives Taxon Key Format',
+        selectImportModePrompt: 'Wie möchten Sie diesen Schlüssel öffnen?',
     },
     'la': {
         openNativeKey: 'Aperi Clavem Nativam', clearFeatures: 'Proprietates Purgare', preferences: 'Praeferentiae', assistant: 'Spotus',
@@ -1427,6 +1437,7 @@ export const translations = {
         kbSingleSelection: 'Electio Singula',
         kbMatchTypeHelp: 'VEL: Congruit ulli statui electo.\nET: Congruit omnibus statibus electis.\nSINGULA: Restringit ad unam electionem.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Ex forma Lucid Key importatum', formatNativeDesc: 'Forma nativa Taxon Key',
+        selectImportModePrompt: 'Quomodo hanc clavem aperire vis?',
     },
     'it': {
         openNativeKey: 'Apri Chiave', clearFeatures: 'Cancella Caratteristiche', preferences: 'Preferenze', assistant: 'Spot',
@@ -1552,6 +1563,7 @@ export const translations = {
         kbSingleSelection: 'Selezione Singola',
         kbMatchTypeHelp: 'O: Corrisponde a qualsiasi stato selezionato.\nE: Corrisponde a tutti gli stati selezionati.\nSINGOLA: Limita a una singola selezione.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Importato dal formato Lucid Key', formatNativeDesc: 'Formato nativo Taxon Key',
+        selectImportModePrompt: 'Come desideri aprire questa chiave?',
     },
     'el': {
         openNativeKey: 'Άνοιγμα Κλειδιού', clearFeatures: 'Καθαρισμός Χαρακτηριστικών', preferences: 'Προτιμήσεις', assistant: 'Spot',
@@ -1677,6 +1689,7 @@ export const translations = {
         kbSingleSelection: 'Απλή Επιλογή',
         kbMatchTypeHelp: 'Ή: Ταιριάζει με οποιαδήποτε επιλεγμένη κατάσταση.\nΚΑΙ: Ταιριάζει με όλες τις επιλεγμένες καταστάσεις.\nΑΠΛΗ: Περιορίζει σε μία μόνο επιλογή.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Εισήχθη από μορφή Lucid Key', formatNativeDesc: 'Εγγενής μορφή Taxon Key',
+        selectImportModePrompt: 'Πώς θα θέλατε να ανοίξετε αυτό το κλειδί;',
     },
     'hi': {
         openNativeKey: 'कुंजी खोलें', clearFeatures: 'विशेषताएं साफ़ करें', preferences: 'प्राथमिकताएं', assistant: 'स्पॉट',
@@ -1802,6 +1815,7 @@ export const translations = {
         kbSingleSelection: 'एकल चयन',
         kbMatchTypeHelp: 'या: किसी भी चयनित स्थिति से मेल खाता है।\nऔर: सभी चयनित स्थितियों से मेल खाता है।\nएकल: एकल चयन तक सीमित करता है।',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'Lucid Key प्रारूप से आयातित', formatNativeDesc: 'मूल Taxon Key प्रारूप',
+        selectImportModePrompt: 'आप इस कुंजी को कैसे खोलना चाहेंगे?',
     },
     'ar': {
         openNativeKey: 'فتح المفتاح', clearFeatures: 'مسح الميزات', preferences: 'التفضيلات', assistant: 'سبوت',
@@ -1927,6 +1941,7 @@ export const translations = {
         kbSingleSelection: 'اختيار فردي',
         kbMatchTypeHelp: 'أو: يطابق أي حالة محددة.\nو: يطابق جميع الحالات المحددة.\nفردي: يقصر على اختيار واحد فقط.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'مستورد من تنسيق مفتاح Lucid', formatNativeDesc: 'تنسيق مفتاح Taxon الأصلي',
+        selectImportModePrompt: 'كيف تريد فتح هذا المفتاح؟',
     },
     'he': {
         openNativeKey: 'פתח מפתח', clearFeatures: 'נקה תכונות', preferences: 'העדפות', assistant: 'ספוט',
@@ -2052,5 +2067,6 @@ export const translations = {
         kbSingleSelection: 'בחירה יחידה',
         kbMatchTypeHelp: 'או: מתאים לכל מצב שנבחר.\nוגם: מתאים לכל המצבים שנבחרו.\nיחיד: מגביל לבחירה אחת בלבד.',
         formatLucid: 'Lucid', formatNative: 'Taxon JSON', formatLucidDesc: 'יובא מפורמט Lucid Key', formatNativeDesc: 'פורמט מפתח Taxon מקורי',
+        selectImportModePrompt: 'כיצד תרצה לפתוח מפתח זה?',
     }
 };

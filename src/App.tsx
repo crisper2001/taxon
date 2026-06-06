@@ -4,7 +4,7 @@ import { LucidKeyParser } from './services';
 import { FeaturesPanel, EntitiesPanel, ChosenFeaturesPanel } from './components';
 import { AIAssistant } from './components/';
 import { ResizablePanels } from './components';
-import { EntityModal, PreferencesModal, KeyInfoModal, FeatureModal, ImageLightboxModal, ConfirmModal } from './components';
+import { EntityModal, PreferencesModal, KeyInfoModal, FeatureModal, ImageLightboxModal, ConfirmModal, SelectImportModeModal } from './components';
 import { translations } from './constants';
 import { useKeyFiltering } from './hooks';
 import { useResizablePanel } from './hooks';
@@ -71,9 +71,6 @@ const App: React.FC = () => {
     savedHistoryIndex: number;
   }>({ history: [], historyIndex: 0, savedHistoryIndex: 0 });
   const [isGlobalDragging, setIsGlobalDragging] = useState(false);
-  const dragCounter = useRef(0);
-  const [dragOverHomeButton, setDragOverHomeButton] = useState<'identify' | 'build' | null>(null);
-
   // --- DERIVED STATE & MEMOS ---
   const { directMatches, indirectMatches, discardedEntityIds, directlyDiscarded, uncertainMatchIds, misinterpretedMatchIds } = useKeyFiltering(keyData, chosenFeatures, allowMisinterpretations, allowUncertainties);
 
@@ -223,7 +220,6 @@ const App: React.FC = () => {
   // anywhere on the window, even if a child component stops the event propagation.
   useEffect(() => {
     const handleWindowDrop = () => {
-      dragCounter.current = 0;
       setIsGlobalDragging(false);
     };
     window.addEventListener('drop', handleWindowDrop, true);
@@ -244,6 +240,10 @@ const App: React.FC = () => {
       setSidebarOpen(false);
     }
   }, [isHome]);
+
+  useEffect(() => {
+    setIsGlobalDragging(false);
+  }, [isHome, appMode]);
 
   // --- TRANSLATIONS ---
   const t = useCallback((key: keyof typeof translations['en']) => {
@@ -528,7 +528,6 @@ const App: React.FC = () => {
       const isImageDrag = Array.from(e.dataTransfer.items).some((item: DataTransferItem) => item.type.startsWith('image/'));
       // Don't show the global key drop overlay if the user is dragging images
       if (!isImageDrag) {
-        dragCounter.current += 1;
         setIsGlobalDragging(true);
       }
     }
@@ -536,15 +535,9 @@ const App: React.FC = () => {
 
   const handleGlobalDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
-    if (e.dataTransfer.types.includes('Files')) {
-      const isImageDrag = Array.from(e.dataTransfer.items).some((item: DataTransferItem) => item.type.startsWith('image/'));
-      if (!isImageDrag) {
-        dragCounter.current -= 1;
-        if (dragCounter.current <= 0) {
-          dragCounter.current = 0;
-          setIsGlobalDragging(false);
-        }
-      }
+    // If the drag leaves the window, relatedTarget is null or outside the main-container
+    if (!e.relatedTarget || !e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsGlobalDragging(false);
     }
   };
 
@@ -554,10 +547,7 @@ const App: React.FC = () => {
 
   const handleGlobalDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    dragCounter.current = 0;
     setIsGlobalDragging(false);
-
-    if (isHome) return; // Drop on Home screen is managed by specific buttons
 
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
@@ -567,32 +557,22 @@ const App: React.FC = () => {
     }
 
     const name = file.name.toLowerCase();
-    if (name.endsWith('.json')) {
-      processJsonFile(file, appMode);
-    } else if (name.endsWith('.zip') || name.endsWith('.lk4') || name.endsWith('.lk5')) {
-      processZipFile(file, appMode);
+    if (isHome) {
+      if (name.endsWith('.json')) {
+        setModalState({ type: 'selectImportMode' as any, pendingFile: file });
+      } else if (name.endsWith('.zip') || name.endsWith('.lk4') || name.endsWith('.lk5')) {
+        processZipFile(file, 'identify');
+      } else {
+        addToast(t('errCorruptedFile'));
+      }
     } else {
-      addToast(t('errCorruptedFile'));
-    }
-  };
-
-  const handleHomeDrop = (e: React.DragEvent, targetMode: 'identify' | 'build') => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragOverHomeButton(null);
-    dragCounter.current = 0;
-    setIsGlobalDragging(false);
-
-    const file = e.dataTransfer.files?.[0];
-    if (!file) return;
-
-    const name = file.name.toLowerCase();
-    if (name.endsWith('.json')) {
-      processJsonFile(file, targetMode);
-    } else if (name.endsWith('.zip') || name.endsWith('.lk4') || name.endsWith('.lk5')) {
-      processZipFile(file, targetMode);
-    } else {
-      addToast(t('errCorruptedFile'));
+      if (name.endsWith('.json')) {
+        processJsonFile(file, appMode);
+      } else if (name.endsWith('.zip') || name.endsWith('.lk4') || name.endsWith('.lk5')) {
+        processZipFile(file, appMode);
+      } else {
+        addToast(t('errCorruptedFile'));
+      }
     }
   };
 
@@ -706,22 +686,27 @@ const App: React.FC = () => {
 
   const activeOrUnderlying = underlyingModalState || modalState;
 
-  const HomeButton = ({ onClick, onDragOver, onDragLeave, onDrop, isDragOver, icon, title, desc }: any) => (
-    <button
+  const HomeButton = ({ onClick, icon, title, desc }: any) => (
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
-      onDragOver={onDragOver}
-      onDragLeave={onDragLeave}
-      onDrop={onDrop}
-      className={`flex-1 flex flex-col items-center gap-3 md:gap-4 p-6 md:p-8 bg-panel-bg border rounded-3xl transition-all group cursor-pointer shadow-sm ${isDragOver ? 'border-accent shadow-xl scale-105 bg-accent/5' : 'border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-lg'}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className={`flex-1 flex flex-col items-center gap-3 md:gap-4 p-6 md:p-8 bg-panel-bg border rounded-3xl transition-all group shadow-sm border-transparent dark:border-white/10 ${isGlobalDragging ? '' : 'hover:border-black/10 dark:hover:border-white/20 hover:shadow-lg cursor-pointer'}`}
     >
-      <div className="w-14 h-14 md:w-16 md:h-16 bg-accent/10 rounded-2xl flex items-center justify-center text-accent group-hover:scale-110 transition-transform pointer-events-none">
+      <div className={`w-14 h-14 md:w-16 md:h-16 bg-accent/10 rounded-2xl flex items-center justify-center text-accent transition-transform pointer-events-none ${isGlobalDragging ? '' : 'group-hover:scale-110'}`}>
         <Icon name={icon} className="w-7 h-7 md:w-8 md:h-8" />
       </div>
       <div className="text-center pointer-events-none">
         <h3 className="text-lg md:text-xl font-bold text-text mb-1 md:mb-2">{title}</h3>
         <p className="text-xs md:text-sm text-gray-500 line-clamp-2">{desc}</p>
       </div>
-    </button>
+    </div>
   );
 
   // --- CONTEXT VALUE ---
@@ -766,12 +751,12 @@ const App: React.FC = () => {
         onDragLeave={handleGlobalDragLeave}
         onDrop={handleGlobalDrop}
       >
-        {isGlobalDragging && !isHome && (
+        {isGlobalDragging && (
           <div className="absolute inset-0 z-100 bg-bg/80 backdrop-blur-sm flex flex-col items-center justify-center pointer-events-none transition-all duration-300">
             <div className="border-4 border-dashed border-accent rounded-3xl p-12 flex flex-col items-center justify-center bg-panel-bg shadow-2xl animate-fade-in-up">
               <Icon name="FolderOpen" size={64} className="mb-6 animate-bounce text-accent" />
               <h3 className="text-3xl font-black tracking-tight text-accent">{t('openNativeKey')}</h3>
-              <p className="text-lg opacity-80 mt-2 font-medium text-accent">{t('dropKeyHere' as any) || 'Drop key file here (.json, .zip)'}</p>
+              <p className="text-lg opacity-80 mt-2 font-medium text-accent">{t('dropKeyHere')}</p>
             </div>
           </div>
         )}
@@ -833,6 +818,24 @@ const App: React.FC = () => {
           confirmText={t('clearLocalData' as any)}
           cancelText={t('cancel')}
           isDestructive={true}
+        />
+
+        <SelectImportModeModal
+          isOpen={modalState.type === 'selectImportMode'}
+          onClose={handleModalClose}
+          file={(modalState as any).pendingFile}
+          onSelectMode={async (mode) => {
+            const file = (modalState as any).pendingFile;
+            if (file) {
+              if (file.name.toLowerCase().endsWith('.json')) {
+                await processJsonFile(file, mode);
+              } else {
+                await processZipFile(file, mode);
+              }
+            }
+            setModalState({ type: 'none' });
+          }}
+          t={t}
         />
 
         <input
@@ -978,10 +981,6 @@ const App: React.FC = () => {
                           combinedFileInputRef.current?.click();
                         }
                       }}
-                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverHomeButton('identify'); }}
-                      onDragLeave={() => setDragOverHomeButton(null)}
-                      onDrop={(e) => handleHomeDrop(e, 'identify')}
-                      isDragOver={dragOverHomeButton === 'identify'}
                       icon="FolderOpen"
                       title={t('startOpenKey')}
                       desc={t('startOpenKeyDesc')}
@@ -1002,10 +1001,6 @@ const App: React.FC = () => {
                           setIsHome(false);
                         }
                       }}
-                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverHomeButton('build'); }}
-                      onDragLeave={() => setDragOverHomeButton(null)}
-                      onDrop={(e) => handleHomeDrop(e, 'build')}
-                      isDragOver={dragOverHomeButton === 'build'}
                       icon="PenTool"
                       title={t('startCreateKey')}
                       desc={t('startCreateKeyDesc')}
@@ -1013,7 +1008,7 @@ const App: React.FC = () => {
                   </div>
                   <button
                     onClick={() => setModalState({ type: 'preferences' })}
-                    className="p-3 rounded-full bg-panel-bg transition-all cursor-pointer text-gray-500 hover:text-accent shadow-sm border border-transparent dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 hover:shadow-md"
+                    className={`p-3 rounded-full bg-panel-bg transition-all text-gray-500 shadow-sm border border-transparent dark:border-white/10 ${isGlobalDragging ? '' : 'hover:text-accent hover:border-black/10 dark:hover:border-white/20 hover:shadow-md cursor-pointer'}`}
                     title={t('preferences')}
                   >
                     <Icon name="Settings2" size={24} />
