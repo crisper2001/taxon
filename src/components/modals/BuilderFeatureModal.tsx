@@ -291,7 +291,7 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
 
   const modalTitle = cachedMode === 'state' && localState && localStateParent ? (
     <div className="flex items-center gap-3 min-w-0">
-      <Icon name="CircleCheck" size={24} className="text-gray-400" />
+      <Icon name="CircleCheck" size={24} className="text-gray-400 shrink-0" />
       <div className="flex flex-col min-w-0">
         <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-0.5 leading-none truncate">{localStateParent.name || t('kbUnnamedFeature')}</span>
         <span className="truncate leading-tight">{localStateName || t('kbStateName' as any) || 'Unnamed State'}</span>
@@ -299,7 +299,7 @@ export const BuilderFeatureModal: React.FC<BuilderFeatureModalProps> = ({
     </div>
   ) : (
     <div className="flex items-center gap-2 min-w-0">
-      <Icon name={localFeature?.type === 'state' ? 'Tag' : 'Hash'} size={24} className="text-gray-400" />
+      <Icon name={localFeature?.type === 'state' ? 'Tag' : 'Hash'} size={24} className="text-gray-400 shrink-0" />
       <span className="truncate">{localFeatureName || t('kbUnnamedFeature')}</span>
     </div>
   );

@@ -123,7 +123,7 @@ export const BuilderEntityModal: React.FC<BuilderEntityModalProps> = ({
 
   const modalTitle = (
     <div className="flex items-center gap-2 min-w-0">
-      <Icon name="Box" size={24} className="text-gray-400" />
+      <Icon name="Box" size={24} className="text-gray-400 shrink-0" />
       <span className="truncate">{localName || t('kbUnnamedEntity' as any)}</span>
     </div>
   );
