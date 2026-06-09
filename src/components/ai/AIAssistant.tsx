@@ -460,7 +460,15 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
         }
       }, 500);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : t('aiError');
+      let errorMessage = t('aiError');
+      if (err instanceof Error) {
+        const msg = err.message;
+        if (msg === "errApiKeyNotConfigured" || msg === "errInvalidApiKey" || msg === "errApiQuotaExceeded") {
+          errorMessage = t(msg);
+        } else {
+          errorMessage = msg;
+        }
+      }
       setError(errorMessage);
 
       if (regenerateAiIndex !== undefined && regenerateAiIndex !== -1) {

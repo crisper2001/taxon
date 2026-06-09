@@ -1,7 +1,6 @@
 export * from './BuilderEntityModal';
 export * from './BuilderFeatureModal';
 export * from './BuilderMetadataModal';
-export * from './ChangelogModal';
 export * from './ConfirmModal';
 export * from './EntityModal';
 export * from './FeatureModal';
@@ -10,3 +9,4 @@ export * from './KeyInfoModal';
 export * from './Modal';
 export * from './PreferencesModal';
 export * from './BuilderMediaEditModal'
+export * from './SelectImportModeModal';
