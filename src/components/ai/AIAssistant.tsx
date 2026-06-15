@@ -465,8 +465,19 @@ ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `
       let errorMessage = t('aiError');
       if (err instanceof Error) {
         const msg = err.message;
-        if (msg === "errApiKeyNotConfigured" || msg === "errInvalidApiKey" || msg === "errApiQuotaExceeded") {
-          errorMessage = t(msg);
+        const knownErrors = [
+          "errApiKeyNotConfigured",
+          "errInvalidApiKey",
+          "errApiQuotaExceeded",
+          "errFailedToParseResponse",
+          "errNetworkError",
+          "errApiUnknown"
+        ];
+        if (knownErrors.includes(msg)) {
+          errorMessage = t(msg as any);
+        } else if (msg.startsWith("errApiUnknown:")) {
+          const details = msg.replace("errApiUnknown:", "").trim();
+          errorMessage = `${t("errApiUnknown" as any)} (${details})`;
         } else {
           errorMessage = msg;
         }

@@ -164,7 +164,7 @@ export async function callGeminiAPI(
     try {
       return JSON.parse(responseText || '{}') as GeminiResponse;
     } catch (parseError) {
-      throw new Error("Failed to parse the AI's response into the expected JSON format. Please try rephrasing your prompt.");
+      throw new Error("errFailedToParseResponse");
     }
   } catch (error: any) {
     let message = error.response?.data?.error?.message || error.message || "An unknown error occurred.";
@@ -173,8 +173,10 @@ export async function callGeminiAPI(
       throw new Error("errInvalidApiKey");
     } else if (error.status === 429 || message.toLowerCase().includes('quota') || message.toLowerCase().includes('too many requests') || message.toLowerCase().includes('exhausted')) {
       throw new Error("errApiQuotaExceeded");
+    } else if (message.toLowerCase().includes('network') || message.toLowerCase().includes('fetch') || message.toLowerCase().includes('connect') || message.toLowerCase().includes('timeout') || message.toLowerCase().includes('failed to fetch')) {
+      throw new Error("errNetworkError");
     }
 
-    throw new Error(`Gemini API Error: ${message}`);
+    throw new Error(`errApiUnknown: ${message}`);
   }
 }
