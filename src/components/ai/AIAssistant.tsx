@@ -335,14 +335,14 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ isVisible, onClose, ke
 ` : `You are an expert taxonomist assisting a user in building an identification key from scratch.
 
 **Instructions:**
-1. The user will ask for suggestions for taxonomic features or entities, or describe a domain.
-2. Provide helpful suggestions using the "suggested_features" and "suggested_entities" arrays.
+1. The user will ask for suggestions for taxonomic features or entities, describe a domain, or upload an image to build a key.
+2. **CRITICAL:** When the user requests to create or build a key, describes a domain, or uploads an image/text to build a key, you MUST suggest BOTH the features (in "suggested_features") and the entities (in "suggested_entities"), along with their "scores" mapping the entities to the suggested features, in the very first response. You are STRICTLY FORBIDDEN from suggesting only features or leaving "suggested_entities" empty. You must populate the complete set of entities and their scores at the same time.
 3. For features, provide a "name", "description", "type" ("state" or "numeric"). If "state", provide a "states" array with "name" and "description" for each categorical state.
 4. For entities, provide a "name", "description", and optionally "scores" mapping the entity to features.
-5. In "scores", use "feature_name", "state_name" (if categorical), and "score_value" (e.g. "Common", "Rare", "Uncertain" for states, or a numeric range like "10-20" for numeric features).
+5. In "scores", use "feature_name", "state_name" (if categorical), and "score_value" (e.g. "Common", "Rare", "Uncertain" for states, or a numeric range like "10-20" for numeric features). If the feature or state already exists in the "Context (Current Draft)", you MUST also provide their respective "feature_id" and "state_id" matching the exact IDs in the Context.
 6. Respond with a helpful conversational answer in the "answer" field explaining your suggestions.
 7. Leave "updated_description", "features_used", and "entities_used" empty.
-8. **Language:** Always formulate your "answer", names, descriptions, and states in ${targetLanguage}.
+8. **Language:** Always formulate your "answer", names, descriptions, and states in Portuguese (Brazil).
 9. **JSON Output:** Respond ONLY with a single JSON object matching the required schema.
 10. **Context (Current Draft):**
 Features: ${JSON.stringify(compactFeatures)}
@@ -372,7 +372,9 @@ ${matchingEntities.length > 0 ? (matchingEntities.length <= 100 ? matchingEntiti
 
 **Relevant Entity Profiles (name, characteristics):**
 ${relevantEntityProfiles.length > 0 ? JSON.stringify(relevantEntityProfiles) : `No specific profiles loaded. Available entities in this key: ${keyData ? Array.from(keyData.allEntities.values()).map((e: any) => e.name).join(', ') : ''}`}` : `**User Request:**
-"${[text, currentImage ? '[Image Attached]' : ''].filter(Boolean).join(' ')}"`;
+"${[text, currentImage ? '[Image Attached]' : ''].filter(Boolean).join(' ')}"
+
+**Reminder:** Remember to follow the CRITICAL instruction to suggest BOTH the features (in "suggested_features") and the entities (in "suggested_entities") with their scores mapped, in a single response, if the user wants to build/create a key or describes a domain. Do not split this into multiple turns.`;
 
     // Format previous chat history for the API to provide multi-turn context.
     // We exclude the very last message (the current user prompt) to prevent duplicate roles in the API request.

@@ -285,6 +285,114 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
     };
 
     const processEntityMerge = (prevEntities: any[], ent: any, nameToIdMap: Record<string, string>, featuresList: any[]) => {
+      const findStateId = (fName: string, sName: string, stateIdFromAi: string, featuresList: any[]) => {
+        // 1. If stateIdFromAi is provided and matches an existing state, use it
+        if (stateIdFromAi) {
+          for (const f of featuresList) {
+            if (f.type === 'state' && f.states) {
+              const found = f.states.find((s: any) => s.id === stateIdFromAi);
+              if (found) return found.id;
+            }
+          }
+        }
+        
+        const cleanName = (name: string) => {
+          if (!name) return '';
+          let cleaned = name.trim();
+          // Remove 9-character alphanumeric ID suffix (like _8ikrj0jg6 or (8ikrj0jg6))
+          cleaned = cleaned.replace(/_[a-z0-9]{9}$/i, '');
+          cleaned = cleaned.replace(/\([a-z0-9]{9}\)$/i, '');
+          return cleaned.trim().toLowerCase();
+        };
+
+        const cleanedSName = cleanName(sName);
+        const cleanedFName = cleanName(fName);
+        const lowerSName = sName ? sName.toLowerCase() : '';
+        const lowerFName = fName ? fName.toLowerCase() : '';
+
+        // 2. Try to match if the sName contains any existing state ID
+        for (const f of featuresList) {
+          if (f.type === 'state' && f.states) {
+            const matchBySubstr = f.states.find((s: any) => 
+              (s.id && lowerSName.includes(s.id.toLowerCase())) || 
+              (s.name && lowerSName === s.name.toLowerCase()) ||
+              (s.name && cleanedSName === s.name.toLowerCase())
+            );
+            if (matchBySubstr) {
+              // Verify parent feature match if parent is provided
+              const fIdMatches = !fName || 
+                                 lowerFName.includes(f.id.toLowerCase()) || 
+                                 (f.name && lowerFName.includes(f.name.toLowerCase())) ||
+                                 (f.name && cleanedFName === f.name.toLowerCase());
+              if (fIdMatches) {
+                return matchBySubstr.id;
+              }
+            }
+          }
+        }
+
+        // 3. Fallback: match by cleaned names using nameToIdMap or directly
+        if (cleanedSName) {
+          const targetId = nameToIdMap[`${cleanedFName}::${cleanedSName}`] || nameToIdMap[cleanedSName];
+          if (targetId) return targetId;
+        }
+
+        // 4. Prefix fallback matching (e.g. for "Arredondado0000000000...")
+        let bestPrefixMatch = null;
+        for (const f of featuresList) {
+          if (f.type === 'state' && f.states) {
+            const sortedStates = [...f.states].sort((a: any, b: any) => (b.name || '').length - (a.name || '').length);
+            const matchByPrefix = sortedStates.find((s: any) => 
+              s.name && s.name.length > 2 && lowerSName.startsWith(s.name.toLowerCase())
+            );
+            if (matchByPrefix) {
+              const fIdMatches = !fName || 
+                                 lowerFName.includes(f.id.toLowerCase()) || 
+                                 (f.name && lowerFName.includes(f.name.toLowerCase())) ||
+                                 (f.name && cleanedFName === f.name.toLowerCase());
+              if (fIdMatches) {
+                if (!bestPrefixMatch || matchByPrefix.name.length > bestPrefixMatch.name.length) {
+                  bestPrefixMatch = matchByPrefix;
+                }
+              }
+            }
+          }
+        }
+        if (bestPrefixMatch) {
+          return (bestPrefixMatch as any).id;
+        }
+
+        return null;
+      };
+
+      const findFeatureId = (fName: string, featureIdFromAi: string, featuresList: any[]) => {
+        if (featureIdFromAi) {
+          const found = featuresList.find((f: any) => f.id === featureIdFromAi);
+          if (found) return found.id;
+        }
+
+        const cleanName = (name: string) => {
+          if (!name) return '';
+          let cleaned = name.trim();
+          cleaned = cleaned.replace(/_[a-z0-9]{9}$/i, '');
+          cleaned = cleaned.replace(/\([a-z0-9]{9}\)$/i, '');
+          return cleaned.trim().toLowerCase();
+        };
+
+        const cleanedFName = cleanName(fName);
+        const lowerFName = fName ? fName.toLowerCase() : '';
+
+        for (const f of featuresList) {
+          if (lowerFName.includes(f.id.toLowerCase()) || 
+              (f.name && lowerFName.includes(f.name.toLowerCase())) ||
+              (f.name && cleanedFName === f.name.toLowerCase())) {
+            return f.id;
+          }
+        }
+
+        return null;
+      };
+
       let nextEntities = [...prevEntities];
       if (ent.action === 'delete' && ent.id) {
         return nextEntities.filter(xe => xe.id !== ent.id).map(xe => xe.parentId === ent.id ? { ...xe, parentId: undefined } : xe);
@@ -296,14 +404,18 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
 
       if (ent.scores && Array.isArray(ent.scores)) {
         ent.scores.forEach((sc: any) => {
-          const fName = sc.feature_name?.toLowerCase();
-          const sName = sc.state_name?.toLowerCase();
+          const fName = sc.feature_name || '';
+          const sName = sc.state_name || '';
+          const fIdFromAi = sc.feature_id || '';
+          const sIdFromAi = sc.state_id || '';
+          
           let targetId = null;
-          if (sName) {
-            targetId = nameToIdMap[`${fName}::${sName}`] || nameToIdMap[sName];
-          } else if (fName) {
-            targetId = nameToIdMap[fName];
+          if (sName || sIdFromAi) {
+            targetId = findStateId(fName, sName, sIdFromAi, featuresList);
+          } else if (fName || fIdFromAi) {
+            targetId = findFeatureId(fName, fIdFromAi, featuresList);
           }
+
           if (targetId) {
             if (sc.action === 'delete') {
               delete finalScores[targetId];

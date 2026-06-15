@@ -151,8 +151,8 @@ export interface GeminiResponse {
   features_used: GeminiFeatureMatch[];
   entities_used?: { id: string; name: string }[];
   answer?: string;
-  suggested_features?: { name: string; description: string; type: 'state' | 'numeric'; states?: string[] }[];
-  suggested_entities?: { name: string; description: string }[];
+  suggested_features?: any[];
+  suggested_entities?: any[];
 }
 
 // Raw message structure for storing in state

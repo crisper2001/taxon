@@ -133,7 +133,9 @@ export async function callGeminiAPI(
                       type: Type.OBJECT,
                       properties: {
                         feature_name: { type: Type.STRING },
+                        feature_id: { type: Type.STRING, description: "The ID of the feature from the Context, if it already exists" },
                         state_name: { type: Type.STRING },
+                        state_id: { type: Type.STRING, description: "The ID of the state from the Context, if it already exists" },
                         score_value: { type: Type.STRING },
                         action: { type: Type.STRING, description: "Set to 'delete' to remove this specific score" }
                       },
@@ -145,7 +147,7 @@ export async function callGeminiAPI(
               }
             }
           },
-          required: ['updated_description', 'features_used', 'entities_used'],
+          required: ['updated_description', 'features_used', 'entities_used', 'suggested_features', 'suggested_entities'],
         },
       }
     });
