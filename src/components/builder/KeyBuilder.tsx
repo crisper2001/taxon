@@ -202,22 +202,27 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
 
     const processFeatureMerge = (prevFeatures: any[], f: any) => {
       let nextFeatures = [...prevFeatures];
-      if (f.action === 'delete' && f.id) {
-        return nextFeatures.filter(xf => xf.id !== f.id).map(xf => xf.parentId === f.id ? { ...xf, parentId: undefined } : xf);
+      if (f.action === 'delete') {
+        const targetFeature = nextFeatures.find(xf => f.id ? xf.id === f.id : xf.name.toLowerCase() === f.name.toLowerCase());
+        if (targetFeature) {
+          return nextFeatures.filter(xf => xf.id !== targetFeature.id).map(xf => xf.parentId === targetFeature.id ? { ...xf, parentId: undefined } : xf);
+        }
+        return nextFeatures;
       }
-      const featureId = f.id || generateId();
-      const existingIdx = nextFeatures.findIndex(xf => xf.id === featureId);
+      const existingIdx = nextFeatures.findIndex(xf => f.id ? xf.id === f.id : xf.name.toLowerCase() === f.name.toLowerCase());
+      const featureId = existingIdx >= 0 ? nextFeatures[existingIdx].id : (f.id || generateId());
 
       if (existingIdx >= 0) {
         const oldF = nextFeatures[existingIdx];
+        const nextType = f.type || oldF.type;
         let mergedStates = [...(oldF.states || [])];
 
-        if (f.type === 'state' && f.states) {
+        if (nextType === 'state' && f.states) {
           f.states.forEach((s: any) => {
+            const sName = typeof s === 'string' ? s : s.name;
             if (s.action === 'delete') {
-              if (s.id) mergedStates = mergedStates.filter(st => st.id !== s.id);
+              mergedStates = mergedStates.filter(st => s.id ? st.id !== s.id : st.name.toLowerCase() !== sName.toLowerCase());
             } else {
-              const sName = typeof s === 'string' ? s : s.name;
               const sId = s.id || generateId();
               const existingStateIdx = mergedStates.findIndex(st => st.id === s.id || st.name === sName);
 
@@ -251,10 +256,10 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
           ...oldF,
           name: f.name || oldF.name,
           description: f.description !== undefined ? f.description : oldF.description,
-          type: f.type || oldF.type,
+          type: nextType,
           base_unit: f.base_unit !== undefined ? f.base_unit : oldF.base_unit,
           unit_prefix: f.unit_prefix !== undefined ? f.unit_prefix : oldF.unit_prefix,
-          states: mergedStates
+          states: nextType === 'numeric' ? [] : mergedStates
         };
       } else {
         const newStates = f.type === 'state' && f.states ? f.states.filter((s: any) => s.action !== 'delete').map((s: any) => {
@@ -394,10 +399,14 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
       };
 
       let nextEntities = [...prevEntities];
-      if (ent.action === 'delete' && ent.id) {
-        return nextEntities.filter(xe => xe.id !== ent.id).map(xe => xe.parentId === ent.id ? { ...xe, parentId: undefined } : xe);
+      if (ent.action === 'delete') {
+        const targetEntity = nextEntities.find(xe => ent.id ? xe.id === ent.id : xe.name.toLowerCase() === ent.name.toLowerCase());
+        if (targetEntity) {
+          return nextEntities.filter(xe => xe.id !== targetEntity.id).map(xe => xe.parentId === targetEntity.id ? { ...xe, parentId: undefined } : xe);
+        }
+        return nextEntities;
       }
-      const existingIdx = nextEntities.findIndex(xe => xe.id === ent.id);
+      const existingIdx = nextEntities.findIndex(xe => ent.id ? xe.id === ent.id : xe.name.toLowerCase() === ent.name.toLowerCase());
       const oldE = existingIdx >= 0 ? nextEntities[existingIdx] : null;
 
       let finalScores: Record<string, any> = oldE && ent.action !== 'clear_scores' && !ent.clear_scores ? { ...oldE.scores } : {};
@@ -493,13 +502,48 @@ export const KeyBuilder: React.FC<KeyBuilderProps> = ({ onExit, initialData, bui
         return { ...prev, features: nextFeatures, entities: nextEntities };
       });
     };
+
+    const handleRemoveFeature = (e: any) => {
+      const f = e.detail;
+      updateDraftKey(prev => {
+        const feature = prev.features.find(xf => f.id ? xf.id === f.id : xf.name === f.name);
+        if (!feature) return prev;
+        return {
+          ...prev,
+          features: prev.features.filter(xf => xf.id !== feature.id),
+          entities: prev.entities.map(ent => {
+            const nextScores = { ...ent.scores };
+            delete nextScores[feature.id];
+            feature.states?.forEach((s: any) => delete nextScores[s.id]);
+            return { ...ent, scores: nextScores };
+          })
+        };
+      });
+    };
+
+    const handleRemoveEntity = (e: any) => {
+      const ent = e.detail;
+      updateDraftKey(prev => {
+        const existingEnt = prev.entities.find(xe => ent.id ? xe.id === ent.id : xe.name === ent.name);
+        if (!existingEnt) return prev;
+        return {
+          ...prev,
+          entities: prev.entities.filter(xe => xe.id !== existingEnt.id)
+        };
+      });
+    };
+
     window.addEventListener('add-draft-feature', handleAddFeature);
     window.addEventListener('add-draft-entity', handleAddEntity);
     window.addEventListener('add-all-draft-items', handleAddAllItems);
+    window.addEventListener('remove-draft-feature', handleRemoveFeature);
+    window.addEventListener('remove-draft-entity', handleRemoveEntity);
     return () => {
       window.removeEventListener('add-draft-feature', handleAddFeature);
       window.removeEventListener('add-draft-entity', handleAddEntity);
       window.removeEventListener('add-all-draft-items', handleAddAllItems);
+      window.removeEventListener('remove-draft-feature', handleRemoveFeature);
+      window.removeEventListener('remove-draft-entity', handleRemoveEntity);
     };
   }, [t, updateDraftKey]);
 

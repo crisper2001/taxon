@@ -31,15 +31,38 @@ export const ChatMessageBubble = React.memo<ChatMessageBubbleProps>(({
   const [addedEntities, setAddedEntities] = useState<Set<number>>(new Set());
   const [addedAll, setAddedAll] = useState(false);
 
+  const [isFeaturesCollapsed, setIsFeaturesCollapsed] = useState(false);
+  const [isEntitiesCollapsed, setIsEntitiesCollapsed] = useState(false);
+
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(msg.content);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
-
   useEffect(() => {
     setAddedFeatures(new Set());
     setAddedEntities(new Set());
     setAddedAll(false);
   }, [msg.currentVersionIndex, msg.data]);
+
+  // Sync addedAll state when user manually adds/removes all items
+  useEffect(() => {
+    const suggestedFeaturesCount = msg.data?.suggested_features?.length || 0;
+    const suggestedEntitiesCount = msg.data?.suggested_entities?.length || 0;
+    
+    if (suggestedFeaturesCount > 0 || suggestedEntitiesCount > 0) {
+      const allFeaturesAdded = addedFeatures.size === suggestedFeaturesCount;
+      const allEntitiesAdded = addedEntities.size === suggestedEntitiesCount;
+      
+      if (allFeaturesAdded && allEntitiesAdded) {
+        if (!addedAll) {
+          setAddedAll(true);
+        }
+      } else {
+        if (addedAll) {
+          setAddedAll(false);
+        }
+      }
+    }
+  }, [addedFeatures, addedEntities, msg.data, addedAll]);
 
   const handleUndo = () => {
     if (msg.draftSnapshot) {
@@ -140,147 +163,6 @@ export const ChatMessageBubble = React.memo<ChatMessageBubbleProps>(({
               </div>
             )}
 
-            {appMode === 'build' && msg.data?.suggested_features && msg.data.suggested_features.length > 0 && (
-              <div className="mt-3 flex flex-col gap-2 w-full">
-                <h4 className="text-[11px] font-bold opacity-80 uppercase tracking-wider">{t('aiSuggestedFeatures' as any)}</h4>
-                {msg.data.suggested_features.map((sf: any, idx: number) => {
-                  const isAdded = addedFeatures.has(idx) || addedAll;
-                  const isEdit = !!sf.id;
-                  const isDelete = sf.action === 'delete';
-                  const buttonText = isAdded ? (t('addedItem' as any) || 'Added') : (isDelete ? t('kbDelete' as any) : (isEdit ? (t('updateItem' as any) || 'Update') : t('addToKey' as any)));
-                  const buttonClass = isAdded ? 'bg-green-500/20 text-green-600 dark:text-green-400 hover:bg-red-500/20 hover:text-red-500 dark:hover:text-red-400 cursor-pointer shadow-none' : (isDelete ? 'bg-red-500 text-white hover:bg-red-600 cursor-pointer' : (isEdit ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer' : 'bg-accent text-white hover:bg-accent-hover cursor-pointer'));
-                  return (
-                    <div key={idx} className={`bg-bg p-2.5 rounded-xl border border-black/5 dark:border-white/5 shadow-sm flex flex-col gap-1.5 animate-fade-in-up transition-opacity ${isAdded ? 'opacity-60' : ''} ${isDelete ? 'border-red-500/30 bg-red-500/5' : ''}`}>
-                      <div className="flex justify-between items-start gap-2">
-                        <span className={`font-bold text-sm leading-tight ${isDelete ? 'text-red-500 line-through' : 'text-accent'}`}>{sf.name}</span>
-                        <button
-                          onClick={() => {
-                            if (!isAdded) {
-                              window.dispatchEvent(new CustomEvent('add-draft-feature', { detail: sf }));
-                              setAddedFeatures(prev => new Set(prev).add(idx));
-                            } else {
-                              handleUndo();
-                            }
-                          }}
-                          className={`shrink-0 text-[11px] px-2 py-1 rounded-md transition-colors font-semibold shadow-sm flex items-center gap-1 group ${buttonClass}`}
-                        >
-                          <Icon name={isAdded ? "Check" : (isDelete ? "Trash2" : (isEdit ? "RefreshCw" : "Plus"))} size={12} className={isAdded ? "group-hover:hidden" : ""} />
-                          {isAdded && <Icon name="Undo" size={12} className="hidden group-hover:block" />}
-                          <span className={isAdded ? "group-hover:hidden" : ""}>{buttonText}</span>
-                          {isAdded && <span className="hidden group-hover:block">{t('kbUndo' as any)}</span>}
-                        </button>
-                      </div>
-                      {sf.description && <span className="text-xs opacity-75 leading-snug">{sf.description}</span>}
-                      {sf.type === 'state' && sf.states && (
-                        <div className="flex flex-col gap-1 mt-1">
-                          {sf.states.map((s: any, sIdx: number) => (
-                            <div key={typeof s === 'string' ? s : (s.name || sIdx)} className="text-[10px] px-2 py-1 bg-black/5 dark:bg-white/10 rounded-md flex flex-col">
-                              <span className={`font-bold opacity-90 ${s.action === 'delete' ? 'text-red-500 line-through' : ''}`}>
-                                {typeof s === 'string' ? s : s.name}
-                                {s.action === 'delete' && <span className="ml-1 opacity-70 font-normal">({t('kbDelete' as any)})</span>}
-                              </span>
-                              {s.description && <span className="opacity-75 font-normal mt-0.5">{s.description}</span>}
-                              {s.values && s.values.length > 0 && (
-                                <div className="mt-1 flex flex-wrap gap-1">
-                                  {s.values.map((v: any, vIdx: number) => <span key={vIdx} className={`px-1.5 py-0.5 rounded bg-black/10 dark:bg-white/10 text-[9px] ${v.action === 'delete' ? 'line-through text-red-500' : ''}`}>{v.name}</span>)}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {sf.type === 'numeric' && (
-                        <div className="flex flex-wrap gap-1.5 mt-1 items-center">
-                          <div className="text-[10px] px-1.5 py-0.5 bg-black/5 dark:bg-white/10 rounded-md font-medium opacity-90 w-fit">{t('kbTypeNumeric' as any)}</div>
-                          {((sf.base_unit && sf.base_unit !== 'none') || (sf.unit_prefix && sf.unit_prefix !== 'none')) && (
-                            <div className="text-[10px] px-1.5 py-0.5 bg-accent/10 text-accent rounded-md font-medium w-fit border border-accent/20">
-                              {[sf.unit_prefix !== 'none' ? sf.unit_prefix : '', sf.base_unit !== 'none' ? sf.base_unit : ''].filter(Boolean).join(' ')}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-
-            {appMode === 'build' && msg.data?.suggested_entities && msg.data.suggested_entities.length > 0 && (
-              <div className="mt-3 flex flex-col gap-2 w-full">
-                <h4 className="text-[11px] font-bold opacity-80 uppercase tracking-wider">{t('aiSuggestedEntities' as any)}</h4>
-                {msg.data.suggested_entities.map((se: any, idx: number) => {
-                  const isAdded = addedEntities.has(idx) || addedAll;
-                  const isEdit = !!se.id;
-                  const isDelete = se.action === 'delete';
-                  const buttonText = isAdded ? (t('addedItem' as any) || 'Added') : (isDelete ? t('kbDelete' as any) : (isEdit ? (t('updateItem' as any) || 'Update') : t('addToKey' as any)));
-                  const buttonClass = isAdded ? 'bg-green-500/20 text-green-600 dark:text-green-400 hover:bg-red-500/20 hover:text-red-500 dark:hover:text-red-400 cursor-pointer shadow-none' : (isDelete ? 'bg-red-500 text-white hover:bg-red-600 cursor-pointer' : (isEdit ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer' : 'bg-accent text-white hover:bg-accent-hover cursor-pointer'));
-                  return (
-                    <div key={idx} className={`bg-bg p-2.5 rounded-xl border border-black/5 dark:border-white/5 shadow-sm flex flex-col gap-1.5 animate-fade-in-up transition-opacity ${isAdded ? 'opacity-60' : ''} ${isDelete ? 'border-red-500/30 bg-red-500/5' : ''}`}>
-                      <div className="flex justify-between items-start gap-2">
-                        <span className={`font-bold text-sm leading-tight ${isDelete ? 'text-red-500 line-through' : 'text-accent'}`}>{se.name}</span>
-                        <button
-                          onClick={() => {
-                            if (!isAdded) {
-                              window.dispatchEvent(new CustomEvent('add-draft-entity', { detail: se }));
-                              setAddedEntities(prev => new Set(prev).add(idx));
-                            } else {
-                              handleUndo();
-                            }
-                          }}
-                          className={`shrink-0 text-[11px] px-2 py-1 rounded-md transition-colors font-semibold shadow-sm flex items-center gap-1 group ${buttonClass}`}
-                        >
-                          <Icon name={isAdded ? "Check" : (isDelete ? "Trash2" : (isEdit ? "RefreshCw" : "Plus"))} size={12} className={isAdded ? "group-hover:hidden" : ""} />
-                          {isAdded && <Icon name="Undo" size={12} className="hidden group-hover:block" />}
-                          <span className={isAdded ? "group-hover:hidden" : ""}>{buttonText}</span>
-                          {isAdded && <span className="hidden group-hover:block">{t('kbUndo' as any)}</span>}
-                        </button>
-                      </div>
-                      {se.description && <span className="text-xs opacity-75 leading-snug">{se.description}</span>}
-                      {(se.clear_scores || se.action === 'clear_scores') && (
-                        <div className="flex items-center gap-1 mt-1.5 text-[10px] text-red-500 dark:text-red-400 font-bold bg-red-500/10 w-fit px-1.5 py-0.5 rounded-md">
-                          <Icon name="Eraser" size={10} />
-                          <span>{t('clearScores' as any) || 'Clear existing scores'}</span>
-                        </div>
-                      )}
-                      {se.scores && se.scores.length > 0 && (
-                        <div className="flex flex-col gap-1 mt-1.5 border-t border-black/5 dark:border-white/5 pt-1.5">
-                          <span className="text-[9px] font-bold opacity-60 uppercase tracking-wider">Suggested Scores</span>
-                          {se.scores.map((sc: any, sidx: number) => (
-                            <div key={sidx} className="flex justify-between items-center text-[10px] bg-black/5 dark:bg-white/10 px-1.5 py-1 rounded-md">
-                              <span className="font-medium opacity-90">{sc.feature_name}{sc.state_name ? ` > ${sc.state_name}` : ''}</span>
-                              <span className="opacity-80 italic">{sc.score_value}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-
-            {hasSuggestions && (
-              <div className="mt-4 flex justify-end">
-                <button
-                  onClick={() => {
-                    if (!addedAll) {
-                      window.dispatchEvent(new CustomEvent('add-all-draft-items', { detail: { features: msg.data?.suggested_features, entities: msg.data?.suggested_entities } }));
-                      setAddedAll(true);
-                      if (msg.data?.suggested_features) setAddedFeatures(new Set(msg.data.suggested_features.map((_, i) => i)));
-                      if (msg.data?.suggested_entities) setAddedEntities(new Set(msg.data.suggested_entities.map((_, i) => i)));
-                    } else {
-                      handleUndo();
-                    }
-                  }}
-                  className={`text-xs px-3 py-1.5 rounded-lg transition-colors shadow-sm font-bold flex items-center gap-1.5 group ${addedAll ? 'bg-green-500/20 text-green-600 dark:text-green-400 hover:bg-red-500/20 hover:text-red-500 dark:hover:text-red-400 cursor-pointer shadow-none' : (hasEdits ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer' : 'bg-accent text-white hover:bg-accent-hover cursor-pointer')}`}
-                >
-                  <Icon name={addedAll ? "Check" : (hasEdits ? "RefreshCw" : "Plus")} size={14} className={addedAll ? "group-hover:hidden" : ""} />
-                  {addedAll && <Icon name="Undo" size={14} className="hidden group-hover:block" />}
-                  <span className={addedAll ? "group-hover:hidden" : ""}>{addedAll ? (t('addedItem' as any) || 'Added') : (hasEdits ? t('updateAllToKey' as any) || 'Update All' : t('addAllToKey' as any))}</span>
-                  {addedAll && <span className="hidden group-hover:block">{t('kbUndo' as any)}</span>}
-                </button>
-              </div>
-            )}
           </>
         )}
 
@@ -345,6 +227,220 @@ export const ChatMessageBubble = React.memo<ChatMessageBubbleProps>(({
           </div>
         )}
       </div>
+
+      {/* Togglable Suggestions in Build Mode (Separated from main bubble) */}
+      {hasSuggestions && (
+        <div className={`flex flex-col max-w-[90%] w-full ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
+          <button
+            onClick={() => setIsDetailsExpanded(!isDetailsExpanded)}
+            className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-accent transition-colors py-1.5 px-3 rounded-xl border border-border hover:bg-hover-bg focus:outline-none bg-panel-bg shadow-sm mt-1"
+          >
+            <Icon name="Sparkles" className="w-3.5 h-3.5 text-accent" />
+            <span>{t('aiSuggestions')}</span>
+            <Icon name="ChevronRight" className={`w-3.5 h-3.5 transition-transform duration-300 ${isDetailsExpanded ? 'rotate-90' : ''}`} />
+          </button>
+
+          <div className={`overflow-hidden transition-all duration-300 ease-in-out w-full ${isDetailsExpanded ? 'max-h-[1200px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+            <div className="p-3 bg-panel-bg border border-border rounded-xl shadow-sm text-sm w-full overflow-y-auto flex flex-col gap-3">
+              {msg.data?.suggested_features && msg.data.suggested_features.length > 0 && (
+                <div className="flex flex-col gap-2 w-full">
+                  <div 
+                    className="flex items-center justify-between cursor-pointer select-none py-1 hover:opacity-85 transition-opacity" 
+                    onClick={() => setIsFeaturesCollapsed(!isFeaturesCollapsed)}
+                  >
+                    <h4 className="text-[11px] font-bold opacity-80 uppercase tracking-wider flex items-center gap-1.5">
+                      {t('aiSuggestedFeatures' as any)}
+                      <span className="text-[9px] px-1.5 py-0.2 bg-black/5 dark:bg-white/10 rounded-full font-medium">
+                        {msg.data.suggested_features.length}
+                      </span>
+                    </h4>
+                    <Icon name="ChevronDown" size={14} className={`opacity-60 transition-transform duration-300 ${isFeaturesCollapsed ? '-rotate-90' : ''}`} />
+                  </div>
+                  <div className={`overflow-hidden transition-all duration-300 ease-in-out w-full ${isFeaturesCollapsed ? 'max-h-0 opacity-0 mt-0' : 'max-h-[2000px] opacity-100 mt-2 flex flex-col gap-2'}`}>
+                    {msg.data.suggested_features.map((sf: any, idx: number) => {
+                      const isAdded = addedFeatures.has(idx) || addedAll;
+                      const isEdit = !!sf.id;
+                      const isDelete = sf.action === 'delete';
+                      const buttonText = isAdded ? (t('addedItem' as any) || 'Added') : (isDelete ? t('kbDelete' as any) : (isEdit ? (t('updateItem' as any) || 'Update') : t('addToKey' as any)));
+                      const buttonClass = isAdded ? 'bg-green-500/20 text-green-600 dark:text-green-400 hover:bg-red-500/20 hover:text-red-500 dark:hover:text-red-400 cursor-pointer shadow-none' : (isDelete ? 'bg-red-500 text-white hover:bg-red-600 cursor-pointer' : (isEdit ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer' : 'bg-accent text-white hover:bg-accent-hover cursor-pointer'));
+                      return (
+                        <div key={idx} className={`bg-bg p-2.5 rounded-xl border border-black/5 dark:border-white/5 shadow-sm flex flex-col gap-1.5 animate-fade-in-up transition-opacity ${isAdded ? 'opacity-60' : ''} ${isDelete ? 'border-red-500/30 bg-red-500/5' : ''}`}>
+                          <div className="flex justify-between items-start gap-2">
+                            <span className={`font-bold text-sm leading-tight ${isDelete ? 'text-red-500 line-through' : 'text-accent'}`}>{sf.name}</span>
+                            <button
+                              onClick={() => {
+                                if (!isAdded) {
+                                  window.dispatchEvent(new CustomEvent('add-draft-feature', { detail: sf }));
+                                  setAddedFeatures(prev => new Set(prev).add(idx));
+                                } else {
+                                  window.dispatchEvent(new CustomEvent('remove-draft-feature', { detail: sf }));
+                                  if (addedAll) {
+                                    const allFeatIndices = new Set(msg.data?.suggested_features?.map((_, i) => i) || []);
+                                    allFeatIndices.delete(idx);
+                                    const allEntIndices = new Set(msg.data?.suggested_entities?.map((_, i) => i) || []);
+                                    setAddedFeatures(allFeatIndices);
+                                    setAddedEntities(allEntIndices);
+                                    setAddedAll(false);
+                                  } else {
+                                    setAddedFeatures(prev => {
+                                      const next = new Set(prev);
+                                      next.delete(idx);
+                                      return next;
+                                    });
+                                  }
+                                }
+                              }}
+                              className={`shrink-0 text-[11px] px-2 py-1 rounded-md transition-colors font-semibold shadow-sm flex items-center gap-1 group ${buttonClass}`}
+                            >
+                              <Icon name={isAdded ? "Check" : (isDelete ? "Trash2" : (isEdit ? "RefreshCw" : "Plus"))} size={12} className={isAdded ? "group-hover:hidden" : ""} />
+                              {isAdded && <Icon name="Undo" size={12} className="hidden group-hover:block" />}
+                              <span className={isAdded ? "group-hover:hidden" : ""}>{buttonText}</span>
+                              {isAdded && <span className="hidden group-hover:block">{t('kbUndo' as any)}</span>}
+                            </button>
+                          </div>
+                          {sf.description && <span className="text-xs opacity-75 leading-snug">{sf.description}</span>}
+                          {sf.type === 'state' && sf.states && (
+                            <div className="flex flex-col gap-1 mt-1">
+                              {sf.states.map((s: any, sIdx: number) => (
+                                <div key={typeof s === 'string' ? s : (s.name || sIdx)} className="text-[10px] px-2 py-1 bg-black/5 dark:bg-white/10 rounded-md flex flex-col">
+                                  <span className={`font-bold opacity-90 ${s.action === 'delete' ? 'text-red-500 line-through' : ''}`}>
+                                    {typeof s === 'string' ? s : s.name}
+                                    {s.action === 'delete' && <span className="ml-1 opacity-70 font-normal">({t('kbDelete' as any)})</span>}
+                                  </span>
+                                  {s.description && <span className="opacity-75 font-normal mt-0.5">{s.description}</span>}
+                                  {s.values && s.values.length > 0 && (
+                                    <div className="mt-1 flex flex-wrap gap-1">
+                                      {s.values.map((v: any, vIdx: number) => <span key={vIdx} className={`px-1.5 py-0.5 rounded bg-black/10 dark:bg-white/10 text-[9px] ${v.action === 'delete' ? 'line-through text-red-500' : ''}`}>{v.name}</span>)}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {sf.type === 'numeric' && (
+                            <div className="flex flex-wrap gap-1.5 mt-1 items-center">
+                              <div className="text-[10px] px-1.5 py-0.5 bg-black/5 dark:bg-white/10 rounded-md font-medium opacity-90 w-fit">{t('kbTypeNumeric' as any)}</div>
+                              {((sf.base_unit && sf.base_unit !== 'none') || (sf.unit_prefix && sf.unit_prefix !== 'none')) && (
+                                <div className="text-[10px] px-1.5 py-0.5 bg-accent/10 text-accent rounded-md font-medium w-fit border border-accent/20">
+                                  {[sf.unit_prefix !== 'none' ? sf.unit_prefix : '', sf.base_unit !== 'none' ? sf.base_unit : ''].filter(Boolean).join(' ')}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {msg.data?.suggested_entities && msg.data.suggested_entities.length > 0 && (
+                <div className="flex flex-col gap-2 w-full">
+                  <div 
+                    className="flex items-center justify-between cursor-pointer select-none py-1 hover:opacity-85 transition-opacity" 
+                    onClick={() => setIsEntitiesCollapsed(!isEntitiesCollapsed)}
+                  >
+                    <h4 className="text-[11px] font-bold opacity-80 uppercase tracking-wider flex items-center gap-1.5">
+                      {t('aiSuggestedEntities' as any)}
+                      <span className="text-[9px] px-1.5 py-0.2 bg-black/5 dark:bg-white/10 rounded-full font-medium">
+                        {msg.data.suggested_entities.length}
+                      </span>
+                    </h4>
+                    <Icon name="ChevronDown" size={14} className={`opacity-60 transition-transform duration-300 ${isEntitiesCollapsed ? '-rotate-90' : ''}`} />
+                  </div>
+                  <div className={`overflow-hidden transition-all duration-300 ease-in-out w-full ${isEntitiesCollapsed ? 'max-h-0 opacity-0 mt-0' : 'max-h-[2500px] opacity-100 mt-2 flex flex-col gap-2'}`}>
+                    {msg.data.suggested_entities.map((se: any, idx: number) => {
+                      const isAdded = addedEntities.has(idx) || addedAll;
+                      const isEdit = !!se.id;
+                      const isDelete = se.action === 'delete';
+                      const buttonText = isAdded ? (t('addedItem' as any) || 'Added') : (isDelete ? t('kbDelete' as any) : (isEdit ? (t('updateItem' as any) || 'Update') : t('addToKey' as any)));
+                      const buttonClass = isAdded ? 'bg-green-500/20 text-green-600 dark:text-green-400 hover:bg-red-500/20 hover:text-red-500 dark:hover:text-red-400 cursor-pointer shadow-none' : (isDelete ? 'bg-red-500 text-white hover:bg-red-600 cursor-pointer' : (isEdit ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer' : 'bg-accent text-white hover:bg-accent-hover cursor-pointer'));
+                      return (
+                        <div key={idx} className={`bg-bg p-2.5 rounded-xl border border-black/5 dark:border-white/5 shadow-sm flex flex-col gap-1.5 animate-fade-in-up transition-opacity ${isAdded ? 'opacity-60' : ''} ${isDelete ? 'border-red-500/30 bg-red-500/5' : ''}`}>
+                          <div className="flex justify-between items-start gap-2">
+                            <span className={`font-bold text-sm leading-tight ${isDelete ? 'text-red-500 line-through' : 'text-accent'}`}>{se.name}</span>
+                            <button
+                              onClick={() => {
+                                if (!isAdded) {
+                                  window.dispatchEvent(new CustomEvent('add-draft-entity', { detail: se }));
+                                  setAddedEntities(prev => new Set(prev).add(idx));
+                                } else {
+                                  window.dispatchEvent(new CustomEvent('remove-draft-entity', { detail: se }));
+                                  if (addedAll) {
+                                    const allFeatIndices = new Set(msg.data?.suggested_features?.map((_, i) => i) || []);
+                                    const allEntIndices = new Set(msg.data?.suggested_entities?.map((_, i) => i) || []);
+                                    allEntIndices.delete(idx);
+                                    setAddedFeatures(allFeatIndices);
+                                    setAddedEntities(allEntIndices);
+                                    setAddedAll(false);
+                                  } else {
+                                    setAddedEntities(prev => {
+                                      const next = new Set(prev);
+                                      next.delete(idx);
+                                      return next;
+                                    });
+                                  }
+                                }
+                              }}
+                              className={`shrink-0 text-[11px] px-2 py-1 rounded-md transition-colors font-semibold shadow-sm flex items-center gap-1 group ${buttonClass}`}
+                            >
+                              <Icon name={isAdded ? "Check" : (isDelete ? "Trash2" : (isEdit ? "RefreshCw" : "Plus"))} size={12} className={isAdded ? "group-hover:hidden" : ""} />
+                              {isAdded && <Icon name="Undo" size={12} className="hidden group-hover:block" />}
+                              <span className={isAdded ? "group-hover:hidden" : ""}>{buttonText}</span>
+                              {isAdded && <span className="hidden group-hover:block">{t('kbUndo' as any)}</span>}
+                            </button>
+                          </div>
+                          {se.description && <span className="text-xs opacity-75 leading-snug">{se.description}</span>}
+                          {(se.clear_scores || se.action === 'clear_scores') && (
+                            <div className="flex items-center gap-1 mt-1.5 text-[10px] text-red-500 dark:text-red-400 font-bold bg-red-500/10 w-fit px-1.5 py-0.5 rounded-md">
+                              <Icon name="Eraser" size={10} />
+                              <span>{t('clearScores' as any) || 'Clear existing scores'}</span>
+                            </div>
+                          )}
+                          {se.scores && se.scores.length > 0 && (
+                            <div className="flex flex-col gap-1 mt-1.5 border-t border-black/5 dark:border-white/5 pt-1.5">
+                              <span className="text-[9px] font-bold opacity-60 uppercase tracking-wider">Suggested Scores</span>
+                              {se.scores.map((sc: any, sidx: number) => (
+                                <div key={sidx} className="flex justify-between items-center text-[10px] bg-black/5 dark:bg-white/10 px-1.5 py-1 rounded-md">
+                                  <span className="font-medium opacity-90">{sc.feature_name}{sc.state_name ? ` > ${sc.state_name}` : ''}</span>
+                                  <span className="opacity-80 italic">{sc.score_value}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {hasSuggestions && (
+                <div className="mt-2 flex justify-end">
+                  <button
+                    onClick={() => {
+                      if (!addedAll) {
+                        window.dispatchEvent(new CustomEvent('add-all-draft-items', { detail: { features: msg.data?.suggested_features, entities: msg.data?.suggested_entities } }));
+                        setAddedAll(true);
+                        if (msg.data?.suggested_features) setAddedFeatures(new Set(msg.data.suggested_features.map((_, i) => i)));
+                        if (msg.data?.suggested_entities) setAddedEntities(new Set(msg.data.suggested_entities.map((_, i) => i)));
+                      } else {
+                        handleUndo();
+                      }
+                    }}
+                    className={`text-xs px-3 py-1.5 rounded-lg transition-colors shadow-sm font-bold flex items-center gap-1.5 group ${addedAll ? 'bg-green-500/20 text-green-600 dark:text-green-400 hover:bg-red-500/20 hover:text-red-500 dark:hover:text-red-400 cursor-pointer shadow-none' : (hasEdits ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer' : 'bg-accent text-white hover:bg-accent-hover cursor-pointer')}`}
+                  >
+                    <Icon name={addedAll ? "Check" : (hasEdits ? "RefreshCw" : "Plus")} size={14} className={addedAll ? "group-hover:hidden" : ""} />
+                    {addedAll && <Icon name="Undo" size={14} className="hidden group-hover:block" />}
+                    <span className={addedAll ? "group-hover:hidden" : ""}>{addedAll ? (t('addedItem' as any) || 'Added') : (hasEdits ? t('updateAllToKey' as any) || 'Update All' : t('addAllToKey' as any))}</span>
+                    {addedAll && <span className="hidden group-hover:block">{t('kbUndo' as any)}</span>}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Togglable Features & Entities Considered (Separated from main bubble) */}
       {hasConsideredData && (
